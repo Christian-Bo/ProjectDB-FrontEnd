@@ -1,1 +1,16 @@
-<contenido .gitignore de arriba>
+# Build / Maven
+/target/
+!/src/**
+
+# IDEs
+/.idea/
+/.vscode/
+/nbproject/private/
+/*.iml
+
+# SO
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
