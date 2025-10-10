@@ -1,180 +1,110 @@
 <%-- 
     Document   : index
-    Created on : 9 oct 2025, 20:42:04
-    Author     : DELL
+    Created on : 9/10/2025, 22:56:53
+    Author     : Christian
 --%>
-
 <%@page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <!-- Metas -->
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta charset="UTF-8">
+  <title>Iniciar sesión</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- Título -->
-  <title>NextTech • Dashboard</title>
-
-  <!-- Bootstrap 5 + Icons (CDN) -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-
-  <!-- Estilos: comunes + página -->
+  <!-- Paleta global -->
   <link rel="stylesheet" href="assets/css/base.css">
-  <link rel="stylesheet" href="assets/css/index.css">
-</head>
+
+  <!-- Bootstrap 5 + Fuente -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Estilos específicos del login (sin colores) -->
+  <link rel="stylesheet" href="assets/css/login.css">
+</head> 
 <body class="nt-bg">
 
-  <!-- Navbar principal (reutilizada en todas las páginas) -->
-  <nav class="navbar navbar-expand-lg nt-navbar shadow-sm">
-    <div class="container">
-      <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="./">
-        <i class="bi bi-boxes"></i> NextTech
-      </a>
+<main class="min-vh-100 d-flex align-items-center justify-content-center nt-bg">
+  <div class="auth-card nt-card">
+    <div class="row g-0">
+      <!-- HERO -->
+      <aside class="col-lg-6 d-none d-lg-flex hero p-4">
+        <div class="d-flex align-items-start justify-content-between w-100">
+          <span class="badge brand-badge">Nextech</span>
+        </div>
+        <div class="hero-copy">
+          <h1 class="display-6 fw-bold mb-2 text-white">Explorando nuevas fronteras, un paso a la vez.</h1>
+          <p class="lead mb-0 text-white-50">Más allá del alcance de la Tierra</p>
+        </div>
+      </aside>
 
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
-        <span class="navbar-toggler-icon"></span>
-      </button>
+      <!-- FORM -->
+      <section class="col-12 col-lg-6 bg-white form-pane">
+        <div class="p-4 p-lg-5 h-100 d-flex flex-column justify-content-center">
+          <div class="d-flex justify-content-end small mb-2">
+            <span class="nt-subtitle me-1">¿No tienes cuenta?</span>
+            <a class="nt-link" href="${pageContext.request.contextPath}/register.jsp">Regístrate</a>
+          </div>
 
-      <div id="navMain" class="collapse navbar-collapse">
-        <ul class="navbar-nav ms-auto">
-          <!-- La página actual -->
-          <li class="nav-item">
-            <a class="nav-link active" href="./">
-              <i class="bi bi-speedometer2"></i> Dashboard
-            </a>
-          </li>
+          <h2 class="nt-title mb-3">Iniciar sesión</h2>
 
-          <!-- Navega al módulo Proveedores -->
-          <li class="nav-item">
-            <a class="nav-link" href="proveedores.jsp">
-              <i class="bi bi-truck"></i> Proveedores
-            </a>
-          </li>
+          <div id="toastContainer"></div>
 
-          <!-- Aquí podrás agregar más módulos -->
-        </ul>
-      </div>
+          <!-- Formulario de solo UI (no se envía) -->
+          <form id="loginForm" onsubmit="return false;">
+            <div class="mb-3">
+              <label class="form-label">Correo o Usuario</label>
+              <input type="text" class="form-control form-control-lg" id="username" name="username"
+                     placeholder="tucorreo@empresa.com" autocomplete="username">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Contraseña</label>
+              <div class="position-relative">
+                <input type="password" class="form-control form-control-lg" id="password" name="password"
+                       placeholder="Tu contraseña" autocomplete="current-password">
+                <button type="button" class="btn btn-sm btn-toggle-eye" id="togglePwd" aria-label="Mostrar/Ocultar">👁️</button>
+              </div>
+            </div>
+
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="remember" name="remember">
+                <label class="form-check-label nt-subtitle" for="remember">Recordarme</label>
+              </div>
+              <a class="nt-link" href="#">¿Olvidaste tu contraseña?</a>
+            </div>
+
+            <!-- Botón que redirige directo al Dashboard -->
+            <button type="button" id="goDash" class="btn btn-accent btn-lg w-100">Iniciar sesión</button>
+          </form>
+        </div>
+      </section>
     </div>
-  </nav>
-
-  <!-- Contenido principal -->
-  <main class="py-4">
-    <div class="container">
-
-      <!-- Encabezado -->
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-          <h1 class="h3 nt-title mb-1">
-            <i class="bi bi-speedometer2"></i> Dashboard
-          </h1>
-          <p class="mb-0 nt-subtitle">Resumen de Compras & CxP</p>
-        </div>
-        <div class="d-flex gap-2">
-          <button id="btnRefrescar" class="btn nt-btn-accent">
-            <i class="bi bi-arrow-repeat"></i> Actualizar
-          </button>
-          <a class="btn btn-outline-dark" href="proveedores.jsp">
-            <i class="bi bi-truck"></i> Ir a Proveedores
-          </a>
-        </div>
-      </div>
-
-      <!-- KPIs -->
-      <div class="row g-3 mb-3">
-        <div class="col-12 col-sm-6 col-lg-3">
-          <div class="card nt-card h-100 shadow-sm">
-            <div class="card-body d-flex align-items-center gap-3">
-              <div class="display-6"><i class="bi bi-truck"></i></div>
-              <div>
-                <div class="small text-muted">Proveedores activos</div>
-                <div class="h4 mb-0" id="kpiProvActivos">--</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12 col-sm-6 col-lg-3">
-          <div class="card nt-card h-100 shadow-sm">
-            <div class="card-body d-flex align-items-center gap-3">
-              <div class="display-6"><i class="bi bi-basket2"></i></div>
-              <div>
-                <div class="small text-muted">Compras (mes)</div>
-                <div class="h4 mb-0" id="kpiComprasMes">--</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12 col-sm-6 col-lg-3">
-          <div class="card nt-card h-100 shadow-sm">
-            <div class="card-body d-flex align-items-center gap-3">
-              <div class="display-6"><i class="bi bi-receipt"></i></div>
-              <div>
-                <div class="small text-muted">CxP pendientes</div>
-                <div class="h4 mb-0" id="kpiCxPPendiente">--</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12 col-sm-6 col-lg-3">
-          <div class="card nt-card h-100 shadow-sm">
-            <div class="card-body d-flex align-items-center gap-3">
-              <div class="display-6"><i class="bi bi-cash-coin"></i></div>
-              <div>
-                <div class="small text-muted">Pagos (mes)</div>
-                <div class="h4 mb-0" id="kpiPagosMes">--</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Últimos proveedores -->
-      <div class="card nt-card shadow-sm mb-3">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <span class="fw-semibold"><i class="bi bi-people"></i> Últimos proveedores</span>
-          <a class="btn btn-sm btn-outline-dark" href="proveedores.jsp">
-            <i class="bi bi-arrow-right"></i> Ver todos
-          </a>
-        </div>
-        <div class="card-body p-0">
-          <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-              <thead class="table-light nt-table-head">
-                <tr>
-                  <th>Código</th><th>Nombre</th><th>NIT</th><th>Teléfono</th><th>Días crédito</th>
-                </tr>
-              </thead>
-              <tbody id="tblUltimosProv"><!-- Llenado por index.js --></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- Gráfico (Chart.js) -->
-      <div class="card nt-card shadow-sm">
-        <div class="card-header">
-          <span class="fw-semibold"><i class="bi bi-bar-chart"></i> Compras últimas 6 semanas</span>
-        </div>
-        <div class="card-body">
-          <canvas id="chartCompras" height="100"></canvas>
-        </div>
-      </div>
-    </div>
-  </main>
-
-  <!-- Contenedor de toasts -->
-  <div class="position-fixed top-0 end-0 p-3" style="z-index:1080">
-    <div id="toastStack" class="toast-container"></div>
   </div>
+</main>
 
-  <!-- JS -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-  <script src="assets/js/common.js"></script>
-  <script src="assets/js/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Mostrar/ocultar contraseña (opcional, UI)
+  (function(){
+    const pwd = document.getElementById('password');
+    const btn = document.getElementById('togglePwd');
+    btn.addEventListener('click', () => {
+      const isPwd = pwd.type === 'password';
+      pwd.type = isPwd ? 'text' : 'password';
+      btn.textContent = isPwd ? '🙈' : '👁️';
+    });
+  })();
+
+  // Redirección directa al dashboard SIN validar nada
+  (function(){
+    document.getElementById('goDash').addEventListener('click', function(){
+      window.location.href = '<%= request.getContextPath() %>/Dashboard.jsp';
+      // Alternativa sin scriptlet:
+      // window.location.href = '${pageContext.request.contextPath}/Dashboard.jsp';
+    });
+  })();
+</script>
+
 </body>
 </html>
-

@@ -32,7 +32,7 @@
       </button>
       <div id="navMain" class="collapse navbar-collapse">
         <ul class="navbar-nav ms-auto">
-          <li class="nav-item"><a class="nav-link" href="./"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link" href="Dashboard.jsp"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
           <li class="nav-item"><a class="nav-link active" href="proveedores.jsp"><i class="bi bi-truck"></i> Proveedores</a></li>
         </ul>
       </div>

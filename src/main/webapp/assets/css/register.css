@@ -1,0 +1,56 @@
+/*
+Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+Click nbfs://nbhost/SystemFileSystem/Templates/Other/CascadeStyleSheet.css to edit this template
+*/
+/* 
+    Created on : 9/10/2025, 23:53:17
+    Author     : Christian
+*/
+
+:root{
+  --register-font: "Poppins", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  --register-hero: url('../img/logo.png');
+}
+body{ font-family: var(--register-font); }
+
+.signup-card{
+  width: min(1120px, 96vw);
+  min-height: 640px;
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: 0 26px 80px rgba(0,0,0,.12);
+  border: 1px solid rgba(0,0,0,.04);
+  background: var(--nt-card);
+}
+.form-pane{ min-height: 640px; }
+
+.signup-hero{
+  background-image: var(--register-hero, linear-gradient(135deg, rgba(0,0,0,.35), rgba(0,0,0,.55)));
+  background-size: cover; background-position: center;
+  position: relative;
+  border-top-left-radius: 28px; border-bottom-left-radius: 28px;
+  display:flex; flex-direction:column; justify-content:space-between;
+}
+.signup-hero::after{
+  content:""; position:absolute; inset:0;
+  background: linear-gradient(180deg, rgba(0,0,0,.25), rgba(0,0,0,.15) 40%, rgba(0,0,0,.40));
+  pointer-events:none;
+}
+.signup-hero > *{ position: relative; z-index: 1; }
+.brand-badge{ border-radius: 999px; padding: .45rem .8rem; backdrop-filter: blur(2px); background: rgba(255,255,255,.16); color:#fff; font-weight:700; }
+.hero-copy{ max-width: 520px; }
+
+.btn-accent{
+  background: var(--nt-accent); color:#000; border:0; border-radius:999px;
+  font-weight:800; letter-spacing:.2px;
+}
+.btn-accent:hover{ filter: brightness(.96); }
+
+.form-control, .form-select{ border-radius:14px; padding:.9rem 1rem; }
+.form-control:focus, .form-select:focus{ border-color: var(--nt-tertiary); box-shadow: 0 0 0 .25rem rgba(0,0,0,.03); }
+
+@media (max-width: 992px){
+  .signup-card{ width:min(720px,96vw); min-height:auto; border-radius:24px; }
+  .form-pane{ min-height:auto; }
+  .signup-hero{ min-height:300px; border-radius:24px 24px 0 0; }
+}
