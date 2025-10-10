@@ -1,0 +1,11 @@
+/*
+Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/CascadeStyleSheet.css to edit this template
+*/
+/* 
+    Created on : 9 oct 2025, 20:47:32
+    Author     : DELL
+*/
+
+/* Alineaciones y correcciones visuales para el módulo de proveedores */
+#paginacion .page-link{ min-width: 2.25rem; text-align:center; }
