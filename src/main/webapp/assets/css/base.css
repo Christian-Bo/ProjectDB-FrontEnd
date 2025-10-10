@@ -1,0 +1,37 @@
+/*
+Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/CascadeStyleSheet.css to edit this template
+*/
+/* 
+    Created on : 9 oct 2025, 20:45:20
+    Author     : DELL
+*/
+/* ===== Paleta (de tu imagen) ===== */
+:root{
+  --nt-bg:#e3f6f5;        /* Fondo */
+  --nt-card:#fffffe;      /* Tarjeta */
+  --nt-primary:#272343;   /* Titular/headers */
+  --nt-text:#2d334a;      /* Párrafo/subtítulo */
+  --nt-accent:#ffd803;    /* Destacar */
+  --nt-secondary:#e3f6f5; /* Secundario */
+  --nt-tertiary:#bae8e8;  /* Terciario */
+}
+
+/* ===== Base ===== */
+.nt-bg{ background:var(--nt-bg); color:var(--nt-text); }
+.nt-navbar{ background:var(--nt-card); border-bottom:1px solid rgba(39,35,67,.1); }
+.nt-title{ color:var(--nt-primary); }
+.nt-subtitle{ color:var(--nt-text); opacity:.85; }
+.nt-card{ background:var(--nt-card); border:1px solid rgba(39,35,67,.08); }
+.nt-table-head th{ color:var(--nt-primary); }
+.nt-modal-header{ background: var(--nt-tertiary); border-bottom-color: rgba(39,35,67,.15); }
+.nt-btn-accent{ background:var(--nt-accent); color:#000; border:0; }
+.nt-btn-accent:hover{ filter:brightness(.96); }
+
+/* tablas */
+.table-hover tbody tr:hover{ background:#f7fbfb; }
+
+/* Toasts (color de header según tipo) */
+.toast.nt-toast-success .toast-header{ background:#d1f7d6; }
+.toast.nt-toast-error   .toast-header{ background:#ffd6d6; }
+.toast.nt-toast-info    .toast-header{ background:#d8f1ff; }

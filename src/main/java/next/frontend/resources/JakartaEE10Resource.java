@@ -1,4 +1,4 @@
-package com.nexttechstore.web.resources;
+package next.frontend.resources;
 
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
