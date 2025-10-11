@@ -17,8 +17,8 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
   <!-- Estilos: comunes + página -->
-  <link rel="stylesheet" href="assets/css/base.css">
-  <link rel="stylesheet" href="assets/css/proveedores.css">
+  <link rel="stylesheet" href="assets/css/base.css?=6">
+  <link rel="stylesheet" href="assets/css/proveedores.css?v=6">
 </head>
 <body class="nt-bg">
   <!-- Navbar -->

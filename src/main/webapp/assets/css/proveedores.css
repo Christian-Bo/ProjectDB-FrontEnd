@@ -7,5 +7,27 @@ Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/CascadeStyleSheet.css
     Author     : DELL
 */
 
-/* Alineaciones y correcciones visuales para el módulo de proveedores */
-#paginacion .page-link{ min-width: 2.25rem; text-align:center; }
+/*
+  proveedores.css — Listado/ABM Proveedores
+  No usar hex; solo variables de base.css.
+*/
+
+.prov-hero{
+  border-radius: 1rem;
+  padding: 1rem;
+  background: var(--nt-surface);
+  border: 1px solid var(--nt-border-soft);
+}
+
+.prov-search{
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: .75rem;
+}
+
+.prov-table thead th{
+  background: var(--nt-surface-2);
+  color: var(--nt-primary);
+}
+
+.prov-actions .btn{ padding: .25rem .45rem; }
