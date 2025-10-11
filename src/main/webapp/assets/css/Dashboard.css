@@ -7,5 +7,35 @@ Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/CascadeStyleSheet.css
     Author     : DELL
 */
 
-/* Ajustes menores específicos del dashboard */
-#chartCompras{ width:100%; }
+/*
+  index.css — Estilos del Dashboard
+  Solo variables del tema (base.css). No hex fijos.
+*/
+
+.dashboard-hero{
+  border-radius: 1rem;
+  padding: 1.25rem;
+  /* superficie suave del hero */
+  background: var(--nt-surface);
+  border: 1px solid var(--nt-border-soft);
+}
+
+.kpi-card{
+  border-radius: .9rem;
+  padding: 1rem;
+}
+
+.kpi-card .display-6{ opacity:.9; }
+
+.table-ultimos thead th{
+  background: var(--nt-surface-2);
+  color: var(--nt-primary);
+}
+
+/* Chart wrapper */
+.chart-box{
+  border-radius: .9rem;
+  border: 1px solid var(--nt-border-soft);
+  background: var(--nt-surface);
+  padding: .75rem;
+}

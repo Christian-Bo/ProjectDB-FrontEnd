@@ -1,0 +1,87 @@
+/*
+Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/CascadeStyleSheet.css to edit this template
+*/
+/* 
+    Created on : 10 oct 2025, 18:45:25
+    Author     : DELL
+*/
+
+/*
+  compras.css — Skin específico del módulo Compras (dark)
+  CARGAR DESPUÉS de base.css para que prevalezca.
+*/
+
+/* ===== Contenedor de filtros ===== */
+.comp-filters{
+  background: var(--nt-surface);
+  border: 1px solid var(--nt-border-soft);
+  border-radius: 14px;
+  padding: 1rem;
+  box-shadow: var(--nt-shadow);
+}
+.comp-filters .form-label{ color: var(--nt-muted); font-weight: 600; }
+.comp-filters .form-control,
+.comp-filters .form-select{
+  background: #15161b;
+  border-color: var(--nt-border);
+  color: var(--nt-primary);
+}
+.comp-filters .btn-primary{
+  background: var(--nt-accent);
+  border-color: var(--nt-accent);
+}
+
+/* ===== Botonera superior ===== */
+.comp-actions .btn{
+  border-radius: 12px;
+  padding: .55rem .9rem;
+  font-weight: 600;
+}
+.comp-actions .btn-outline-secondary{ border-color: var(--nt-border); }
+
+/* ===== Tabla ===== */
+#tblCompras{
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--nt-border-soft);
+}
+#tblCompras thead th{
+  background: var(--nt-surface-2);
+  letter-spacing: .2px;
+  font-weight: 700;
+}
+#tblCompras tbody tr:nth-child(even){ background: #171921; }
+#tblCompras tbody tr:hover{ background: #202433; }
+#tblCompras td, #tblCompras th{ padding-top: .85rem; padding-bottom: .85rem; }
+#tblCompras td.text-end{ font-variant-numeric: tabular-nums; }
+#tblCompras td:nth-child(2) .fw-semibold{ color:#e6e8f3; }
+
+/* ===== Badges ===== */
+.badge-estado{
+  font-weight: 700; letter-spacing: .3px;
+  border-radius: 10px; padding: .35rem .55rem;
+}
+
+/* ===== Botones de acción ===== */
+#tblCompras .btn-group .btn{
+  padding: .35rem .5rem; border-radius: 8px !important; border-width: 1px;
+}
+#tblCompras .btn-outline-primary{
+  --bs-btn-color: #89aaff; --bs-btn-border-color: #2c3755;
+  --bs-btn-hover-bg: #243154; --bs-btn-hover-border-color: #395184;
+}
+#tblCompras .btn-outline-secondary{
+  --bs-btn-color: #cfd4df; --bs-btn-border-color: #3b3f49;
+  --bs-btn-hover-bg: #2a2e38; --bs-btn-hover-border-color: #4b505c;
+}
+#tblCompras .btn-outline-danger{
+  --bs-btn-color: #ff9aa8; --bs-btn-border-color: #55303a;
+  --bs-btn-hover-bg: #552b34; --bs-btn-hover-border-color: #724250;
+}
+
+/* ===== Modales ===== */
+#mdlCabecera .modal-header,#mdlCompra .modal-header,#mdlEditarLinea .modal-header,#mdlAgregarLineas .modal-header,#mdlAnular .modal-header{
+  background: var(--nt-surface-2);
+}
+#mdlCabecera .table-sm thead th,#mdlAgregarLineas thead th{ color: var(--nt-primary); }

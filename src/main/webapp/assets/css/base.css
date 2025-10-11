@@ -6,32 +6,181 @@ Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/CascadeStyleSheet.css
     Created on : 9 oct 2025, 20:45:20
     Author     : DELL
 */
-/* ===== Paleta (de tu imagen) ===== */
+/*
+  /*
+  base.css — Tema oscuro (fuente de verdad de colores)
+  Paleta:
+  Background #16161a | Headline #ffffff | Paragraph #94a1b2
+  Button/Highlight #7f5af0 | Button text #ffffff
+  Stroke #010101 | Secondary #72757e | Tertiary #2cb67d
+*/
+
+/* ===================== Variables ===================== */
 :root{
-  --nt-bg:#e3f6f5;        /* Fondo */
-  --nt-card:#fffffe;      /* Tarjeta */
-  --nt-primary:#272343;   /* Titular/headers */
-  --nt-text:#2d334a;      /* Párrafo/subtítulo */
-  --nt-accent:#ffd803;    /* Destacar */
-  --nt-secondary:#e3f6f5; /* Secundario */
-  --nt-tertiary:#bae8e8;  /* Terciario */
+  --nt-bg:           #16161a;   /* fondo base */
+  --nt-surface:      #1b1b21;   /* superficies (cards/nav/modales) */
+  --nt-surface-2:    #202028;   /* encabezados de card/thead/modal */
+
+  --nt-primary:      #ffffff;   /* titulares */
+  --nt-text:         #94a1b2;   /* párrafos/subtítulos */
+  --nt-muted:        #72757e;   /* texto auxiliar */
+
+  --nt-accent:       #7f5af0;   /* botón principal / highlight */
+  --nt-accent-contrast:#ffffff; /* texto sobre el botón */
+  --nt-tertiary:     #2cb67d;   /* éxito/resaltados */
+
+  --nt-success:      #2cb67d;
+  --nt-danger:       #ef476f;
+  --nt-warning:      #f7b801;
+  --nt-info:         #3a86ff;
+
+  --nt-border:       #2a2d34;
+  --nt-border-soft:  #24262c;
+  --nt-shadow:       0 6px 18px rgba(0,0,0,.3);
 }
 
-/* ===== Base ===== */
-.nt-bg{ background:var(--nt-bg); color:var(--nt-text); }
-.nt-navbar{ background:var(--nt-card); border-bottom:1px solid rgba(39,35,67,.1); }
-.nt-title{ color:var(--nt-primary); }
-.nt-subtitle{ color:var(--nt-text); opacity:.85; }
-.nt-card{ background:var(--nt-card); border:1px solid rgba(39,35,67,.08); }
-.nt-table-head th{ color:var(--nt-primary); }
-.nt-modal-header{ background: var(--nt-tertiary); border-bottom-color: rgba(39,35,67,.15); }
-.nt-btn-accent{ background:var(--nt-accent); color:#000; border:0; }
-.nt-btn-accent:hover{ filter:brightness(.96); }
+/* ===================== Reset oscuro básico ===================== */
+html, body{ background: var(--nt-bg); color: var(--nt-text); }
+a{ color: #b6baff; } 
+a:hover{ color: #d5d7ff; }
 
-/* tablas */
-.table-hover tbody tr:hover{ background:#f7fbfb; }
+/* Anular variantes “claras” de Bootstrap que puedan colarse */
+.bg-white,.bg-light,.navbar-light,.table-light,.card.bg-white,.card.bg-light{
+  background-color: var(--nt-surface) !important; 
+  color: var(--nt-text) !important;
+}
+.text-dark{ color: var(--nt-primary) !important; }
+.btn-light{
+  background: var(--nt-surface-2) !important; 
+  color: var(--nt-primary) !important; 
+  border-color: var(--nt-border) !important;
+}
 
-/* Toasts (color de header según tipo) */
-.toast.nt-toast-success .toast-header{ background:#d1f7d6; }
-.toast.nt-toast-error   .toast-header{ background:#ffd6d6; }
-.toast.nt-toast-info    .toast-header{ background:#d8f1ff; }
+/* ===================== Componentes NextTech ===================== */
+.nt-bg{ background: var(--nt-bg); color: var(--nt-text); }
+
+/* Navbar */
+.nt-navbar,.navbar{
+  background: var(--nt-surface) !important; 
+  border-bottom:1px solid var(--nt-border);
+}
+.nt-navbar .navbar-brand,
+.nt-navbar .nav-link,
+.navbar .nav-link{ color: var(--nt-text); }
+.nt-navbar .nav-link.active,
+.nt-navbar .nav-link:hover,
+.navbar .nav-link:hover{ color: var(--nt-primary); }
+
+/* Títulos */
+.nt-title{ color: var(--nt-primary); }
+.nt-subtitle{ color: var(--nt-text); opacity:.9; }
+
+/* Cards y headers */
+.nt-card,.card{
+  background: var(--nt-surface);
+  border: 1px solid var(--nt-border-soft);
+  color: var(--nt-text);
+  box-shadow: var(--nt-shadow);
+}
+.card-header,.nt-table-head th{
+  background: var(--nt-surface-2);
+  color: var(--nt-primary);
+  border-bottom: 1px solid var(--nt-border);
+}
+
+/* Botones */
+.nt-btn-accent,.btn-primary{
+  background: var(--nt-accent);
+  border-color: var(--nt-accent);
+  color: var(--nt-accent-contrast);
+}
+.nt-btn-accent:hover,.btn-primary:hover{
+  filter:brightness(.95); color: var(--nt-accent-contrast);
+}
+.btn-outline-dark,.btn-outline-secondary{
+  color: var(--nt-text); border-color: var(--nt-border);
+}
+.btn-outline-dark:hover,.btn-outline-secondary:hover{
+  background: var(--nt-surface-2); color: var(--nt-primary);
+}
+.btn-success{ background: var(--nt-success); border-color: var(--nt-success); }
+.btn-danger{  background: var(--nt-danger);  border-color: var(--nt-danger);  }
+.btn-warning{ background: var(--nt-warning); border-color: var(--nt-warning); color:#111; }
+
+/* Formularios */
+.form-control,.form-select,.form-check-input{
+  background:#15161b; border:1px solid var(--nt-border); color:var(--nt-primary);
+}
+.form-control:focus,.form-select:focus{
+  border-color:var(--nt-accent); box-shadow:0 0 0 .2rem rgba(127,90,240,.25);
+}
+.form-control::placeholder{ color: var(--nt-muted); }
+
+/* ===================== Tablas (contraste mejorado) ===================== */
+.table{
+  color: var(--nt-primary);           /* alto contraste en todo el sitio */
+  font-size: 0.985rem;
+}
+.table>:not(caption)>*>*{
+  background-color: transparent !important;
+  border-color: var(--nt-border-soft);
+}
+.table thead th,
+.nt-table-head th{
+  color: var(--nt-primary);
+  background: var(--nt-surface-2);
+  border-bottom: 1px solid var(--nt-border);
+  font-weight: 700;
+}
+.table tbody td{
+  color: #d6dae4;                     /* texto del cuerpo más claro */
+}
+.table-hover tbody tr:hover{
+  background: #1f2230;
+}
+
+/* ===================== Modales ===================== */
+.modal-content{
+  background:var(--nt-surface); 
+  color:var(--nt-text); 
+  border:1px solid var(--nt-border); 
+  box-shadow:var(--nt-shadow);
+}
+.modal-header{
+  background:var(--nt-surface-2); 
+  color:var(--nt-primary); 
+  border-bottom:1px solid var(--nt-border);
+}
+.modal-footer{ border-top:1px solid var(--nt-border); }
+
+/* ===================== Badges ===================== */
+.badge.bg-secondary{ background:#444a57 !important; }
+.badge.bg-success{   background:var(--nt-success) !important; color:#08130c; }
+.badge.bg-danger{    background:var(--nt-danger) !important; }
+.badge.bg-info{      background:var(--nt-info) !important; }
+
+/* ===================== Toasts ===================== */
+.toast{
+  background:var(--nt-surface); 
+  color:var(--nt-text); 
+  border:1px solid var(--nt-border);
+}
+.toast .toast-header{
+  background:var(--nt-surface-2); 
+  color:var(--nt-primary); 
+  border-bottom:1px solid var(--nt-border);
+}
+.toast.nt-toast-success .toast-header{ background: rgba(44,182,125,.16); color:#d7ffe9; }
+.toast.nt-toast-error   .toast-header{ background: rgba(239,71,111,.16);  color:#ffdbe4; }
+.toast.nt-toast-info    .toast-header{ background: rgba(58,134,255,.16);  color:#d9e3ff; }
+
+/* ===================== Utilidades ===================== */
+.hr-soft{ border-top:1px solid var(--nt-border); }
+.text-muted{ color:var(--nt-muted) !important; }
+.shadow-nt{ box-shadow: var(--nt-shadow); }
+
+/* ===================== Scrollbar (webkit opcional) ===================== */
+*::-webkit-scrollbar{ width:10px; height:10px; }
+*::-webkit-scrollbar-track{ background:#141419; }
+*::-webkit-scrollbar-thumb{ background:#2a2d34; border-radius:8px; }
+*::-webkit-scrollbar-thumb:hover{ background:#343843; }
