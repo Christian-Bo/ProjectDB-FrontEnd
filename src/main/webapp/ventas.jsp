@@ -10,7 +10,7 @@
   <meta charset="UTF-8">
   <title>Ventas | NextTech</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/app.css">
+  <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/app.css?v=dark-purple-4">
 </head>
 <body>
 <div class="container py-4">
@@ -48,24 +48,24 @@
   </div>
 
   <div class="d-flex justify-content-between align-items-center mb-2">
-    <div class="d-flex align-items-center gap-2">
+    <div class="d-flex align-items-center gap-2 pager">
       <button class="btn btn-outline-secondary btn-sm" onclick="cambiarPagina(-1)">&laquo; Anterior</button>
       <div> Página <span id="pActual">1</span> </div>
       <button class="btn btn-outline-secondary btn-sm" onclick="cambiarPagina(1)">Siguiente &raquo;</button>
     </div>
-    <small>Mostrando 10 por página</small>
+    <small class="text-muted">Mostrando 10 por página</small>
   </div>
 
   <div class="card">
     <div class="table-responsive">
-      <table id="tabla" class="table table-dark table-striped table-borderless align-middle mb-0">
+      <table id="tabla" class="table table-striped table-hover align-middle mb-0">
         <thead>
         <tr>
           <th>ID</th>
           <th>Número</th>
           <th>Fecha</th>
           <th>Cliente</th>
-          <th>Total</th>
+          <th class="text-end">Total</th>
           <th>Estado</th>
           <th>Tipo pago</th>
           <th></th>
@@ -74,10 +74,11 @@
         <tbody></tbody>
       </table>
     </div>
+    <div id="tablaEmpty" class="p-3 text-muted d-none">Sin resultados para los filtros actuales.</div>
   </div>
 
   <!-- Toasts -->
-  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index:1080;">
     <div id="toastOk" class="toast align-items-center text-bg-success border-0" role="alert">
       <div class="d-flex">
         <div class="toast-body">Venta registrada correctamente.</div>
@@ -106,23 +107,31 @@
 
         <div class="modal-body">
           <div class="row g-3">
-            <div class="col-md-3">
-              <label class="form-label">Cliente ID *</label>
-              <input type="number" min="1" class="form-control" name="clienteId" required>
+            <div class="col-md-4">
+              <label class="form-label">Cliente *</label>
+              <select id="selCliente" class="form-select" name="clienteId" required>
+                <option value="">Cargando...</option>
+              </select>
             </div>
-            <div class="col-md-3">
-              <label class="form-label">Vendedor ID</label>
-              <input type="number" min="1" class="form-control" name="vendedorId">
+            <div class="col-md-4">
+              <label class="form-label">Vendedor</label>
+              <select id="selVendedor" class="form-select" name="vendedorId">
+                <option value="">Cargando...</option>
+              </select>
             </div>
-            <div class="col-md-3">
-              <label class="form-label">Cajero ID</label>
-              <input type="number" min="1" class="form-control" name="cajeroId">
+            <div class="col-md-4">
+              <label class="form-label">Cajero</label>
+              <select id="selCajero" class="form-select" name="cajeroId">
+                <option value="">Cargando...</option>
+              </select>
             </div>
-            <div class="col-md-3">
-              <label class="form-label">Bodega Origen ID</label>
-              <input type="number" min="1" class="form-control" name="bodegaOrigenId">
+            <div class="col-md-4">
+              <label class="form-label">Bodega Origen</label>
+              <select id="selBodegaOrigen" class="form-select" name="bodegaOrigenId">
+                <option value="">Cargando...</option>
+              </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
               <label class="form-label">Tipo de Pago *</label>
               <select class="form-select" name="tipoPago" required>
                 <option value="C" selected>Contado</option>
@@ -139,19 +148,20 @@
 
           <div class="d-flex align-items-center justify-content-between mb-2">
             <h6 class="m-0">Items</h6>
-            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="agregarItem()">+ Agregar ítem</button>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="agregarItem()">+ Agregar ítem</button>
           </div>
           <div class="table-responsive">
-            <table class="table table-sm table-dark align-middle" id="tablaItems">
+            <table class="table table-sm table-striped align-middle" id="tablaItems">
               <thead>
               <tr>
-                <th style="width:110px;">Producto ID *</th>
-                <th style="width:110px;">Bodega ID *</th>
-                <th style="width:110px;">Cantidad *</th>
-                <th style="width:140px;">Precio Unitario *</th>
+                <th style="width:180px;">Bodega *</th>
+                <th style="width:320px;">Producto *</th>
+                <th style="width:110px;">Stock</th>
+                <th style="width:120px;">Cantidad *</th>
+                <th style="width:150px;">Precio Unitario *</th>
                 <th style="width:120px;">Descuento</th>
-                <th style="width:160px;">Lote</th>
-                <th style="width:160px;">Vence</th>
+                <th style="width:140px;">Lote</th>
+                <th style="width:140px;">Vence</th>
                 <th style="width:60px;"></th>
               </tr>
               </thead>
@@ -172,44 +182,75 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-const API = 'http://localhost:8080/api/ventas';
-const ctx = '${pageContext.request.contextPath}';
+// ==== Endpoints ====
+const API     = 'http://localhost:8080/api/ventas';
+const API_CAT = 'http://localhost:8080/api/catalogos';
+const ctx     = '${pageContext.request.contextPath}';
+
+// ==== Utils ====
+async function fetchJson(url){
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('HTTP '+res.status+' al llamar: '+url);
+  return res.json();
+}
+function asArray(payload){
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== 'object') return [];
+  return payload.content || payload.items || payload.data || payload.results || payload.records || [];
+}
+function formatMoney(n){ if(n==null) return ''; return new Intl.NumberFormat('es-GT',{style:'currency',currency:'GTQ'}).format(n); }
+
+// ==== Tabla (lista de ventas) ====
 let page = 0;
 const size = 10;
 let lastFilters = {};
 
 async function cargar(params = {}) {
-  const qs = new URLSearchParams({ page, size });
-  if (params.desde) qs.set('desde', params.desde);
-  if (params.hasta) qs.set('hasta', params.hasta);
-  if (params.clienteId) qs.set('clienteId', params.clienteId);
-  if (params.numeroVenta) qs.set('numeroVenta', params.numeroVenta);
+  try{
+    const qs = new URLSearchParams({ page, size });
+    if (params.desde) qs.set('desde', params.desde);
+    if (params.hasta) qs.set('hasta', params.hasta);
+    if (params.clienteId) qs.set('clienteId', params.clienteId);
+    if (params.numeroVenta) qs.set('numeroVenta', params.numeroVenta);
 
-  const res = await fetch(API + '?' + qs.toString());
-  if (!res.ok) { showErr('Error al consultar ventas'); return; }
-  const rows = await res.json();
-  render(rows);
-  document.getElementById('pActual').textContent = (page+1);
+    const data = await fetchJson(API + '?' + qs.toString());
+    const rows = asArray(data);
+    render(rows);
+    document.getElementById('pActual').textContent = (page+1);
+  }catch(err){
+    console.error('Error cargando ventas:', err);
+    showErr('No se pudo consultar ventas');
+    render([]);
+  }
 }
 
 function render(rows) {
   const tbody = document.querySelector('#tabla tbody');
+  const empty = document.getElementById('tablaEmpty');
   tbody.innerHTML = '';
-  for (const v of rows) {
-    const estadoHtml = v.estado ? `<span class="badge ok">${'${'}v.estado}</span>` : '';
-    const cliente = (v.clienteNombre && v.clienteNombre.trim() !== '') ? v.clienteNombre : ('ID ' + v.clienteId);
-    const tipoPago = (v.tipoPago ?? '');
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${'${'}v.id}</td>
-      <td>${'${'}v.numeroVenta}</td>
-      <td>${'${'}v.fechaVenta}</td>
-      <td>${'${'}cliente}</td>
-      <td>${'${'}v.total}</td>
-      <td>${'${'}estadoHtml}</td>
-      <td>${'${'}tipoPago}</td>
-      <td><a class="btn btn-sm btn-outline-secondary" href="${'${'}ctx}/venta_detalle.jsp?id=${'${'}v.id}">Ver</a></td>
-    `;
+  if (!rows.length){
+    empty.classList.remove('d-none');
+    return;
+  }
+  empty.classList.add('d-none');
+
+  for (var i=0;i<rows.length;i++) {
+    var v = rows[i];
+    var estadoHtml = v && v.estado ? '<span class="badge ok">'+ v.estado +'</span>' : '';
+    var clienteTxt = (v && v.clienteNombre && String(v.clienteNombre).trim() !== '')
+                     ? v.clienteNombre
+                     : ('ID ' + (v && v.clienteId != null ? v.clienteId : ''));
+    var link = ctx + '/venta_detalle.jsp?id=' + (v && v.id != null ? v.id : '');
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+        '<td>' + (v && v.id != null ? v.id : '') + '</td>'
+      + '<td>' + (v && v.numeroVenta != null ? v.numeroVenta : '') + '</td>'
+      + '<td>' + (v && v.fechaVenta != null ? v.fechaVenta : '') + '</td>'
+      + '<td>' + clienteTxt + '</td>'
+      + '<td class="text-end">' + formatMoney(v ? v.total : null) + '</td>'
+      + '<td>' + estadoHtml + '</td>'
+      + '<td>' + ((v && v.tipoPago) ? v.tipoPago : '') + '</td>'
+      + '<td><a class="btn btn-sm btn-outline-primary" href="' + link + '">Ver</a></td>';
     tbody.appendChild(tr);
   }
 }
@@ -237,39 +278,186 @@ function cambiarPagina(delta){
   cargar(lastFilters);
 }
 
+// ==== Catálogos (Cliente, Empleados, Bodegas) ====
+let _catalogosCargados = false;
+
+function fillSelect(sel, data, map){
+  var html = '<option value="">Seleccione...</option>';
+  for (var i=0;i<data.length;i++){
+    var o = map(data[i]);
+    html += '<option value="'+o.value+'">'+o.text+'</option>';
+  }
+  sel.innerHTML = html;
+}
+
+async function cargarCatalogos(){
+  if (_catalogosCargados) return;
+  try{
+    const cliRaw = await fetchJson(API_CAT + '/clientes?limit=100');
+    const empRaw = await fetchJson(API_CAT + '/empleados?limit=100');
+    const bodRaw = await fetchJson(API_CAT + '/bodegas?limit=100');
+    const clientes  = asArray(cliRaw);
+    const empleados = asArray(empRaw);
+    const bodegas   = asArray(bodRaw);
+
+    fillSelect(
+      document.getElementById('selCliente'),
+      clientes,
+      function(c){ 
+        return { 
+          value: c.id,
+          text: ( (c.codigo || ('CLI-'+c.id)) + ' - ' + (c.nombre || c.razonSocial || '') )
+        };
+      }
+    );
+    fillSelect(
+      document.getElementById('selVendedor'),
+      empleados,
+      function(e){
+        return {
+          value: e.id,
+          text: ( (e.codigo || ('EMP-'+e.id)) + ' - ' + (e.nombres || '') + ' ' + (e.apellidos || '') )
+        };
+      }
+    );
+    fillSelect(
+      document.getElementById('selCajero'),
+      empleados,
+      function(e){
+        return {
+          value: e.id,
+          text: ( (e.codigo || ('EMP-'+e.id)) + ' - ' + (e.nombres || '') + ' ' + (e.apellidos || '') )
+        };
+      }
+    );
+    fillSelect(
+      document.getElementById('selBodegaOrigen'),
+      bodegas,
+      function(b){ return { value:b.id, text:(b.nombre || ('Bodega '+b.id)) }; }
+    );
+
+    _catalogosCargados = true;
+  }catch(err){
+    console.error('Error catálogos:', err);
+    showErr('No se pudieron cargar catálogos');
+  }
+}
+
+// ==== Items del modal (bodega → productos con stock/precio) ====
 function agregarItem(){
   const tbody = document.querySelector('#tablaItems tbody');
   const tr = document.createElement('tr');
-  tr.innerHTML = `
-    <td><input type="number" min="1" class="form-control form-control-sm" name="productoId" required></td>
-    <td><input type="number" min="1" class="form-control form-control-sm" name="bodegaId" required></td>
-    <td><input type="number" step="0.01" min="0.01" class="form-control form-control-sm" name="cantidad" required></td>
-    <td><input type="number" step="0.01" min="0" class="form-control form-control-sm" name="precioUnitario" required></td>
-    <td><input type="number" step="0.01" min="0" class="form-control form-control-sm" name="descuento"></td>
-    <td><input type="text" class="form-control form-control-sm" name="lote" placeholder="S/N"></td>
-    <td><input type="date" class="form-control form-control-sm" name="fechaVencimiento"></td>
-    <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('tr').remove()">X</button></td>
-  `;
+  tr.innerHTML =
+      '<td>'
+    + '  <select class="form-select form-select-sm" name="bodegaId" required>'
+    + '    <option value="">Seleccione...</option>'
+    + '  </select>'
+    + '</td>'
+    + '<td>'
+    + '  <select class="form-select form-select-sm" name="productoId" required disabled>'
+    + '    <option value="">Seleccione bodega...</option>'
+    + '  </select>'
+    + '</td>'
+    + '<td><span class="badge text-bg-secondary" data-stock="0">0</span></td>'
+    + '<td><input type="number" step="0.01" min="0.01" class="form-control form-control-sm" name="cantidad" required></td>'
+    + '<td><input type="number" step="0.01" min="0" class="form-control form-control-sm" name="precioUnitario" required></td>'
+    + '<td><input type="number" step="0.01" min="0" class="form-control form-control-sm" name="descuento"></td>'
+    + '<td><input type="text" class="form-control form-control-sm" name="lote" placeholder="S/N"></td>'
+    + '<td><input type="date" class="form-control form-control-sm" name="fechaVencimiento"></td>'
+    + '<td><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest(\'tr\').remove()">X</button></td>';
   tbody.appendChild(tr);
+  cargarBodegasFila(tr.querySelector('select[name="bodegaId"]'));
+  wireRowEvents(tr);
 }
+
+async function cargarBodegasFila(sel){
+  try{
+    const raw = await fetchJson(API_CAT + '/bodegas?limit=100');
+    const bodegas = asArray(raw);
+    var html = '<option value="">Seleccione...</option>';
+    for (var i=0;i<bodegas.length;i++){
+      var b = bodegas[i];
+      html += '<option value="'+b.id+'">'+ (b.nombre || ('Bodega '+b.id)) +'</option>';
+    }
+    sel.innerHTML = html;
+  }catch{
+    sel.innerHTML = '<option value="">(sin datos)</option>';
+  }
+}
+
+function wireRowEvents(tr){
+  const selBod = tr.querySelector('select[name="bodegaId"]');
+  const selProd = tr.querySelector('select[name="productoId"]');
+  const precio  = tr.querySelector('input[name="precioUnitario"]');
+  const stockEl = tr.querySelector('[data-stock]');
+  const cantInp = tr.querySelector('input[name="cantidad"]');
+
+  selBod.addEventListener('change', async function(){
+    selProd.disabled = true;
+    selProd.innerHTML = '<option value="">Cargando...</option>';
+    stockEl.textContent = '0';
+    stockEl.setAttribute('data-stock','0');
+    if (!selBod.value) { selProd.innerHTML = '<option value="">Seleccione bodega...</option>'; return; }
+    try{
+      const raw   = await fetchJson(API_CAT + '/productos?bodegaId=' + encodeURIComponent(selBod.value));
+      const prods = asArray(raw);
+      var html = '<option value="">Seleccione...</option>';
+      for (var i=0;i<prods.length;i++){
+        var p = prods[i];
+        var st = (p.stockDisponible || 0);
+        var pr = (p.precioSugerido || 0);
+        html += '<option value="'+p.id+'" data-stock="'+st+'" data-precio="'+pr+'">'+ (p.nombre || ('Producto '+p.id)) +' (stock '+st+')</option>';
+      }
+      selProd.disabled = false;
+      selProd.innerHTML = html;
+    }catch{
+      selProd.innerHTML = '<option value="">(sin datos)</option>';
+      selProd.disabled = false;
+    }
+  });
+
+  selProd.addEventListener('change', function(){
+    const opt = selProd.selectedOptions[0];
+    if (!opt) return;
+    const st = Number(opt.getAttribute('data-stock') || 0);
+    const pr = Number(opt.getAttribute('data-precio') || 0);
+    stockEl.textContent = String(st);
+    stockEl.setAttribute('data-stock', String(st));
+    if (pr > 0) { precio.value = pr; }
+  });
+
+  cantInp.addEventListener('input', function(){
+    const st = Number(stockEl.getAttribute('data-stock') || 0);
+    const q  = Number(cantInp.value || 0);
+    if (q > st && st > 0) {
+      cantInp.classList.add('is-invalid');
+      cantInp.setCustomValidity('No hay stock suficiente');
+    } else {
+      cantInp.classList.remove('is-invalid');
+      cantInp.setCustomValidity('');
+    }
+  });
+}
+
+// ==== Guardar ====
 function leerItems(){
   const rows = Array.from(document.querySelectorAll('#tablaItems tbody tr'));
-  return rows.map(r => {
-    const get = sel => r.querySelector(sel)?.value;
-    const toNum = v => (v==='' || v==null) ? null : Number(v);
-    const toStr = v => (v==null) ? null : String(v).trim();
-    const fv = v => (v==='' ? null : v);
+  return rows.map(function(r){
+    const get = function(sel){ const el = r.querySelector(sel); return el ? el.value : null; };
+    const toNum = function(v){ return (v==='' || v==null) ? null : Number(v); };
+    const fv = function(v){ return (v==='' ? null : v); };
     return {
-      productoId: toNum(get('input[name="productoId"]')),
-      bodegaId: toNum(get('input[name="bodegaId"]')),
-      cantidad: get('input[name="cantidad"]') ? Number(get('input[name="cantidad"]')) : null,
-      precioUnitario: get('input[name="precioUnitario"]') ? Number(get('input[name="precioUnitario"]')) : null,
-      descuento: get('input[name="descuento"]') ? Number(get('input[name="descuento"]')) : null,
-      lote: toStr(get('input[name="lote"]')),
+      productoId: toNum(get('select[name="productoId"]')),
+      bodegaId: toNum(get('select[name="bodegaId"]')),
+      cantidad: toNum(get('input[name="cantidad"]')),
+      precioUnitario: toNum(get('input[name="precioUnitario"]')),
+      descuento: toNum(get('input[name="descuento"]')),
+      lote: fv(get('input[name="lote"]')),
       fechaVencimiento: fv(get('input[name="fechaVencimiento"]'))
     };
-  }).filter(it => it.productoId && it.bodegaId && it.cantidad && it.precioUnitario);
+  }).filter(function(it){ return it.productoId && it.bodegaId && it.cantidad && it.precioUnitario; });
 }
+
 async function guardarVenta(e){
   e.preventDefault();
   const f = e.target;
@@ -289,11 +477,10 @@ async function guardarVenta(e){
 
   try {
     const res = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) { showErr(data?.error || 'No se pudo registrar la venta'); return; }
+    const data = await res.json().catch(function(){ return {}; });
+    if (!res.ok) { showErr((data && data.error) ? data.error : 'No se pudo registrar la venta'); return; }
 
-    const modalEl = document.getElementById('modalNuevaVenta');
-    const modal = bootstrap.Modal.getInstance(modalEl);
+    const modal = bootstrap.Modal.getInstance(document.getElementById('modalNuevaVenta'));
     modal.hide();
     document.getElementById('formVenta').reset();
     document.querySelector('#tablaItems tbody').innerHTML = '';
@@ -302,13 +489,21 @@ async function guardarVenta(e){
     page = 0;
     cargar(lastFilters);
   } catch (err) {
+    console.error(err);
     showErr(err.message || 'Error de red');
   }
 }
+
+// ==== Helpers ====
 function showOk(){ new bootstrap.Toast(document.getElementById('toastOk')).show(); }
 function showErr(msg){ const el = document.getElementById('toastErrMsg'); if (el) el.textContent = msg; new bootstrap.Toast(document.getElementById('toastErr')).show(); }
 
-window.addEventListener('DOMContentLoaded', () => { cargar(); agregarItem(); });
+// ==== Boot ====
+window.addEventListener('DOMContentLoaded', function(){
+  cargar();          // tabla
+  agregarItem();     // primera fila
+  document.getElementById('modalNuevaVenta').addEventListener('show.bs.modal', cargarCatalogos);
+});
 </script>
 </body>
 </html>
