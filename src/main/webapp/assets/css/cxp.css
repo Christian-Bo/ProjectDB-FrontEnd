@@ -1,0 +1,41 @@
+/*
+Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/CascadeStyleSheet.css to edit this template
+*/
+/* 
+    Created on : 10 oct 2025, 22:05:56
+    Author     : DELL
+*/
+
+/* cxp.css — Ajustes visuales para CxP respetando paleta global. */
+
+/* Nav pills con acento morado y texto claro */
+.nt-pills .nav-link{
+  color: var(--muted, #AAB2C0);
+  border:1px solid var(--border, #2b3347);
+  margin-right:.5rem;
+  border-radius:.6rem;
+  background: rgba(255,255,255,.02);
+}
+.nt-pills .nav-link:hover{
+  background: rgba(111,66,193,.15);
+  color:#e9e0ff;
+  border-color: var(--primary, #6F42C1);
+}
+.nt-pills .nav-link.active{
+  color: #fff;
+  background: var(--primary, #6F42C1);
+  border-color: var(--primary, #6F42C1);
+}
+
+/* Tablas y celdas compactas coherentes con Compras */
+.table thead th { white-space: nowrap; }
+.table td, .table th { vertical-align: middle; }
+
+/* Botoneras dentro de celdas */
+.table .btn-group .btn{ padding:.28rem .5rem; }
+.table .btn-outline-danger{ color:#ff9db5; }
+.table .btn-outline-secondary{ color:#cfd6e6; }
+
+/* Secciones (cards) redondeadas como en el screenshot */
+.rounded-xxl{ border-radius: 1rem; }

@@ -7,11 +7,11 @@
  * Utilidades comunes a todas las páginas
  * (Mantiene compatibilidad con Proveedores y añade helpers para Compras)
  */
-/* common.js — utilidades globales */
-(function(){
-  console.debug('[common] loaded');
 
-  // Lee la base de API desde meta o variable global. Fallback: mismo origen del frontend.
+(function(){
+  console.debug('[common] loaded v11');
+
+  // ===== Base de API =====
   window.getApiBase = function() {
     try {
       if (window.API_BASE) return String(window.API_BASE).replace(/\/$/, '');
@@ -21,17 +21,28 @@
     return location.origin.replace(/\/$/, '');
   };
 
-  // ===== Toasts (mantiene API previa) =====
+  // ===== Toasts =====
   window.ntToast = function ({title='Mensaje', body='', type='info', delay=4500}) {
-    const container = document.getElementById('toastStack');
-    if (!container) { console.warn('[ntToast] Falta #toastStack'); return; }
+    const container = document.getElementById('toastStack') || (() => {
+      const wrap = document.createElement('div');
+      wrap.id = 'toastStack';
+      wrap.className = 'toast-container position-fixed top-0 end-0 p-3';
+      wrap.style.zIndex = 1080;
+      document.body.appendChild(wrap);
+      return wrap;
+    })();
+
+    const icon = type==='success' ? 'bi-check-circle-fill'
+               : type==='error'   ? 'bi-x-circle-fill'
+               : 'bi-info-circle-fill';
+
     const toast = document.createElement('div');
     toast.className = `toast nt-toast-${type}`;
     toast.innerHTML = `
       <div class="toast-header">
-        <i class="bi ${type==='success'?'bi-check-circle-fill':type==='error'?'bi-x-circle-fill':'bi-info-circle-fill'} me-2"></i>
+        <i class="bi ${icon} me-2"></i>
         <strong class="me-auto">${title}</strong>
-        <button class="btn-close" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Cerrar"></button>
       </div>
       <div class="toast-body">${body}</div>`;
     container.appendChild(toast);
@@ -41,11 +52,10 @@
   };
   window.showToast = (message, type='info', title='Mensaje') => window.ntToast({ title, body: message, type, delay: 4200 });
 
-  // Helpers
+  // ===== Helpers =====
   window.ntEsc = s => String(s ?? '').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   window.ntParseApiError = (txt) => { try { const j=JSON.parse(txt); return j.error||j.message||j.detail||txt; } catch { return txt; } };
 
-  // Confirm modal
   window.confirmDialog = function(message, {title='Confirmar', okText='Aceptar', cancelText='Cancelar'} = {}) {
     return new Promise((resolve) => {
       const id = 'ntConfirmModal';
@@ -82,7 +92,7 @@
     });
   };
 
-  // Fetch JSON con manejo de errores
+  // ===== Fetch JSON helpers =====
   async function ntFetchJson(method, url, body) {
     const opts = { method, headers: {} };
     if (body !== undefined) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
@@ -91,9 +101,60 @@
     if (!res.ok) { throw new Error(window.ntParseApiError(raw)); }
     return raw ? JSON.parse(raw) : null;
   }
-
   window.ntGet    = (url)        => ntFetchJson('GET', url);
   window.ntPost   = (url, body)  => ntFetchJson('POST', url, body);
   window.ntPut    = (url, body)  => ntFetchJson('PUT', url, body);
   window.ntDelete = (url)        => ntFetchJson('DELETE', url);
+
+  // ===== Compat API.request / API.toast =====
+  window.API = (function () {
+    const RAW_BASE = getApiBase();
+    const BASE = RAW_BASE.replace(/\s+$/g, '').replace(/\/+$/, '');
+
+    function buildUrl(path) {
+      if (/^https?:\/\//i.test(path)) return path;
+      const slash = path.startsWith('/') ? '' : '/';
+      let url = `${BASE}${slash}${path}`;
+      return url.replace(/([^:]\/)\/+/g, '$1');
+    }
+
+    async function request(path, { method = 'GET', headers = {}, json, body, userId = 1 } = {}) {
+      const upper = String(method).toUpperCase();
+      const baseHeaders = {
+        'Accept': 'application/json'
+      };
+      // SOLO agregamos X-User-Id cuando el backend lo pide (create/update/delete)
+      if (upper === 'POST' || upper === 'PUT' || upper === 'DELETE') {
+        baseHeaders['X-User-Id'] = String(userId);
+      }
+      if (json !== undefined) {
+        baseHeaders['Content-Type'] = 'application/json'; // esto sí provoca preflight en POST/PUT (esperado)
+      }
+
+      const h = { ...baseHeaders, ...headers };
+
+      const res = await fetch(buildUrl(path), {
+        method: upper,
+        mode: 'cors',                                     // explícito
+        headers: h,
+        body: json !== undefined ? JSON.stringify(json) : body,
+      });
+
+      const ct = res.headers.get('content-type') || '';
+      const payload = await (ct.includes('application/json') ? res.json() : res.text());
+
+      if (!res.ok) {
+        const msg = typeof payload === 'string' ? payload : (payload?.message || payload?.error || res.statusText);
+        throw new Error(`HTTP ${res.status} – ${msg}`);
+      }
+      return payload;
+    }
+
+    function toast(msg, type = 'info') {
+      showToast(msg, type);
+    }
+
+    return { request, toast };
+  })();
+
 })();

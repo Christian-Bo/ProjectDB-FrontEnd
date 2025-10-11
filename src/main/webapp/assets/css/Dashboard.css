@@ -12,30 +12,22 @@ Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/CascadeStyleSheet.css
   Solo variables del tema (base.css). No hex fijos.
 */
 
-.dashboard-hero{
-  border-radius: 1rem;
-  padding: 1.25rem;
-  /* superficie suave del hero */
-  background: var(--nt-surface);
-  border: 1px solid var(--nt-border-soft);
+/* Dashboard.css — estilos ligeros para layout del tablero */
+.nt-navbar .navbar-brand i { opacity: .9; }
+.nt-title { letter-spacing: .2px; }
+.nt-subtitle { color: var(--text-muted, #6c757d); }
+
+.icon-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: .75rem;
+  align-items: center;
+  padding: .9rem 1rem;
 }
 
-.kpi-card{
-  border-radius: .9rem;
-  padding: 1rem;
-}
+.nt-card .table th, 
+.nt-card .table td { vertical-align: middle; }
 
-.kpi-card .display-6{ opacity:.9; }
+.nt-table-head th { font-weight: 600; }
 
-.table-ultimos thead th{
-  background: var(--nt-surface-2);
-  color: var(--nt-primary);
-}
-
-/* Chart wrapper */
-.chart-box{
-  border-radius: .9rem;
-  border: 1px solid var(--nt-border-soft);
-  background: var(--nt-surface);
-  padding: .75rem;
-}
+canvas#chartCompras { max-height: 340px; }

@@ -1,0 +1,40 @@
+/*
+Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/CascadeStyleSheet.css to edit this template
+*/
+/* 
+    Created on : 10 oct 2025, 22:05:40
+    Author     : DELL
+*/
+
+/* compras_pagos.css — Ajustes de layout para que coincida con el estilo de Compras
+   Respeta la paleta definida en base.css y app.css. 
+   Aquí solo se tocan espaciamientos, bordes y pequeños acentos.
+*/
+
+/* Card de filtros como “chips” oscuros */
+.filtros-card { border-radius: 1rem; }
+.filtros-card .form-label{ font-weight: 600; }
+
+/* Badges de forma de pago con acento morado sutil */
+.badge-forma{
+  display:inline-block;
+  padding:.35rem .55rem;
+  border:1px solid var(--border, #2b3347);
+  background: rgba(111,66,193,.15);        /* morado tenue (del app.css) */
+  color: #cdb8ff;                           /* texto morado claro */
+  border-radius:.5rem;
+  letter-spacing:.02em;
+}
+
+/* Tabla compacta y consistente */
+.table thead th { white-space: nowrap; }
+.table tbody td { vertical-align: middle; }
+
+/* Botones de acciones compactos en celdas, con borde tenue */
+.table .btn{
+  padding:.28rem .5rem;
+  border-color: var(--nt-border, var(--border, #2b3347));
+}
+.table .btn-outline-danger{ color:#ff9db5; }
+.table .btn-outline-secondary{ color:#cfd6e6; }
