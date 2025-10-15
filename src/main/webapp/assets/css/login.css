@@ -6,55 +6,146 @@ Click nbfs://nbhost/SystemFileSystem/Templates/Other/CascadeStyleSheet.css to ed
     Created on : 9/10/2025, 23:20:46
     Author     : Christian
 */
-:root{
-  --login-font: "Poppins", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
-  --login-hero: url('../img/logo.png'); 
+/* ====== Layout base ====== */
+body.nt-bg {
+  background: radial-gradient(1200px 600px at 10% -10%, rgba(14,165,233,.25), transparent 60%),
+              radial-gradient(900px 600px at 110% 110%, rgba(34,211,238,.20), transparent 55%),
+              var(--bg, #f7fafc);
+  font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
 }
-body{ font-family: var(--login-font); letter-spacing:.1px; }
 
-.auth-card{
-  width: min(1120px, 96vw);
-  min-height: 640px;
-  border-radius: 28px;
+/* ====== Card principal ====== */
+.auth-card {
+  width: min(1040px, 94vw);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 22px;
+  backdrop-filter: blur(8px);
   overflow: hidden;
-  box-shadow: 0 26px 80px rgba(0,0,0,.12);
-  border: 1px solid rgba(0,0,0,.04);
-  background: var(--nt-card);
+  transform: translateZ(0);
+  animation: cardIn .6s ease-out both;
 }
-.form-pane{ min-height: 640px; }
+.shadow-xxl { box-shadow: 0 30px 80px rgba(2, 8, 23, .18); }
 
-.hero{
-  background-image: var(--login-hero, linear-gradient(135deg, rgba(0,0,0,.35), rgba(0,0,0,.55)));
-  background-size: cover; background-position: center;
+@keyframes cardIn {
+  from { opacity: 0; transform: translate3d(0,10px,0) scale(.98); }
+  to   { opacity: 1; transform: translate3d(0,0,0) scale(1); }
+}
+
+/* ====== HERO ====== */
+.hero {
+  background: linear-gradient(135deg, rgba(14,165,233,.95), rgba(34,211,238,.85));
+  color: #fff;
   position: relative;
-  border-top-left-radius: 28px; border-bottom-left-radius: 28px;
-  display:flex; flex-direction:column; justify-content:space-between;
+  overflow: hidden;
 }
-.hero::after{
-  content:""; position:absolute; inset:0;
-  background: linear-gradient(180deg, rgba(0,0,0,.25), rgba(0,0,0,.15) 40%, rgba(0,0,0,.40));
-  pointer-events:none;
+.hero-copy { z-index: 2; }
+.brand-badge, .env-badge {
+  background: rgba(255,255,255,.12);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.18);
+  backdrop-filter: blur(4px);
 }
-.hero > *{ position: relative; z-index: 1; }
-.brand-badge{ border-radius: 999px; padding: .45rem .8rem; backdrop-filter: blur(2px); background: rgba(255,255,255,.16); color:#fff; font-weight:700; }
-.hero-copy{ max-width: 520px; }
-
-.btn-toggle-eye{ position:absolute; right:.55rem; top:50%; transform:translateY(-50%); background: transparent; border:0; opacity:.7; }
-
-.btn-accent{
-  background: var(--nt-accent); color:#000; border:0; border-radius:999px;
-  font-weight:800; letter-spacing:.2px;
+.env-badge { margin-left: auto; }
+.nt-caret {
+  display: inline-block;
+  width: .6ch;
+  animation: caretBlink 1s steps(1) infinite;
 }
-.btn-accent:hover{ filter: brightness(.96); }
+@keyframes caretBlink { 50% { opacity: 0; } }
 
-.divider{ display:flex; align-items:center; gap:.75rem; }
-.divider::before, .divider::after{ content:""; height:1px; flex:1; background: rgba(0,0,0,.1); }
+.hero-glow {
+  position: absolute;
+  inset: auto -30% -30% auto;
+  width: 420px;
+  height: 420px;
+  background: radial-gradient(closest-side, rgba(255,255,255,.24), transparent 70%);
+  filter: blur(12px);
+  transform: rotate(25deg);
+  z-index: 1;
+}
 
-.form-control{ border-radius:14px; padding:.9rem 1rem; }
-.form-control:focus{ border-color: var(--nt-tertiary); box-shadow: 0 0 0 .25rem rgba(0,0,0,.03); }
+/* ====== Orbit background ====== */
+.nt-orbits { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+.nt-orbit {
+  position: absolute; border-radius: 50%;
+  filter: blur(40px); opacity: .28; mix-blend-mode: screen;
+}
+.nt-orbit-1 { width: 420px; height: 420px; background: var(--accent, #0ea5e9); top: 6%; left: -6%; animation: float 8s ease-in-out infinite; }
+.nt-orbit-2 { width: 300px; height: 300px; background: var(--accent-2, #22d3ee); bottom: 10%; right: -5%; animation: float 9s 1s ease-in-out infinite; }
+.nt-orbit-3 { width: 220px; height: 220px; background: #60a5fa; top: 48%; right: 8%; animation: float 7.5s .5s ease-in-out infinite; }
+@keyframes float { 50% { transform: translate3d(0,-10px,0) scale(1.03); } }
 
-@media (max-width: 992px){
-  .auth-card{ width:min(720px,96vw); min-height:auto; border-radius:24px; }
-  .form-pane{ min-height:auto; }
-  .hero{ min-height:300px; border-radius:24px 24px 0 0; }
+/* ====== Form pane ====== */
+.form-pane { position: relative; z-index: 2; }
+.nt-title { font-weight: 700; letter-spacing: .2px; }
+.nt-subtitle { color: #64748b; }
+.nt-link { color: var(--accent, #0ea5e9); text-decoration: none; }
+.nt-link:hover { text-decoration: underline; }
+
+/* ====== Inputs ====== */
+.nt-input .input-group-text {
+  background: #fff;
+  border-right: none;
+  color: #0f172a;
+}
+.nt-input .form-control {
+  border-left: none;
+  padding-right: 44px; /* espacio para el ojo */
+}
+.nt-input .form-control:focus {
+  border-color: var(--accent, #0ea5e9);
+  box-shadow: 0 0 0 .2rem rgba(14,165,233,.15);
+}
+.btn-toggle-eye {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  border: 0; background: transparent; color: #475569;
+  padding: 6px 8px; line-height: 1;
+}
+.btn-toggle-eye:hover { color: var(--accent, #0ea5e9); }
+
+/* ====== Botón ====== */
+.btn-accent {
+  --btn-bg: linear-gradient(135deg, var(--accent, #0ea5e9), var(--accent-2, #22d3ee));
+  background: var(--btn-bg);
+  color: #fff; border: 0; border-radius: 14px;
+  box-shadow: 0 10px 24px rgba(14,165,233,.28);
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+}
+.btn-accent:hover { transform: translateY(-1px); filter: brightness(1.02); }
+.btn-accent:active { transform: translateY(0); box-shadow: 0 8px 20px rgba(14,165,233,.24); }
+.btn-accent:disabled { filter: grayscale(.2) opacity(.9); }
+
+.opacity-0 { opacity: 0 !important; }
+
+/* ====== Logo pequeño ====== */
+.nt-logo {
+  width: 42px; height: 42px; border-radius: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 22px;
+  background: linear-gradient(135deg, var(--accent, #0ea5e9), var(--accent-2, #22d3ee));
+  box-shadow: 0 8px 18px rgba(2, 132, 199, .3);
+}
+
+/* ====== Toast shadow ====== */
+.nt-shadow-sm { box-shadow: 0 6px 18px rgba(2, 8, 23, .12); }
+
+/* ====== Animaciones de feedback ====== */
+.shake { animation: shake .35s cubic-bezier(.36,.07,.19,.97) both; }
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
+  40%, 60% { transform: translate3d(3px, 0, 0); }
+}
+.card-success { animation: pulseOut .35s ease both; }
+@keyframes pulseOut {
+  from { transform: scale(1); }
+  60% { transform: scale(1.012); }
+  to { transform: scale(1); }
+}
+
+/* ====== Responsivo ====== */
+@media (max-width: 991.98px) {
+  .auth-card { border-radius: 20px; }
+  .nt-orbit-1, .nt-orbit-2, .nt-orbit-3 { filter: blur(34px); opacity: .26; }
 }
