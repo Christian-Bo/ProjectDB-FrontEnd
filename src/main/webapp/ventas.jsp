@@ -10,7 +10,7 @@
   <meta charset="UTF-8">
   <title>Ventas | NextTech</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/app.css?v=dark-purple-4">
+  <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/app.css?v=dark-purple-5">
 </head>
 <body>
 <div class="container py-4">
@@ -68,7 +68,7 @@
           <th class="text-end">Total</th>
           <th>Estado</th>
           <th>Tipo pago</th>
-          <th></th>
+          <th class="text-end">Acciones</th>
         </tr>
         </thead>
         <tbody></tbody>
@@ -81,7 +81,7 @@
   <div class="position-fixed bottom-0 end-0 p-3" style="z-index:1080;">
     <div id="toastOk" class="toast align-items-center text-bg-success border-0" role="alert">
       <div class="d-flex">
-        <div class="toast-body">Venta registrada correctamente.</div>
+        <div class="toast-body" id="toastOkMsg">Operación realizada correctamente.</div>
         <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
       </div>
     </div>
@@ -180,18 +180,130 @@
   </div>
 </div>
 
+<!-- Modal Selector de Edición -->
+<div class="modal fade" id="modalAccionesEdicion" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">¿Qué deseas editar?</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editTargetId">
+        <p class="mb-3">Selecciona el ámbito de edición para la venta <b id="editTargetNumero"></b>.</p>
+        <div class="d-grid gap-2">
+          <button class="btn btn-primary" onclick="abrirEditarCabecera()">Cabecera</button>
+          <button class="btn btn-outline-primary" onclick="abrirEditarMaestroDetalle()">Editar maestro-detalle</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Editar Venta (Cabecera) -->
+<div class="modal fade" id="modalEditarVenta" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <form id="formEditarVenta" onsubmit="guardarEdicionVenta(event)">
+        <div class="modal-header">
+          <h5 class="modal-title">Editar cabecera <span id="editNumeroVenta" class="text-muted"></span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="editVentaId">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Cliente *</label>
+              <select id="editCliente" class="form-select" required>
+                <option value="">Cargando...</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Tipo de pago *</label>
+              <select id="editTipoPago" class="form-select" required>
+                <option value="C">Contado</option>
+                <option value="R">Crédito</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Vendedor</label>
+              <select id="editVendedor" class="form-select">
+                <option value="">Cargando...</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Cajero</label>
+              <select id="editCajero" class="form-select">
+                <option value="">Cargando...</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Bodega Origen</label>
+              <select id="editBodega" class="form-select">
+                <option value="">Cargando...</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Observaciones</label>
+              <input type="text" id="editObs" class="form-control" placeholder="Observaciones">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+          <button class="btn btn-primary" type="submit">Guardar cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Confirmar Eliminación -->
+<div class="modal fade" id="modalEliminar" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirmar eliminación</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="delVentaId">
+        <p>¿Seguro que deseas eliminar (lógico) la venta <b id="delNumeroVenta"></b>?</p>
+        <p class="text-muted mb-0">Puedes revertirlo desde backoffice si se requiere.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-danger" onclick="confirmarEliminar()">Sí, eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-// ==== Endpoints ====
+// ==== Endpoints / Config ====
 const API     = 'http://localhost:8080/api/ventas';
 const API_CAT = 'http://localhost:8080/api/catalogos';
+const USER_ID = 1; // <-- AJUSTA si tu backend exige el usuario autenticado
 const ctx     = '${pageContext.request.contextPath}';
+const commonHeaders = {'X-User-Id': String(USER_ID)};
 
 // ==== Utils ====
-async function fetchJson(url){
-  const res = await fetch(url);
-  if(!res.ok) throw new Error('HTTP '+res.status+' al llamar: '+url);
-  return res.json();
+async function tryFetchJson(url, options){
+  try{
+    const res = await fetch(url, options || {});
+    if(!res.ok) return { ok:false, status:res.status, data: await safeJson(res) };
+    return { ok:true, status:res.status, data: await safeJson(res) };
+  }catch(err){
+    console.error('fetch fail', url, err);
+    return { ok:false, status:0, data:{ error: err.message || 'network' } };
+  }
+}
+async function safeJson(res){ try{ return await res.json(); }catch{ return {}; } }
+
+async function fetchJsonOrNull(url){
+  const r = await tryFetchJson(url, { headers: commonHeaders });
+  return r.ok ? r.data : null;
 }
 function asArray(payload){
   if (Array.isArray(payload)) return payload;
@@ -199,29 +311,30 @@ function asArray(payload){
   return payload.content || payload.items || payload.data || payload.results || payload.records || [];
 }
 function formatMoney(n){ if(n==null) return ''; return new Intl.NumberFormat('es-GT',{style:'currency',currency:'GTQ'}).format(n); }
+function setOk(msg){ document.getElementById('toastOkMsg').textContent = msg || 'OK'; new bootstrap.Toast(document.getElementById('toastOk')).show(); }
+function setErr(msg){ document.getElementById('toastErrMsg').textContent = msg || 'Error interno'; new bootstrap.Toast(document.getElementById('toastErr')).show(); }
 
 // ==== Tabla (lista de ventas) ====
 let page = 0;
 const size = 10;
 let lastFilters = {};
+let cacheVentas = {}; // por id
 
 async function cargar(params = {}) {
-  try{
-    const qs = new URLSearchParams({ page, size });
-    if (params.desde) qs.set('desde', params.desde);
-    if (params.hasta) qs.set('hasta', params.hasta);
-    if (params.clienteId) qs.set('clienteId', params.clienteId);
-    if (params.numeroVenta) qs.set('numeroVenta', params.numeroVenta);
+  const qs = new URLSearchParams({ page, size });
+  if (params.desde) qs.set('desde', params.desde);
+  if (params.hasta) qs.set('hasta', params.hasta);
+  if (params.clienteId) qs.set('clienteId', params.clienteId);
+  if (params.numeroVenta) qs.set('numeroVenta', params.numeroVenta);
 
-    const data = await fetchJson(API + '?' + qs.toString());
-    const rows = asArray(data);
-    render(rows);
-    document.getElementById('pActual').textContent = (page+1);
-  }catch(err){
-    console.error('Error cargando ventas:', err);
-    showErr('No se pudo consultar ventas');
-    render([]);
-  }
+  const r = await tryFetchJson(API + '?' + qs.toString(), { headers: commonHeaders });
+  const rows = r.ok ? asArray(r.data) : [];
+  if(!r.ok){ setErr((r.data && (r.data.error||r.data.detail)) || 'No se pudo consultar ventas'); }
+
+  cacheVentas = {};
+  for (var i=0;i<rows.length;i++){ cacheVentas[rows[i].id] = rows[i]; }
+  render(rows);
+  document.getElementById('pActual').textContent = (page+1);
 }
 
 function render(rows) {
@@ -250,7 +363,13 @@ function render(rows) {
       + '<td class="text-end">' + formatMoney(v ? v.total : null) + '</td>'
       + '<td>' + estadoHtml + '</td>'
       + '<td>' + ((v && v.tipoPago) ? v.tipoPago : '') + '</td>'
-      + '<td><a class="btn btn-sm btn-outline-primary" href="' + link + '">Ver</a></td>';
+      + '<td class="text-end">'
+      +   '<div class="btn-group btn-group-sm" role="group">'
+      +     '<button class="btn btn-outline-primary" onclick="abrirSelectorEdicion('+v.id+')">Actualizar</button>'
+      +     '<a class="btn btn-outline-secondary" href="'+link+'">Ver</a>'
+      +     '<button class="btn btn-outline-danger" onclick="abrirEliminar('+v.id+')">Eliminar</button>'
+      +   '</div>'
+      + '</td>';
     tbody.appendChild(tr);
   }
 }
@@ -278,14 +397,15 @@ function cambiarPagina(delta){
   cargar(lastFilters);
 }
 
-// ==== Catálogos (Cliente, Empleados, Bodegas) ====
+// ==== Catálogos robustos ====
 let _catalogosCargados = false;
+let _clientes=[], _empleados=[], _bodegas=[];
 
-function fillSelect(sel, data, map){
+function fillSelect(sel, data, map, selected){
   var html = '<option value="">Seleccione...</option>';
   for (var i=0;i<data.length;i++){
     var o = map(data[i]);
-    html += '<option value="'+o.value+'">'+o.text+'</option>';
+    html += '<option value="'+o.value+'"'+(String(selected)===String(o.value)?' selected':'')+'>'+o.text+'</option>';
   }
   sel.innerHTML = html;
 }
@@ -293,16 +413,24 @@ function fillSelect(sel, data, map){
 async function cargarCatalogos(){
   if (_catalogosCargados) return;
   try{
-    const cliRaw = await fetchJson(API_CAT + '/clientes?limit=100');
-    const empRaw = await fetchJson(API_CAT + '/empleados?limit=100');
-    const bodRaw = await fetchJson(API_CAT + '/bodegas?limit=100');
-    const clientes  = asArray(cliRaw);
-    const empleados = asArray(empRaw);
-    const bodegas   = asArray(bodRaw);
+    // Intento 1: /api/catalogos/*
+    let cli = await fetchJsonOrNull(API_CAT + '/clientes?limit=200');
+    let emp = await fetchJsonOrNull(API_CAT + '/empleados?limit=200');
+    let bod = await fetchJsonOrNull(API_CAT + '/bodegas?limit=200');
 
+    // Intento 2: /api/*
+    if (!cli) cli = await fetchJsonOrNull('http://localhost:8080/api/clientes?limit=200');
+    if (!emp) emp = await fetchJsonOrNull('http://localhost:8080/api/empleados?limit=200');
+    if (!bod) bod = await fetchJsonOrNull('http://localhost:8080/api/bodegas?limit=200');
+
+    _clientes  = asArray(cli);
+    _empleados = asArray(emp);
+    _bodegas   = asArray(bod);
+
+    // Relleno para "Nueva venta"
     fillSelect(
       document.getElementById('selCliente'),
-      clientes,
+      _clientes,
       function(c){ 
         return { 
           value: c.id,
@@ -312,7 +440,7 @@ async function cargarCatalogos(){
     );
     fillSelect(
       document.getElementById('selVendedor'),
-      empleados,
+      _empleados,
       function(e){
         return {
           value: e.id,
@@ -322,7 +450,7 @@ async function cargarCatalogos(){
     );
     fillSelect(
       document.getElementById('selCajero'),
-      empleados,
+      _empleados,
       function(e){
         return {
           value: e.id,
@@ -332,18 +460,23 @@ async function cargarCatalogos(){
     );
     fillSelect(
       document.getElementById('selBodegaOrigen'),
-      bodegas,
+      _bodegas,
       function(b){ return { value:b.id, text:(b.nombre || ('Bodega '+b.id)) }; }
     );
 
     _catalogosCargados = true;
   }catch(err){
     console.error('Error catálogos:', err);
-    showErr('No se pudieron cargar catálogos');
+    setErr('No se pudieron cargar catálogos');
+    // fallback mínimo para no bloquear
+    document.getElementById('selCliente').innerHTML = '<option value="">(sin datos)</option>';
+    document.getElementById('selVendedor').innerHTML = '<option value="">(sin datos)</option>';
+    document.getElementById('selCajero').innerHTML = '<option value="">(sin datos)</option>';
+    document.getElementById('selBodegaOrigen').innerHTML = '<option value="">(sin datos)</option>';
   }
 }
 
-// ==== Items del modal (bodega → productos con stock/precio) ====
+// ==== Items del modal (nueva venta) ====
 function agregarItem(){
   const tbody = document.querySelector('#tablaItems tbody');
   const tr = document.createElement('tr');
@@ -372,8 +505,9 @@ function agregarItem(){
 
 async function cargarBodegasFila(sel){
   try{
-    const raw = await fetchJson(API_CAT + '/bodegas?limit=100');
-    const bodegas = asArray(raw);
+    let bod = await fetchJsonOrNull(API_CAT + '/bodegas?limit=200');
+    if (!bod) bod = await fetchJsonOrNull('http://localhost:8080/api/bodegas?limit=200');
+    const bodegas = asArray(bod);
     var html = '<option value="">Seleccione...</option>';
     for (var i=0;i<bodegas.length;i++){
       var b = bodegas[i];
@@ -399,17 +533,19 @@ function wireRowEvents(tr){
     stockEl.setAttribute('data-stock','0');
     if (!selBod.value) { selProd.innerHTML = '<option value="">Seleccione bodega...</option>'; return; }
     try{
-      const raw   = await fetchJson(API_CAT + '/productos?bodegaId=' + encodeURIComponent(selBod.value));
-      const prods = asArray(raw);
+      // productos por bodega (dos rutas posibles)
+      let p1 = await fetchJsonOrNull(API_CAT + '/productos?bodegaId=' + encodeURIComponent(selBod.value));
+      if (!p1) p1 = await fetchJsonOrNull('http://localhost:8080/api/productos?bodegaId=' + encodeURIComponent(selBod.value));
+      const prods = asArray(p1);
       var html = '<option value="">Seleccione...</option>';
       for (var i=0;i<prods.length;i++){
         var p = prods[i];
-        var st = (p.stockDisponible || 0);
-        var pr = (p.precioSugerido || 0);
+        var st = (p.stockDisponible || p.stock || 0);
+        var pr = (p.precioSugerido || p.precio || 0);
         html += '<option value="'+p.id+'" data-stock="'+st+'" data-precio="'+pr+'">'+ (p.nombre || ('Producto '+p.id)) +' (stock '+st+')</option>';
       }
       selProd.disabled = false;
-      selProd.innerHTML = html;
+      selProd.innerHTML = html || '<option value="">(sin datos)</option>';
     }catch{
       selProd.innerHTML = '<option value="">(sin datos)</option>';
       selProd.disabled = false;
@@ -439,7 +575,7 @@ function wireRowEvents(tr){
   });
 }
 
-// ==== Guardar ====
+// ==== Guardar NUEVA venta ====
 function leerItems(){
   const rows = Array.from(document.querySelectorAll('#tablaItems tbody tr'));
   return rows.map(function(r){
@@ -462,10 +598,10 @@ async function guardarVenta(e){
   e.preventDefault();
   const f = e.target;
   const items = leerItems();
-  if (items.length === 0) { showErr('Agrega al menos un ítem'); return; }
+  if (items.length === 0) { setErr('Agrega al menos un ítem'); return; }
 
   const payload = {
-    usuarioId: 1,
+    usuarioId: USER_ID,
     clienteId: Number(f.clienteId.value),
     vendedorId: f.vendedorId.value ? Number(f.vendedorId.value) : null,
     cajeroId: f.cajeroId.value ? Number(f.cajeroId.value) : null,
@@ -475,33 +611,157 @@ async function guardarVenta(e){
     items: items
   };
 
-  try {
-    const res = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-    const data = await res.json().catch(function(){ return {}; });
-    if (!res.ok) { showErr((data && data.error) ? data.error : 'No se pudo registrar la venta'); return; }
+  const r = await tryFetchJson(API, { method:'POST', headers:{'Content-Type':'application/json', ...commonHeaders}, body: JSON.stringify(payload) });
+  if (!r.ok) { setErr((r.data && (r.data.error||r.data.detail)) || 'No se pudo registrar la venta'); return; }
 
-    const modal = bootstrap.Modal.getInstance(document.getElementById('modalNuevaVenta'));
-    modal.hide();
-    document.getElementById('formVenta').reset();
-    document.querySelector('#tablaItems tbody').innerHTML = '';
-    agregarItem();
-    showOk();
-    page = 0;
-    cargar(lastFilters);
-  } catch (err) {
-    console.error(err);
-    showErr(err.message || 'Error de red');
-  }
+  bootstrap.Modal.getInstance(document.getElementById('modalNuevaVenta')).hide();
+  document.getElementById('formVenta').reset();
+  document.querySelector('#tablaItems tbody').innerHTML = '';
+  agregarItem();
+  setOk('Venta registrada');
+  page = 0;
+  cargar(lastFilters);
 }
 
-// ==== Helpers ====
-function showOk(){ new bootstrap.Toast(document.getElementById('toastOk')).show(); }
-function showErr(msg){ const el = document.getElementById('toastErrMsg'); if (el) el.textContent = msg; new bootstrap.Toast(document.getElementById('toastErr')).show(); }
+// ==== Selector de edición ====
+function abrirSelectorEdicion(id){
+  const v = cacheVentas[id];
+  if (!v){ setErr('Venta no encontrada'); return; }
+  document.getElementById('editTargetId').value = id;
+  document.getElementById('editTargetNumero').textContent = v.numeroVenta || ('ID ' + id);
+  new bootstrap.Modal(document.getElementById('modalAccionesEdicion')).show();
+}
+
+function abrirEditarCabecera(){
+  const id = Number(document.getElementById('editTargetId').value);
+  const v  = cacheVentas[id];
+  if (!_catalogosCargados){
+    cargarCatalogos().then(function(){ prepararModalEdicion(v); });
+  }else{
+    prepararModalEdicion(v);
+  }
+  bootstrap.Modal.getInstance(document.getElementById('modalAccionesEdicion')).hide();
+}
+function abrirEditarMaestroDetalle(){
+  const id = Number(document.getElementById('editTargetId').value);
+  window.location.href = ctx + '/venta_detalle.jsp?id=' + id; // (en futuro: modo edición)
+}
+
+// ==== Editar cabecera ====
+function prepararModalEdicion(v){
+  document.getElementById('editVentaId').value = v.id;
+  document.getElementById('editNumeroVenta').textContent = v.numeroVenta ? ('#'+v.numeroVenta) : ('ID '+v.id);
+
+  fillSelect(
+    document.getElementById('editCliente'),
+    _clientes,
+    function(c){ return { value:c.id, text:( (c.codigo || ('CLI-'+c.id)) + ' - ' + (c.nombre || c.razonSocial || '') ) } },
+    String(v.clienteId)
+  );
+  fillSelect(
+    document.getElementById('editVendedor'),
+    _empleados,
+    function(e){ return { value:e.id, text:( (e.codigo || ('EMP-'+e.id)) + ' - ' + (e.nombres || '') + ' ' + (e.apellidos || '') ) } },
+    v.vendedorId!=null?String(v.vendedorId):''
+  );
+  fillSelect(
+    document.getElementById('editCajero'),
+    _empleados,
+    function(e){ return { value:e.id, text:( (e.codigo || ('EMP-'+e.id)) + ' - ' + (e.nombres || '') + ' ' + (e.apellidos || '') ) } },
+    v.cajeroId!=null?String(v.cajeroId):''
+  );
+  fillSelect(
+    document.getElementById('editBodega'),
+    _bodegas,
+    function(b){ return { value:b.id, text:(b.nombre || ('Bodega '+b.id)) } },
+    v.bodegaOrigenId!=null?String(v.bodegaOrigenId):''
+  );
+
+  document.getElementById('editTipoPago').value = (v.tipoPago || 'C');
+  document.getElementById('editObs').value = (v.observaciones || '');
+
+  new bootstrap.Modal(document.getElementById('modalEditarVenta')).show();
+}
+
+async function guardarEdicionVenta(e){
+  e.preventDefault();
+  const id   = Number(document.getElementById('editVentaId').value);
+  const body = {
+    clienteId: Number(document.getElementById('editCliente').value),
+    tipoPago:  document.getElementById('editTipoPago').value || 'C',
+    vendedorId: valueOrNull(document.getElementById('editVendedor').value),
+    cajeroId:   valueOrNull(document.getElementById('editCajero').value),
+    bodegaOrigenId: valueOrNull(document.getElementById('editBodega').value),
+    observaciones: document.getElementById('editObs').value || ''
+  };
+
+  // Intento principal: PUT /api/ventas/{id}?usuarioId=...
+  let r = await tryFetchJson(API + '/' + id + '?usuarioId=' + encodeURIComponent(USER_ID), {
+    method: 'PUT',
+    headers: {'Content-Type':'application/json', ...commonHeaders},
+    body: JSON.stringify(body)
+  });
+
+  if (!r.ok){
+    setErr((r.data && (r.data.error||r.data.detail)) || 'No se pudo actualizar');
+    return;
+  }
+  bootstrap.Modal.getInstance(document.getElementById('modalEditarVenta')).hide();
+  setOk('Venta actualizada');
+  cargar(lastFilters);
+}
+function valueOrNull(v){ return (v==='' || v==null) ? null : Number(v); }
+
+// ==== Eliminar (lógico) con rutas alternativas ====
+function abrirEliminar(id){
+  const v = cacheVentas[id];
+  if (!v){ setErr('Venta no encontrada'); return; }
+  document.getElementById('delVentaId').value = id;
+  document.getElementById('delNumeroVenta').textContent = v.numeroVenta || ('ID '+id);
+  new bootstrap.Modal(document.getElementById('modalEliminar')).show();
+}
+
+async function confirmarEliminar(){
+  const id = Number(document.getElementById('delVentaId').value);
+
+  // 1) DELETE /api/ventas/{id}
+  let r = await tryFetchJson(API + '/' + id + '?usuarioId=' + encodeURIComponent(USER_ID), {
+    method:'DELETE',
+    headers: commonHeaders
+  });
+
+  // 2) POST /api/ventas/{id}/anular
+  if(!r.ok){
+    r = await tryFetchJson(API + '/' + id + '/anular?usuarioId=' + encodeURIComponent(USER_ID), {
+      method:'POST',
+      headers: {'Content-Type':'application/json', ...commonHeaders},
+      body: JSON.stringify({})
+    });
+  }
+
+  // 3) PUT /api/ventas/{id}/anular
+  if(!r.ok){
+    r = await tryFetchJson(API + '/' + id + '/anular?usuarioId=' + encodeURIComponent(USER_ID), {
+      method:'PUT',
+      headers: {'Content-Type':'application/json', ...commonHeaders},
+      body: JSON.stringify({})
+    });
+  }
+
+  if(!r.ok){
+    setErr((r.data && (r.data.error||r.data.detail)) || 'No se pudo eliminar la venta');
+    return;
+  }
+
+  bootstrap.Modal.getInstance(document.getElementById('modalEliminar')).hide();
+  setOk('Venta eliminada');
+  cargar(lastFilters);
+}
 
 // ==== Boot ====
 window.addEventListener('DOMContentLoaded', function(){
   cargar();          // tabla
-  agregarItem();     // primera fila
+  agregarItem();     // primera fila del modal "Nueva venta"
   document.getElementById('modalNuevaVenta').addEventListener('show.bs.modal', cargarCatalogos);
 });
 </script>
