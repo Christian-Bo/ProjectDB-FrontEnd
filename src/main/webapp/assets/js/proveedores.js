@@ -1,17 +1,26 @@
+/**
+ * proveedores.js
+ * ------------------------------------------------------------
+ * - Resuelve el nombre del empleado (registrado_por) en la tabla:
+ *   se precarga el catálogo de empleados activos (id -> nombre) y
+ *   se usa en renderRows(). El modal usa el mismo catálogo para el <select>.
+ * - Config flexible del API: window.NT_API_BASE o <meta name="api-base">.
+ * - Paginación robusta y manejo de errores.
+ * ------------------------------------------------------------
+ */
 (() => {
-  // ================== CONFIGURACIÓN DEL API ==================
-  // ⬇️ ELIGE UNA de estas dos líneas según tu despliegue:
+  // ================== CONFIG DEL API ==================
+  const META_API_BASE = document.querySelector('meta[name="api-base"]')?.getAttribute('content');
+  const API_BASE =
+    (typeof window.NT_API_BASE === 'string' && window.NT_API_BASE.trim()) ? window.NT_API_BASE.trim() :
+    (META_API_BASE && META_API_BASE.trim()) ? META_API_BASE.trim() :
+    'http://localhost:8080'; // Ajusta si tu backend tiene context-path
 
-  // 1) SPRING BOOT embebido en 8080, SIN context-path:
-  const API_BASE = 'http://localhost:8080';
-
-  // 2) (OPCIONAL) WAR en Tomcat con context-path, descomenta y ajusta:
-  // const API_BASE = 'http://localhost:8080/nexttech-backend';
-
-  // Endpoint de proveedores
+  // Endpoints
   const API = `${API_BASE}/api/proveedores`;
+  const API_EMP = `${API}/_empleados`; // [{id, nombre}]
 
-  // ================== ELEMENTOS DEL DOM ==================
+  // ================== DOM ==================
   const tbl = document.getElementById('tblProveedores');
   const pag = document.getElementById('paginacion');
   const lblResumen = document.getElementById('lblResumen');
@@ -24,12 +33,17 @@
   const mdlView   = new bootstrap.Modal(document.getElementById('mdlView'));
   const mdlDelete = new bootstrap.Modal(document.getElementById('mdlDelete'));
   const frm = document.getElementById('frmUpsert');
+  const selEmpleado = document.getElementById('prov_registrado_por');
 
   // ================== ESTADO ==================
-  let state = { page: 0, size: 10, totalPages: 0, totalElements: 0, data: [] };
-  let rowToDelete = null;
+  const state = { page: 0, size: 10, totalPages: 0, totalElements: 0, data: [] };
 
-  // ================== LISTADO ==================
+  // Catálogo de empleados para:
+  // - pintar nombre en tabla (id -> nombre)
+  // - popular el <select> del modal
+  const EMP = { list: [], map: new Map(), loaded: false };
+
+  // ================== DATA ==================
   async function fetchList() {
     const q = qInput.value.trim();
     const activo = chkAct.checked ? 'true' : '';
@@ -66,40 +80,77 @@
     } catch (e) {
       tbl.innerHTML = `<tr><td colspan="11" class="text-center text-danger py-4">No se pudo cargar la lista</td></tr>`;
       ntToast({ title: 'Error', body: ntParseApiError(e.message), type: 'error' });
-      console.error(e);
+      console.error('[fetchList] Error:', e);
     }
   }
 
-  // Orden de columnas EXACTO al JSON solicitado
+  // Carga única de empleados (cache global en EMP)
+  async function ensureEmpleadosLoaded() {
+    if (EMP.loaded) return EMP.list;
+    try {
+      const res = await fetch(API_EMP, { headers: { 'Accept': 'application/json' } });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json(); // [{id, nombre}]
+      EMP.list = Array.isArray(data) ? data : [];
+      EMP.map = new Map(EMP.list.map(e => [String(e.id), e.nombre]));
+      EMP.loaded = true;
+      return EMP.list;
+    } catch (e) {
+      // Si falla, seguimos pero no habrá nombres en la tabla (se verá el id)
+      ntToast({ title: 'Aviso', body: 'No fue posible cargar el catálogo de empleados.', type: 'info' });
+      console.warn('[ensureEmpleadosLoaded] No se pudo cargar empleados:', e);
+      EMP.loaded = true; // evita reintentos agresivos
+      return [];
+    }
+  }
+
+  // Llena el <select> con el catálogo ya cargado (sin pedir al servidor otra vez)
+  function fillEmpleadoSelect(selectedId = null) {
+    selEmpleado.innerHTML = `<option value="">Seleccione un empleado...</option>`;
+    for (const emp of EMP.list) {
+      const opt = document.createElement('option');
+      opt.value = emp.id;
+      opt.textContent = emp.nombre;
+      selEmpleado.appendChild(opt);
+    }
+    if (selectedId != null) {
+      selEmpleado.value = String(selectedId);
+    }
+  }
+
+  // ================== RENDER ==================
   function renderRows(items) {
-    tbl.innerHTML = items.map(p => `
-      <tr>
-        <td class="text-nowrap">${ntEsc(p.codigo)}</td>
-        <td>${ntEsc(p.nombre)}</td>
-        <td class="text-nowrap">${ntEsc(p.nit)}</td>
-        <td>${ntEsc(p.telefono)}</td>
-        <td>${ntEsc(p.direccion)}</td>
-        <td>${ntEsc(p.email)}</td>
-        <td>${ntEsc(p.contacto_principal)}</td>
-        <td class="text-center">${p.dias_credito ?? ''}</td>
-        <td>${p.activo ? '<span class="badge bg-success-subtle text-success-emphasis">Sí</span>'
-                       : '<span class="badge bg-secondary">No</span>'}</td>
-        <td class="text-center">${p.registrado_por ?? ''}</td>
-        <td class="text-end">
-          <div class="btn-group">
-            <button class="btn btn-sm btn-outline-secondary" data-act="view" data-id="${p.id}" title="Ver">
-              <i class="bi bi-eye"></i>
-            </button>
-            <button class="btn btn-sm btn-outline-primary" data-act="edit" data-id="${p.id}" title="Editar">
-              <i class="bi bi-pencil"></i>
-            </button>
-            <button class="btn btn-sm btn-outline-danger" data-act="del" data-id="${p.id}" data-name="${ntEsc(p.nombre)}" title="Eliminar">
-              <i class="bi bi-trash"></i>
-            </button>
-          </div>
-        </td>
-      </tr>
-    `).join('');
+    tbl.innerHTML = items.map(p => {
+      // Usa nombre del catálogo si lo tenemos; si no, muestra el id
+      const empName = EMP.map.get(String(p.registrado_por)) ?? p.registrado_por ?? '';
+      return `
+        <tr>
+          <td class="text-nowrap">${ntEsc(p.codigo)}</td>
+          <td>${ntEsc(p.nombre)}</td>
+          <td class="text-nowrap">${ntEsc(p.nit)}</td>
+          <td>${ntEsc(p.telefono)}</td>
+          <td>${ntEsc(p.direccion)}</td>
+          <td>${ntEsc(p.email)}</td>
+          <td>${ntEsc(p.contacto_principal)}</td>
+          <td class="text-center">${p.dias_credito ?? ''}</td>
+          <td>${p.activo ? '<span class="badge bg-success-subtle text-success-emphasis">Sí</span>' : '<span class="badge bg-secondary">No</span>'}</td>
+          <td class="text-center">${ntEsc(String(empName))}</td>
+          <td class="text-end">
+            <div class="btn-group">
+              <button class="btn btn-sm btn-outline-secondary" data-act="view" data-id="${p.id}" title="Ver">
+                <i class="bi bi-eye"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-primary" data-act="edit" data-id="${p.id}" title="Editar">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-danger" data-act="del" data-id="${p.id}" data-name="${ntEsc(p.nombre)}" title="Eliminar">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
   }
 
   function renderPager() {
@@ -123,32 +174,38 @@
     pag.innerHTML = html;
   }
 
-  // ================== CREAR ==================
+  // ================== UP SERT ==================
   function openCreate() {
     frm.reset();
     frm.classList.remove('was-validated');
     setFormValues({ activo: true });
     document.getElementById('mdlUpsertTitle').innerHTML = `<i class="bi bi-plus-circle"></i> Nuevo proveedor`;
+
+    // Llenar combo desde el catálogo ya cargado
+    fillEmpleadoSelect(null);
+
     mdlUpsert.show();
   }
 
-  // ================== EDITAR (abre modal y carga datos) ==================
   async function openEdit(id) {
     const local = state.data.find(x => String(x.id) === String(id));
     if (local) {
       setFormValues(local);
       document.getElementById('mdlUpsertTitle').innerHTML = `<i class="bi bi-pencil-square"></i> Editar proveedor`;
+      fillEmpleadoSelect(local.registrado_por);
       return void mdlUpsert.show();
     }
     try {
-      const res = await fetch(`${API}/${id}`);
+      const res = await fetch(`${API}/${id}`, { headers: { 'Accept': 'application/json' } });
       if (!res.ok) throw new Error(await res.text());
       const p = await res.json();
       setFormValues(p);
       document.getElementById('mdlUpsertTitle').innerHTML = `<i class="bi bi-pencil-square"></i> Editar proveedor`;
+      fillEmpleadoSelect(p.registrado_por);
       mdlUpsert.show();
     } catch (e) {
       ntToast({ title:'Error', body:'No se pudo cargar el proveedor.', type:'error' });
+      console.error('[openEdit] Error:', e);
     }
   }
 
@@ -162,7 +219,7 @@
     g('prov_direccion').value = p.direccion ?? '';
     g('prov_email').value = p.email ?? '';
     g('prov_contacto_principal').value = p.contacto_principal ?? '';
-    g('prov_registrado_por').value = p.registrado_por ?? '';
+    selEmpleado.value = p.registrado_por ?? '';
     g('prov_activo').checked = p.activo ?? true;
   }
 
@@ -178,11 +235,10 @@
       contacto_principal: g('prov_contacto_principal').value.trim() || null,
       dias_credito: Number(g('prov_dias_credito').value || 0),
       activo: g('prov_activo').checked,
-      registrado_por: Number(g('prov_registrado_por').value)
+      registrado_por: Number(selEmpleado.value)
     };
   }
 
-  // ================== SUBMIT (crear/editar) ==================
   async function submitUpsert(e) {
     e.preventDefault();
     e.stopPropagation();
@@ -206,13 +262,15 @@
       await fetchList();
     } catch (e) {
       ntToast({ title:'Error', body: ntParseApiError(e.message), type:'error' });
+      console.error('[submitUpsert] Error:', e);
     }
   }
 
-  // ================== VER ==================
+  // ================== VER / ELIMINAR ==================
   function openView(id) {
     const p = state.data.find(x => String(x.id) === String(id));
     if (!p) return;
+    const empName = EMP.map.get(String(p.registrado_por)) ?? p.registrado_por ?? '';
     const dl = document.getElementById('viewContent');
     dl.innerHTML = `
       ${row('Código', p.codigo)}
@@ -224,12 +282,12 @@
       ${row('Contacto principal', p.contacto_principal)}
       ${row('Días crédito', p.dias_credito)}
       ${row('Activo', p.activo ? 'Sí' : 'No')}
-      ${row('Registrado por', p.registrado_por)}
+      ${row('Registrado por', empName)}
     `;
     mdlView.show();
   }
 
-  // ================== ELIMINAR ==================
+  let rowToDelete = null;
   function openDelete(id, name) {
     rowToDelete = { id, name };
     document.getElementById('delNombre').textContent = name;
@@ -245,12 +303,16 @@
       await fetchList();
     } catch (e) {
       ntToast({ title:'Error', body: ntParseApiError(e.message), type:'error' });
+      console.error('[confirmDelete] Error:', e);
     }
   }
 
   // ================== EVENTOS ==================
   btnBuscar.addEventListener('click', () => { state.page = 0; fetchList(); });
   btnOpenCreate.addEventListener('click', openCreate);
+  qInput.addEventListener('keydown', ev => {
+    if (ev.key === 'Enter') { ev.preventDefault(); state.page = 0; fetchList(); }
+  });
   pag.addEventListener('click', e => {
     const a = e.target.closest('a[data-pg]');
     if (!a) return;
@@ -263,7 +325,7 @@
     if (!btn) return;
     const id = btn.dataset.id, act = btn.dataset.act;
     if (act === 'view') openView(id);
-    if (act === 'edit') openEdit(id);     // abre modal con datos
+    if (act === 'edit') openEdit(id);
     if (act === 'del')  openDelete(id, btn.dataset.name);
   });
   frm.addEventListener('submit', submitUpsert);
@@ -274,6 +336,16 @@
   function row(label, val){ return `<dt class="col-5">${ntEsc(label)}</dt><dd class="col-7">${ntEsc(String(val ?? ''))}</dd>`; }
 
   // ================== INIT ==================
-  tbl.innerHTML = `<tr><td colspan="11" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm me-2"></div>Cargando...</td></tr>`;
-  fetchList();
+  (async function init(){
+    // 1) Carga catálogo de empleados ANTES de pintar la primera tabla,
+    //    para que ya podamos mostrar NOMBRES en la columna "Registrado por".
+    await ensureEmpleadosLoaded();
+
+    // 2) Estado "cargando" y fetch de proveedores
+    tbl.innerHTML = `<tr><td colspan="11" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm me-2"></div>Cargando...</td></tr>`;
+    await fetchList();
+
+    // 3) (Opcional) Deja el combo precargado por si abren "Nuevo" enseguida
+    fillEmpleadoSelect(null);
+  })();
 })();

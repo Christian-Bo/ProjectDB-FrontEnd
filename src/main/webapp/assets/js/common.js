@@ -1,27 +1,85 @@
 /* 
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/JavaScript.js to edit this template
- */
-
-/* 
- * Utilidades comunes a todas las páginas
- * (Mantiene compatibilidad con Proveedores y añade helpers para Compras)
+ * common.js — utilidades compartidas (v15)
+ * - Autodetección robusta de API_BASE (meta -> cache -> location.origin) con sondeo.
+ * - ntBuildUrl(path) para convertir rutas relativas en absolutas con la base vigente.
+ * - ntGet/ntPost/ntPut/ntDelete toleran rutas relativas o absolutas.
+ * - Compatibilidad con API.request/API.toast ya usada en Proveedores.
+ * - Manejo de errores Tomcat/HTML con mensajes claros.
+ * - Suavizado para catálogos (/api/compras/catalogos/*): ante 500, retorna [] en GET.
+ * - Nuevos helpers opcionales: ntGetSafe(), ntGetOrEmpty().
  */
 
 (function(){
-  console.debug('[common] loaded v11');
+  console.debug('[common] loaded v15');
 
-  // ===== Base de API =====
-  window.getApiBase = function() {
+  /* ============================
+   * 1) Resolución de API_BASE
+   * ============================ */
+
+  // 1.1 Preferencias (sin I/O)
+  function preferredBase() {
     try {
       if (window.API_BASE) return String(window.API_BASE).replace(/\/$/, '');
-      const meta = document.querySelector('meta[name="api-base"]');
-      if (meta && meta.content) return String(meta.content).replace(/\/$/, '');
+      const m = document.querySelector('meta[name="api-base"]');
+      if (m && m.content) return String(m.content).replace(/\/$/, '');
+      const cached = localStorage.getItem('nt.apiBase.ok');
+      if (cached) return String(cached).replace(/\/$/, '');
     } catch {}
     return location.origin.replace(/\/$/, '');
+  }
+
+  // 1.2 Base actual (considera cache si existe)
+  function currentBase() {
+    const cached = localStorage.getItem('nt.apiBase.ok');
+    if (cached) return String(cached).replace(/\/$/,'');
+    return preferredBase();
+  }
+
+  // 1.3 Setter con saneo + log
+  function setApiBase(b) {
+    window.API_BASE = String(b || preferredBase()).replace(/\/$/,'');
+    console.log('%c[common] API_BASE = ' + window.API_BASE, 'color:#7f5af0');
+    return window.API_BASE;
+  }
+
+  // 1.4 Sonda de candidatos; memoriza la primera base que responda
+  async function probeBaseList(candidates, probePath='/api/compras') {
+    const unique = Array.from(new Set((candidates||[]).filter(Boolean))).map(b => String(b).replace(/\/$/,''));
+    for (const base of unique) {
+      const url = `${base}${probePath}`;
+      try {
+        const res = await fetch(url, { method:'GET' });
+        // Cualquier 2xx-4xx nos sirve para saber que hay servidor vivo
+        if (res.ok || (res.status >= 200 && res.status < 500)) {
+          localStorage.setItem('nt.apiBase.ok', base);
+          setApiBase(base);
+          return base;
+        }
+      } catch(_e) { /* probar siguiente */ }
+    }
+    return setApiBase(preferredBase());
+  }
+
+  // 1.5 API pública para re-sondear cuando quieras
+  window.getApiBase    = () => currentBase();
+  window.ntPickApiBase = async function(candidates, probePath='/api/compras'){
+    return probeBaseList(candidates, probePath);
   };
 
-  // ===== Toasts =====
+  // 1.6 Arranque: fija base y lanza sonda no bloqueante
+  setApiBase(currentBase());
+  (async ()=>{
+    const meta   = document.querySelector('meta[name="api-base"]')?.content;
+    const cached = localStorage.getItem('nt.apiBase.ok');
+    const same   = location.origin;
+    await probeBaseList([meta, cached, same]);
+  })();
+
+
+  /* ============================
+   * 2) UI helpers (toasts, confirm)
+   * ============================ */
+
   window.ntToast = function ({title='Mensaje', body='', type='info', delay=4500}) {
     const container = document.getElementById('toastStack') || (() => {
       const wrap = document.createElement('div');
@@ -34,6 +92,7 @@
 
     const icon = type==='success' ? 'bi-check-circle-fill'
                : type==='error'   ? 'bi-x-circle-fill'
+               : type==='warning' ? 'bi-exclamation-triangle-fill'
                : 'bi-info-circle-fill';
 
     const toast = document.createElement('div');
@@ -52,107 +111,166 @@
   };
   window.showToast = (message, type='info', title='Mensaje') => window.ntToast({ title, body: message, type, delay: 4200 });
 
-  // ===== Helpers =====
   window.ntEsc = s => String(s ?? '').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  window.ntParseApiError = (txt) => { try { const j=JSON.parse(txt); return j.error||j.message||j.detail||txt; } catch { return txt; } };
 
-  window.confirmDialog = function(message, {title='Confirmar', okText='Aceptar', cancelText='Cancelar'} = {}) {
-    return new Promise((resolve) => {
-      const id = 'ntConfirmModal';
-      let m = document.getElementById(id);
-      if (!m) {
-        const html = `
-        <div class="modal fade" id="${id}" tabindex="-1" aria-hidden="true">
-          <div class="modal-dialog"><div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title"><i class="bi bi-question-circle me-2"></i><span id="${id}-title"></span></h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body"><div id="${id}-msg" class="fw-medium"></div></div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="${id}-cancel">${cancelText}</button>
-              <button type="button" class="btn btn-primary" id="${id}-ok">${okText}</button>
-            </div>
-          </div></div>
-        </div>`;
-        document.body.insertAdjacentHTML('beforeend', html);
-        m = document.getElementById(id);
-      }
-      document.getElementById(`${id}-title`).textContent = title;
-      document.getElementById(`${id}-msg`).textContent = message;
-      document.getElementById(`${id}-ok`).textContent = okText;
-      document.getElementById(`${id}-cancel`).textContent = cancelText;
+  // Intenta extraer un mensaje útil de respuestas HTML (p.ej. Tomcat 500)
+  function extractMessageFromHtml(html) {
+    try {
+      const tmp = document.implementation.createHTMLDocument('');
+      tmp.documentElement.innerHTML = html;
+      const t = tmp.querySelector('title')?.textContent?.trim();
+      const h1 = tmp.querySelector('h1')?.textContent?.trim();
+      // Combina título y H1 si existen
+      const joined = [t, h1].filter(Boolean).join(' – ');
+      return joined || html.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,180);
+    } catch { return html; }
+  }
 
-      const modal = new bootstrap.Modal(m);
-      const btnOk = document.getElementById(`${id}-ok`);
-      const onOk = () => { btnOk.removeEventListener('click', onOk); modal.hide(); resolve(true); };
-      btnOk.addEventListener('click', onOk);
-      m.addEventListener('hidden.bs.modal', () => resolve(false), { once: true });
-      modal.show();
-    });
+  window.ntParseApiError = (txt) => {
+    if (!txt) return 'Error';
+    // Si viene JSON
+    try { const j=JSON.parse(txt); return j.error||j.message||j.detail||txt; } catch {}
+    // Si parece HTML (Tomcat)
+    if (/<html[^>]*>/i.test(txt)) return extractMessageFromHtml(txt);
+    // Texto plano
+    return String(txt).trim();
   };
 
-  // ===== Fetch JSON helpers =====
-  async function ntFetchJson(method, url, body) {
-    const opts = { method, headers: {} };
-    if (body !== undefined) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
-    const res = await fetch(url, opts);
-    const raw = await res.text();
-    if (!res.ok) { throw new Error(window.ntParseApiError(raw)); }
-    return raw ? JSON.parse(raw) : null;
-  }
-  window.ntGet    = (url)        => ntFetchJson('GET', url);
-  window.ntPost   = (url, body)  => ntFetchJson('POST', url, body);
-  window.ntPut    = (url, body)  => ntFetchJson('PUT', url, body);
-  window.ntDelete = (url)        => ntFetchJson('DELETE', url);
 
-  // ===== Compat API.request / API.toast =====
-  window.API = (function () {
-    const RAW_BASE = getApiBase();
-    const BASE = RAW_BASE.replace(/\s+$/g, '').replace(/\/+$/, '');
+  /* ==========================================
+   * 3) Construcción de URL y fetch JSON robusto
+   * ========================================== */
 
-    function buildUrl(path) {
-      if (/^https?:\/\//i.test(path)) return path;
-      const slash = path.startsWith('/') ? '' : '/';
-      let url = `${BASE}${slash}${path}`;
-      return url.replace(/([^:]\/)\/+/g, '$1');
+  // Convierte rutas relativas en absolutas usando la base vigente
+  window.ntBuildUrl = function(path){
+    if (!path) return currentBase();
+    if (/^https?:\/\//i.test(path)) return path; // ya es absoluta
+    const BASE = currentBase();
+    const slash = path.startsWith('/') ? '' : '/';
+    return (`${BASE}${slash}${path}`).replace(/([^:]\/)\/+/g, '$1'); // normaliza //
+  };
+
+  // Detección de ruta de catálogo de compras
+  function isComprasCatalog(url) {
+    try {
+      const u = new URL(url);
+      return /\/api\/compras\/catalogos\//i.test(u.pathname);
+    } catch {
+      return /\/api\/compras\/catalogos\//i.test(url);
     }
+  }
+
+  async function ntFetchJson(method, urlOrPath, body) {
+    const url = ntBuildUrl(urlOrPath);
+    try{
+      const opts = { method, headers: {} };
+      if (body !== undefined) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+      const res = await fetch(url, opts);
+      const raw = await res.text();
+
+      if (!res.ok) {
+        // Si respuesta es HTML (Tomcat), conviértela a mensaje legible
+        const parsed = window.ntParseApiError(raw || `HTTP ${res.status}`);
+        // Suavizado específico para CATÁLOGOS: devuelve [] en GET cuando el backend responde 5xx
+        if (method === 'GET' && res.status >= 500 && isComprasCatalog(url)) {
+          console.warn(`[common] catálogo falló con ${res.status} en ${url}. Devolviendo [] para no romper la UI. Detalle: ${parsed}`);
+          return [];
+        }
+        throw new Error(parsed);
+      }
+      if (!raw) return null;
+
+      // Intenta JSON; si no, intenta parsear HTML -> mensaje
+      try { return JSON.parse(raw); }
+      catch { 
+        const msg = window.ntParseApiError(raw);
+        // Si la ruta es de catálogo y la respuesta no es JSON, regresamos []
+        if (method === 'GET' && isComprasCatalog(url)) {
+          console.warn(`[common] catálogo no devolvió JSON en ${url}. Devolviendo [].`);
+          return [];
+        }
+        throw new Error(msg);
+      }
+    }catch(err){
+      const isConn = /Failed to fetch|NetworkError|ERR_CONNECTION|TypeError|CORS/i.test(String(err));
+      const nice = isConn ? `No se pudo contactar el backend.\nURL: ${url}\nVerifica servidor/URL/CORS.` : err.message;
+      // Para catálogos, ante error de red devolvemos [] para mantener UI operativa
+      if (method === 'GET' && isComprasCatalog(url)) {
+        console.warn(`[common] error de red al cargar catálogo ${url}. Se devuelve []. Error: ${nice}`);
+        return [];
+      }
+      throw new Error(nice);
+    }
+  }
+
+  // Helpers globales (rutas relativas o absolutas, ambas sirven)
+  window.ntGet    = (pathOrUrl)        => ntFetchJson('GET', pathOrUrl);
+  window.ntPost   = (pathOrUrl, body)  => ntFetchJson('POST', pathOrUrl, body);
+  window.ntPut    = (pathOrUrl, body)  => ntFetchJson('PUT', pathOrUrl, body);
+  window.ntDelete = (pathOrUrl)        => ntFetchJson('DELETE', pathOrUrl);
+
+  // ===== Helpers opcionales (no rompen nada existente) =====
+  // ntGetSafe: retorna null (o el fallback provisto) si hay error.
+  window.ntGetSafe = async function(pathOrUrl, fallback=null){
+    try { return await ntGet(pathOrUrl); }
+    catch(e){ console.warn('[common] ntGetSafe:', e?.message || e); return fallback; }
+  };
+  // ntGetOrEmpty: atajo para colecciones; retorna [] si hay error.
+  window.ntGetOrEmpty = async function(pathOrUrl){
+    const r = await window.ntGetSafe(pathOrUrl, []);
+    return Array.isArray(r) ? r : [];
+  };
+
+
+  /* ==============================
+   * 4) Compatibilidad: window.API
+   * ==============================
+   * API.request(path, { method, headers, json, body, userId })
+   * API.toast(msg, type)
+   */
+  window.API = (function () {
+
+    function buildUrl(path) { return window.ntBuildUrl(path); }
 
     async function request(path, { method = 'GET', headers = {}, json, body, userId = 1 } = {}) {
       const upper = String(method).toUpperCase();
-      const baseHeaders = {
-        'Accept': 'application/json'
-      };
-      // SOLO agregamos X-User-Id cuando el backend lo pide (create/update/delete)
+      const url = buildUrl(path);
+      const baseHeaders = { 'Accept': 'application/json' };
       if (upper === 'POST' || upper === 'PUT' || upper === 'DELETE') {
         baseHeaders['X-User-Id'] = String(userId);
       }
-      if (json !== undefined) {
-        baseHeaders['Content-Type'] = 'application/json'; // esto sí provoca preflight en POST/PUT (esperado)
+      if (json !== undefined) baseHeaders['Content-Type'] = 'application/json';
+
+      let res, payload, ct, raw;
+      try{
+        res = await fetch(url, {
+          method: upper,
+          mode: 'cors',
+          headers: { ...baseHeaders, ...headers },
+          body: json !== undefined ? JSON.stringify(json) : body,
+        });
+        ct  = res.headers.get('content-type') || '';
+        raw = await res.text();
+        payload = ct.includes('application/json') ? (raw ? JSON.parse(raw) : null) : raw;
+      }catch(err){
+        const isConn = /Failed to fetch|NetworkError|ERR_CONNECTION|TypeError|CORS/i.test(String(err));
+        const nice = isConn ? `No se pudo contactar el backend.\nURL: ${url}` : String(err);
+        throw new Error(nice);
       }
 
-      const h = { ...baseHeaders, ...headers };
-
-      const res = await fetch(buildUrl(path), {
-        method: upper,
-        mode: 'cors',                                     // explícito
-        headers: h,
-        body: json !== undefined ? JSON.stringify(json) : body,
-      });
-
-      const ct = res.headers.get('content-type') || '';
-      const payload = await (ct.includes('application/json') ? res.json() : res.text());
-
       if (!res.ok) {
-        const msg = typeof payload === 'string' ? payload : (payload?.message || payload?.error || res.statusText);
-        throw new Error(`HTTP ${res.status} – ${msg}`);
+        const parsed = typeof payload === 'string' ? window.ntParseApiError(payload) : (payload?.message || payload?.error || res.statusText);
+        // Igual que en ntFetchJson: suaviza catálogos 5xx en GET
+        if (upper === 'GET' && res.status >= 500 && isComprasCatalog(url)) {
+          console.warn(`[common/API] catálogo falló con ${res.status} en ${url}. Devolviendo [] para no romper la UI. Detalle: ${parsed}`);
+          return [];
+        }
+        throw new Error(`HTTP ${res.status} – ${parsed}`);
       }
       return payload;
     }
 
-    function toast(msg, type = 'info') {
-      showToast(msg, type);
-    }
+    function toast(msg, type = 'info') { showToast(msg, type); }
 
     return { request, toast };
   })();

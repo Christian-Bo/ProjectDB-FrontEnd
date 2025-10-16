@@ -20,11 +20,12 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 
   <!-- Estilos -->
-  <link rel="stylesheet" href="assets/css/app.css?v=12">
-  <link rel="stylesheet" href="assets/css/base.css?v=12">
-  <link rel="stylesheet" href="assets/css/compras.css?v=12">
+  <link rel="stylesheet" href="assets/css/app.css?v=15">
+  <link rel="stylesheet" href="assets/css/base.css?v=15">
+  <link rel="stylesheet" href="assets/css/compras.css?v=15">
+
   <style>
-    /* Modal “Modo de edición” */
+    /* Tarjetas del selector de modo */
     .modo-card{
       border:1px solid var(--nt-border);
       background: var(--nt-surface);
@@ -34,11 +35,7 @@
       transition: transform .08s ease, background .15s ease, border-color .15s ease;
       height: 100%;
     }
-    .modo-card:hover{
-      transform: translateY(-1px);
-      background: var(--nt-surface-2);
-      border-color: var(--nt-border);
-    }
+    .modo-card:hover{ transform: translateY(-1px); background: var(--nt-surface-2); border-color: var(--nt-border); }
     .modo-card .icon{
       width:48px;height:48px;border-radius:12px;
       display:flex;align-items:center;justify-content:center;
@@ -48,6 +45,16 @@
     }
     .modo-card h6{ color: var(--nt-primary); margin:0; }
     .modo-card p{ margin: .25rem 0 0; color: var(--nt-text); }
+
+    /* Maestro–detalle */
+    .det-mini { font-size:.8rem; color: var(--nt-text-2); }
+    .det-meta { display:flex; gap:.5rem; flex-wrap:wrap; }
+    .det-meta .form-control-plaintext { padding:0; min-height:auto; }
+
+    /* Compatibilidad: dejamos el input de ID que usa tu JS, pero oculto visualmente */
+    .legacy-producto-id{ 
+      display:none !important; /* lo mantenemos en el DOM para que tu JS actual pueda leerlo si lo necesita */
+    }
   </style>
 </head>
 <body class="nt-bg">
@@ -86,10 +93,16 @@
         <label class="form-label">Fecha al</label>
         <input type="date" id="fAl" class="form-control">
       </div>
-      <div class="col-md-2">
-        <label class="form-label">Proveedor (ID)</label>
-        <input type="number" id="fProveedorId" class="form-control" placeholder="ej. 1">
+
+      <!-- Proveedor: select + hidden (compat con backend/JS actual) -->
+      <div class="col-md-3">
+        <label class="form-label">Proveedor</label>
+        <select id="fProveedorSel" class="form-select">
+          <option value="">— Todos —</option>
+        </select>
+        <input type="hidden" id="fProveedorId">
       </div>
+
       <div class="col-md-2">
         <label class="form-label">Estado</label>
         <select id="fEstado" class="form-select">
@@ -100,7 +113,7 @@
           <option value="X">Anulada</option>
         </select>
       </div>
-      <div class="col-md-3">
+      <div class="col-md-2">
         <label class="form-label">Buscar</label>
         <input type="text" id="fTexto" class="form-control" placeholder="N° compra / factura / observaciones...">
       </div>
@@ -185,10 +198,33 @@
           <div class="col-md-3"><label class="form-label">N° Compra</label><input type="text" id="cab_numeroCompra" class="form-control" maxlength="20" required></div>
           <div class="col-md-3"><label class="form-label">Factura proveedor</label><input type="text" id="cab_noFacturaProveedor" class="form-control" maxlength="50" required></div>
           <div class="col-md-3"><label class="form-label">Fecha</label><input type="date" id="cab_fechaCompra" class="form-control" required></div>
-          <div class="col-md-6"><label class="form-label">Proveedor (ID)</label><input type="number" id="cab_proveedorId" class="form-control" required></div>
-          <div class="col-md-6"><label class="form-label">Bodega destino (ID)</label><input type="number" id="cab_bodegaDestinoId" class="form-control" required></div>
-          <div class="col-md-6"><label class="form-label">Empleado comprador (ID)</label><input type="number" id="cab_empleadoCompradorId" class="form-control" required></div>
-          <div class="col-md-6"><label class="form-label">Empleado autoriza (ID)</label><input type="number" id="cab_empleadoAutorizaId" class="form-control"></div>
+
+          <!-- Selects poblados por JS -->
+          <div class="col-md-6">
+            <label class="form-label">Proveedor</label>
+            <select id="cab_proveedorSel" class="form-select" required>
+              <option value="">Cargando...</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Bodega destino</label>
+            <select id="cab_bodegaSel" class="form-select" required>
+              <option value="">Cargando...</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Empleado comprador</label>
+            <select id="cab_compradorSel" class="form-select" required>
+              <option value="">Cargando...</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Empleado autoriza</label>
+            <select id="cab_autorizaSel" class="form-select">
+              <option value="">— Sin autorizar —</option>
+            </select>
+          </div>
+
           <div class="col-12"><label class="form-label">Observaciones</label><textarea id="cab_observaciones" rows="2" class="form-control"></textarea></div>
         </div>
 
@@ -206,17 +242,20 @@
             <table class="table table-sm align-middle" id="tblDetalleNuevo">
               <thead>
                 <tr>
-                  <th style="width: 16%;">Producto (ID)</th>
-                  <th style="width: 10%;">Cant.</th>
-                  <th style="width: 12%;">P. Unit</th>
-                  <th style="width: 12%;">Desc.</th>
-                  <th style="width: 22%;">Lote</th>
-                  <th style="width: 18%;">Vence</th>
+                  <th style="width: 28%;">Producto</th>
+                  <th style="width: 9%;" class="text-end">Cant.</th>
+                  <th style="width: 13%;" class="text-end">P. Unit</th>
+                  <th style="width: 12%;" class="text-end">Desc.</th>
+                  <th style="width: 18%;">Lote</th>
+                  <th style="width: 15%;">Vence</th>
                   <th style="width: 5%;"></th>
                 </tr>
               </thead>
               <tbody><!-- filas por JS --></tbody>
             </table>
+          </div>
+          <div class="det-mini mt-1">
+            <i class="bi bi-info-circle"></i> Al seleccionar un producto, se podrán autollenar código, unidad, stock y precio.
           </div>
         </div>
       </div>
@@ -268,7 +307,6 @@
       </div>
       <div class="modal-footer">
         <small class="text-muted me-auto" id="cmp_totales"></small>
-        <!-- NUEVO: botón Guardar visible para confirmar al usuario -->
         <button class="btn btn-primary" type="button" id="btnGuardarMaster"><i class="bi bi-check2-circle"></i> Guardar</button>
         <button class="btn btn-secondary" type="button" data-mm-close>Cerrar</button>
       </div>
@@ -296,17 +334,20 @@
           <table class="table table-sm align-middle" id="tblDetalleAgregar">
             <thead>
               <tr>
-                <th style="width: 16%;">Producto (ID)</th>
-                <th style="width: 12%;">Cant.</th>
-                <th style="width: 14%;">P. Unit</th>
-                <th style="width: 14%;">Desc.</th>
-                <th style="width: 22%;">Lote</th>
-                <th style="width: 17%;">Vence</th>
+                <th style="width: 28%;">Producto</th>
+                <th style="width: 11%;" class="text-end">Cant.</th>
+                <th style="width: 15%;" class="text-end">P. Unit</th>
+                <th style="width: 13%;" class="text-end">Desc.</th>
+                <th style="width: 18%;">Lote</th>
+                <th style="width: 15%;">Vence</th>
                 <th style="width: 5%;"></th>
               </tr>
             </thead>
             <tbody><!-- por JS --></tbody>
           </table>
+        </div>
+        <div class="det-mini mt-1">
+          <i class="bi bi-info-circle"></i> El precio por defecto y meta de producto se tomarán del autofill.
         </div>
       </div>
       <div class="modal-footer">
@@ -369,6 +410,57 @@
   </div>
 </div>
 
+<!-- ===================== PLANTILLAS DE FILA (solo estructura visual) ===================== -->
+
+<!-- NUEVA compra: cada fila tiene SELECT (visible) + INPUT de ID oculto (compat) -->
+<template id="tplFilaDetalleNuevo">
+  <tr>
+    <td>
+      <!-- Visible: nombre de producto -->
+      <select class="form-select form-select-sm prod-select" aria-label="Producto">
+        <option value="">— Seleccione —</option>
+      </select>
+      <!-- Compatibilidad con JS actual: mantiene el input de ID -->
+      <input type="number" class="form-control form-control-sm legacy-producto-id inp-productoId" placeholder="ID">
+      <!-- Metadatos para autollenado posterior -->
+      <div class="det-meta mt-1">
+        <span class="form-control-plaintext det-mini"><i class="bi bi-upc-scan"></i> <span class="meta-codigo">—</span></span>
+        <span class="form-control-plaintext det-mini"><i class="bi bi-rulers"></i> <span class="meta-unidad">—</span></span>
+        <span class="form-control-plaintext det-mini"><i class="bi bi-box-seam"></i> Stock: <span class="meta-stock">—</span></span>
+      </div>
+    </td>
+    <td><input type="number" min="1" class="form-control form-control-sm text-end inp-cantidad" placeholder="0" value="1"></td>
+    <td><input type="number" step="0.01" class="form-control form-control-sm text-end inp-precio" placeholder="0.00"></td>
+    <td><input type="number" step="0.01" class="form-control form-control-sm text-end inp-descuento" placeholder="0.00"></td>
+    <td><input type="text" class="form-control form-control-sm inp-lote" placeholder="Lote"></td>
+    <td><input type="date" class="form-control form-control-sm inp-vence"></td>
+    <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger btn-del-linea"><i class="bi bi-trash"></i></button></td>
+  </tr>
+</template>
+
+<!-- AGREGAR líneas: misma estructura -->
+<template id="tplFilaDetalleAgregar">
+  <tr>
+    <td>
+      <select class="form-select form-select-sm prod-select" aria-label="Producto">
+        <option value="">— Seleccione —</option>
+      </select>
+      <input type="number" class="form-control form-control-sm legacy-producto-id inp-productoId" placeholder="ID">
+      <div class="det-meta mt-1">
+        <span class="form-control-plaintext det-mini"><i class="bi bi-upc-scan"></i> <span class="meta-codigo">—</span></span>
+        <span class="form-control-plaintext det-mini"><i class="bi bi-rulers"></i> <span class="meta-unidad">—</span></span>
+        <span class="form-control-plaintext det-mini"><i class="bi bi-box-seam"></i> Stock: <span class="meta-stock">—</span></span>
+      </div>
+    </td>
+    <td><input type="number" min="1" class="form-control form-control-sm text-end inp-cantidad" placeholder="0" value="1"></td>
+    <td><input type="number" step="0.01" class="form-control form-control-sm text-end inp-precio" placeholder="0.00"></td>
+    <td><input type="number" step="0.01" class="form-control form-control-sm text-end inp-descuento" placeholder="0.00"></td>
+    <td><input type="text" class="form-control form-control-sm inp-lote" placeholder="Lote"></td>
+    <td><input type="date" class="form-control form-control-sm inp-vence"></td>
+    <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger btn-del-linea"><i class="bi bi-trash"></i></button></td>
+  </tr>
+</template>
+
 <!-- Toasts -->
 <div class="position-fixed top-0 end-0 p-3" style="z-index:1080">
   <div id="toastStack" class="toast-container"></div>
@@ -376,7 +468,7 @@
 
 <!-- JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="assets/js/common.js?v=12"></script>
-<script src="assets/js/compras.js?v=12"></script>
+<script src="assets/js/common.js?v=15"></script>
+<script src="assets/js/compras.js?v=15"></script>
 </body>
 </html>

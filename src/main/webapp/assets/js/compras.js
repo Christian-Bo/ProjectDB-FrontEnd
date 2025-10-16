@@ -1,15 +1,4 @@
-/* 
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/JavaScript.js to edit this template
- */
-
-// assets/js/compras.js
-// Pantalla Compras: listado + CRUD con modales (consume /api/compras/*)
-// compras.js — Módulo Compras con ModalManager para evitar modales apilados
-
-// compras.js — Compras con ModalManager y “Selector de modo de edición”
-
-// compras.js — Compras con ModalManager, selector de modo y botón “Guardar” en maestro–detalle
+/* compras.js — versión con combos, autofill y reset de fila al cambiar producto */
 
 /* ====================== util red ====================== */
 (function(){
@@ -34,6 +23,25 @@ const API = `${API_BASE}/api/compras`;
 const $  = (s,c=document)=>c.querySelector(s);
 const $$ = (s,c=document)=>Array.from(c.querySelectorAll(s));
 const money = v => (v==null?'0.00':Number(v).toLocaleString('es-GT',{minimumFractionDigits:2, maximumFractionDigits:2}));
+const V = (x, d='--') => (x===null||x===undefined||x==='') ? d : x;
+
+/* ====================== parsers robustos (coma/punto) ====================== */
+function toInt(v){ const n = parseInt(String(v??'').replace(/[^\d-]/g,''),10); return Number.isFinite(n)? n : 0; }
+function toDec(v){
+  if (v==null || v==='') return 0;
+  if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
+  let s = String(v).trim();
+  s = s.replace(/\s/g,'').replace(/[^\d.,-]/g,''); // deja solo dígitos, , . y -
+  const lastComma = s.lastIndexOf(','), lastDot = s.lastIndexOf('.');
+  if (lastComma === -1 && lastDot === -1){
+    const n = parseFloat(s); return Number.isFinite(n)? n : 0;
+  }
+  const sepIndex = Math.max(lastComma, lastDot);
+  const sepChar  = s[sepIndex];
+  s = s.replace(/[.,]/g, ch => ch===sepChar ? '.' : ''); // '.' como decimal
+  const n = parseFloat(s);
+  return Number.isFinite(n)? n : 0;
+}
 
 /* ====================== modal manager ====================== */
 class ModalManager{
@@ -67,9 +75,58 @@ const mm = new ModalManager();
 
 /* ====================== estado ====================== */
 let compras=[], compraActual=null;
-let pendingChanges = false; // << bandera para botón Guardar
+let pendingChanges = false;
+const compraCache = new Map();
+
+/* ====================== catálogos (para combos) ====================== */
+const CAT = { proveedores:null, bodegas:null, empleados:null, productos:null };
+
+function fillSelect(sel, items, currentId, {placeholder='— Seleccione —'}={}) {
+  const el = (typeof sel === 'string') ? $(sel) : sel;
+  el.innerHTML = '';
+  const opt0 = document.createElement('option');
+  opt0.value = ''; opt0.textContent = placeholder;
+  el.appendChild(opt0);
+  (items||[]).forEach(it=>{
+    const op = document.createElement('option');
+    op.value = String(it.id);
+    op.textContent = it.nombre;
+    if (currentId != null && Number(currentId) === Number(it.id)) op.selected = true;
+    el.appendChild(op);
+  });
+}
+
+async function loadCatalogOnce(){
+  if (!CAT.proveedores) CAT.proveedores = await ntGet(`${API}/catalogos/proveedores?activo=true`).catch(()=>[]);
+  if (!CAT.bodegas)     CAT.bodegas     = await ntGet(`${API}/catalogos/bodegas`).catch(()=>[]);
+  if (!CAT.empleados)   CAT.empleados   = await ntGet(`${API}/catalogos/empleados`).catch(()=>[]);
+}
+async function loadProductosOnce(){
+  if (CAT.productos) return;
+  CAT.productos = await ntGet(`${API}/catalogos/productos?limit=200`).catch(()=>[]);
+}
+async function cargarCatalogosUI({provId=null, bodegaId=null, compId=null, autoId=null}={}){
+  await loadCatalogOnce();
+  fillSelect('#cab_proveedorSel', CAT.proveedores, provId);
+  fillSelect('#cab_bodegaSel',     CAT.bodegas,     bodegaId);
+  fillSelect('#cab_compradorSel',  CAT.empleados,   compId);
+  fillSelect('#cab_autorizaSel',   CAT.empleados,   autoId, {placeholder:'— Sin autorizar —'});
+}
 
 /* ====================== listado ====================== */
+async function enrichListWithNames(list){
+  const needs = (list||[]).filter(c => !c?.proveedorNombre || !c?.bodegaDestinoNombre);
+  if (!needs.length) return;
+  await Promise.all(needs.map(async row=>{
+    try{
+      let full = compraCache.get(row.id);
+      if (!full) { full = await ntGet(`${API}/${row.id}`); compraCache.set(row.id, full); }
+      const cab = full?.cabecera || {};
+      row.proveedorNombre     = cab.proveedorNombre     ?? row.proveedorNombre;
+      row.bodegaDestinoNombre = cab.bodegaDestinoNombre ?? row.bodegaDestinoNombre;
+    }catch{}
+  }));
+}
 async function buscar(){
   const p = new URLSearchParams();
   if($('#fDel').value) p.append('fechaDel', $('#fDel').value);
@@ -81,6 +138,7 @@ async function buscar(){
 
   try{
     compras = await ntGet(url);
+    await enrichListWithNames(compras);
     renderTabla();
   }catch(e){
     showToast(`No se pudo listar compras: ${e.message}`, 'error', 'Compras');
@@ -92,11 +150,11 @@ function renderTabla(){
     const tr=document.createElement('tr');
     tr.innerHTML=`
       <td>${i+1}</td>
-      <td><span class="fw-semibold">${ntEsc(c.numeroCompra||'')}</span></td>
-      <td>${ntEsc(c.noFacturaProveedor||'')}</td>
-      <td>${ntEsc(c.fechaCompra||'')}</td>
-      <td>${ntEsc(c.proveedorNombre||'')}</td>
-      <td>${ntEsc(c.bodegaDestinoNombre||'')}</td>
+      <td><span class="fw-semibold">${ntEsc(V(c.numeroCompra,''))}</span></td>
+      <td>${ntEsc(V(c.noFacturaProveedor))}</td>
+      <td>${ntEsc(V(c.fechaCompra))}</td>
+      <td>${ntEsc(V(c.proveedorNombre))}</td>
+      <td>${ntEsc(V(c.bodegaDestinoNombre))}</td>
       <td class="text-end">${money(c.subtotal)}</td>
       <td class="text-end">${money(c.descuentoGeneral)}</td>
       <td class="text-end">${money(c.iva)}</td>
@@ -117,78 +175,164 @@ const badge = e => {
   return `<span class="badge ${cls} badge-estado">${e||'-'}</span>`;
 };
 
-/* ====================== cabecera: crear/editar ====================== */
-function nuevaCabecera(){
-  $('#cabeceraTitle').textContent='Nueva compra';
-  $('#cab_compraId').value='';
-  $('#cab_usuarioId').value='1';
-  $('#cab_numeroCompra').value='';
-  $('#cab_noFacturaProveedor').value='';
-  $('#cab_fechaCompra').valueAsDate = new Date();
-  $('#cab_proveedorId').value='';
-  $('#cab_empleadoCompradorId').value='';
-  $('#cab_empleadoAutorizaId').value='';
-  $('#cab_bodegaDestinoId').value='';
-  $('#cab_observaciones').value='';
-  $('#tblDetalleNuevo tbody').innerHTML='';
-  $('#panelDetalleInicial').style.display = '';
-  addLinea('#tblDetalleNuevo tbody');
+/* ====================== DETALLE: UI + AUTOFILL ====================== */
+
+/** Limpia campos de una fila de detalle (conserva cantidad por defecto). */
+function resetDetalleRow(tr, { keepQty = true } = {}) {
+  if (!tr) return;
+
+  const qtyEl = tr.querySelector('.inp-cantidad, .linea_cant');
+  const qtyVal = qtyEl ? qtyEl.value : '';
+
+  const precioEl = tr.querySelector('.inp-precio, .linea_pu');
+  const descEl   = tr.querySelector('.inp-descuento, .linea_desc');
+  const loteEl   = tr.querySelector('.inp-lote, .linea_lote');
+  const venceEl  = tr.querySelector('.inp-vence, .linea_vence');
+
+  if (precioEl) precioEl.value = '';
+  if (descEl)   descEl.value   = '';
+  if (loteEl)   loteEl.value   = '';
+  if (venceEl)  venceEl.value  = '';
+
+  ['.meta-codigo', '.meta-unidad', '.meta-stock'].forEach(sel=>{
+    const el = tr.querySelector(sel);
+    if (el) el.textContent = '—';
+  });
+
+  if (qtyEl && keepQty) qtyEl.value = qtyVal || '1';
 }
+
+/** Crea una fila desde un <template> y la inserta. */
+function appendRowFromTemplate(tbodySel, templateId){
+  const tb = $(tbodySel);
+  const tpl = $(templateId);
+  const node = tpl.content.firstElementChild.cloneNode(true);
+  tb.appendChild(node);
+  node.querySelector('.btn-del-linea')?.addEventListener('click', ()=> node.remove());
+  prepareProductSelect(node.querySelector('select.prod-select'));
+  return node;
+}
+
+/** Rellena el combo de producto y maneja el cambio (sincroniza hidden, limpia y autofill). */
+async function prepareProductSelect(selectEl){
+  if (!selectEl) return;
+  await loadProductosOnce();
+  fillSelect(selectEl, CAT.productos, null, {placeholder:'Seleccione…'});
+
+  const tr = selectEl.closest('tr');
+  const hidden = tr?.querySelector('.inp-productoId');
+
+  selectEl.addEventListener('change', async () => {
+    if (hidden) hidden.value = selectEl.value || '';
+    // Limpia campos de la fila (conserva cantidad)
+    resetDetalleRow(tr, { keepQty: true });
+    // Refresca metas + precio sugerido del nuevo producto
+    await autofillProducto(tr, selectEl.value, $('#cab_bodegaSel')?.value || null);
+  });
+}
+
+/** Llama al endpoint de autofill para mostrar código/unidad/stock y sugerir precio. */
+async function autofillProducto(tr, productoId, bodegaId){
+  const metaCodigo = tr.querySelector('.meta-codigo');
+  const metaUnidad = tr.querySelector('.meta-unidad');
+  const metaStock  = tr.querySelector('.meta-stock');
+  const inpPrecio  = tr.querySelector('.inp-precio');
+
+  if (!productoId){
+    if (metaCodigo) metaCodigo.textContent='—';
+    if (metaUnidad) metaUnidad.textContent='—';
+    if (metaStock)  metaStock.textContent ='—';
+    return;
+  }
+  try{
+    const u = new URL(`${API}/autofill/producto`);
+    u.searchParams.set('productoId', productoId);
+    if (bodegaId) u.searchParams.set('bodegaId', bodegaId);
+    const info = await ntGet(u.toString());
+
+    if (metaCodigo) metaCodigo.textContent = info?.producto_codigo ?? '—';
+    if (metaUnidad) metaUnidad.textContent = info?.unidad_medida ?? '—';
+    if (metaStock)  metaStock.textContent  = info?.stock_disponible ?? '—';
+
+    if (inpPrecio && (!inpPrecio.value || toDec(inpPrecio.value)===0) && info?.precio_compra){
+      inpPrecio.value = info.precio_compra;
+    }
+  }catch(e){
+    console.warn('autofillProducto fallo', e.message);
+  }
+}
+
+/* ===== Compat: API anterior addLinea / recolectarDetalle (con parsers robustos) ==== */
 function addLinea(tbodySel){
-  const tb=$(tbodySel); const tr=document.createElement('tr');
-  tr.innerHTML=`
-    <td><input type="number" class="form-control form-control-sm linea_productoId" min="1" placeholder="ID"></td>
-    <td><input type="number" class="form-control form-control-sm linea_cant" min="1" value="1"></td>
-    <td><input type="number" step="0.01" class="form-control form-control-sm linea_pu" value="0.00"></td>
-    <td><input type="number" step="0.01" class="form-control form-control-sm linea_desc" value="0.00"></td>
-    <td><input type="text" class="form-control form-control-sm linea_lote"></td>
-    <td><input type="date" class="form-control form-control-sm linea_vence"></td>
-    <td><button class="btn btn-sm btn-outline-danger" type="button"><i class="bi bi-trash"></i></button></td>
-  `;
-  tb.appendChild(tr);
-  tr.querySelector('button').addEventListener('click',()=> tr.remove());
+  const tplId = (tbodySel.includes('Agregar')) ? '#tplFilaDetalleAgregar' : '#tplFilaDetalleNuevo';
+  appendRowFromTemplate(tbodySel, tplId);
 }
 function recolectarDetalle(tbodySel){
   const rows = $$(tbodySel + ' tr');
   return rows.map(row=>{
-    const productoId = parseInt(row.querySelector('.linea_productoId').value||'0',10);
-    const cantidadPedida = parseInt(row.querySelector('.linea_cant').value||'0',10);
-    const precioUnitario = Number(row.querySelector('.linea_pu').value||0);
-    const descuentoLinea = Number(row.querySelector('.linea_desc').value||0);
-    const lote = row.querySelector('.linea_lote').value || null;
-    const fechaVencimiento = row.querySelector('.linea_vence').value || null;
+    let productoId = toInt(row.querySelector('.inp-productoId')?.value || '');
+    if (!productoId) productoId = toInt(row.querySelector('select.prod-select')?.value || '');
+    if (!productoId) productoId = toInt(row.querySelector('.linea_productoId')?.value || '');
+
+    const cantidadPedida = toInt(row.querySelector('.inp-cantidad, .linea_cant')?.value || '');
+    const precioUnitario = toDec(row.querySelector('.inp-precio, .linea_pu')?.value || '');
+    const descuentoLinea = toDec(row.querySelector('.inp-descuento, .linea_desc')?.value || '');
+    const lote = (row.querySelector('.inp-lote, .linea_lote')?.value || '').trim() || null;
+    const fechaVencimiento = (row.querySelector('.inp-vence, .linea_vence')?.value || '').trim() || null;
+
     if(productoId && cantidadPedida>0){
       return {productoId,cantidadPedida,precioUnitario,descuentoLinea,lote,fechaVencimiento};
     }
     return null;
   }).filter(Boolean);
 }
+
+/* ====================== cabecera: crear/editar ====================== */
+async function nuevaCabecera(){
+  $('#cabeceraTitle').textContent='Nueva compra';
+  $('#cab_compraId').value='';
+  $('#cab_usuarioId').value='1';
+  $('#cab_numeroCompra').value='';
+  $('#cab_noFacturaProveedor').value='';
+  $('#cab_fechaCompra').valueAsDate = new Date();
+  $('#cab_observaciones').value='';
+
+  await cargarCatalogosUI({});
+
+  $('#tblDetalleNuevo tbody').innerHTML='';
+  addLinea('#tblDetalleNuevo tbody');
+
+  await mm.open('#mdlCabecera');
+}
 async function guardarCabecera(ev){
   ev.preventDefault();
   const compraId = $('#cab_compraId').value;
+
   const payload = {
-    usuarioId: parseInt($('#cab_usuarioId').value||'0',10),
+    usuarioId: toInt($('#cab_usuarioId').value),
     numeroCompra: $('#cab_numeroCompra').value.trim(),
     noFacturaProveedor: $('#cab_noFacturaProveedor').value.trim(),
     fechaCompra: $('#cab_fechaCompra').value,
-    proveedorId: parseInt($('#cab_proveedorId').value||'0',10),
-    empleadoCompradorId: parseInt($('#cab_empleadoCompradorId').value||'0',10),
-    empleadoAutorizaId: $('#cab_empleadoAutorizaId').value? parseInt($('#cab_empleadoAutorizaId').value,10): null,
-    bodegaDestinoId: parseInt($('#cab_bodegaDestinoId').value||'0',10),
-    observaciones: $('#cab_observaciones').value?.trim() || null,
-    detalle: recolectarDetalle('#tblDetalleNuevo tbody')
+    proveedorId: toInt($('#cab_proveedorSel').value),
+    empleadoCompradorId: toInt($('#cab_compradorSel').value),
+    empleadoAutorizaId: $('#cab_autorizaSel').value ? toInt($('#cab_autorizaSel').value) : null,
+    bodegaDestinoId: toInt($('#cab_bodegaSel').value),
+    observaciones: $('#cab_observaciones').value?.trim() || null
   };
 
   const creando = !compraId;
+  const detalle = creando ? recolectarDetalle('#tblDetalleNuevo tbody') : [];
+
   if(!payload.usuarioId || !payload.numeroCompra || !payload.noFacturaProveedor || !payload.fechaCompra ||
      !payload.proveedorId || !payload.empleadoCompradorId || !payload.bodegaDestinoId ||
-     (creando && payload.detalle.length===0)){
-    showToast('Complete los campos requeridos y agregue al menos una línea', 'warning', 'Validación'); return;
+     (creando && detalle.length===0)){
+    showToast('Complete los campos requeridos y agregue al menos una línea', 'warning', 'Validación'); 
+    return;
   }
 
   try{
     if(creando){
-      const id = await ntPost(API, payload);
+      const id = await ntPost(API, { ...payload, detalle });
       showToast(`Compra creada #${id}`, 'success', 'Éxito');
       await mm.close();
       await buscar();
@@ -196,7 +340,7 @@ async function guardarCabecera(ev){
     }else{
       const put = {
         usuarioId: payload.usuarioId,
-        compraId: parseInt(compraId,10),
+        compraId: toInt(compraId),
         noFacturaProveedor: payload.noFacturaProveedor,
         fechaCompra: payload.fechaCompra,
         proveedorId: payload.proveedorId,
@@ -208,9 +352,9 @@ async function guardarCabecera(ev){
       };
       await ntPut(`${API}/${compraId}/cabecera`, put);
       showToast('Cabecera actualizada', 'success', 'Éxito');
-      pendingChanges = true; // hubo cambios relevantes
+      pendingChanges = true;
       await mm.close();
-      await verCompra(parseInt(compraId,10), true);
+      await verCompra(toInt(compraId), true);
       await buscar();
     }
   }catch(e){
@@ -221,13 +365,16 @@ async function guardarCabecera(ev){
 /* ====================== ver / detalle ====================== */
 async function verCompra(id, abrir){
   try{
-    compraActual = await ntGet(`${API}/${id}`);
-    $('#cmp_numero').textContent = compraActual?.cabecera?.numeroCompra || '';
-    $('#cmp_proveedor').textContent = compraActual?.cabecera?.proveedorNombre || '';
-    $('#cmp_factura').textContent = compraActual?.cabecera?.noFacturaProveedor || '';
-    $('#cmp_bodega').textContent = compraActual?.cabecera?.bodegaDestinoNombre || '';
-    $('#cmp_estado').innerHTML = badge(compraActual?.cabecera?.estado);
-    const tot = `Subtotal: Q${money(compraActual?.cabecera?.subtotal)} | Desc: Q${money(compraActual?.cabecera?.descuentoGeneral)} | IVA: Q${money(compraActual?.cabecera?.iva)} | Total: Q${money(compraActual?.cabecera?.total)}`;
+    compraActual = compraCache.get(id) || await ntGet(`${API}/${id}`);
+    compraCache.set(id, compraActual);
+
+    const c = compraActual?.cabecera || {};
+    $('#cmp_numero').textContent = V(c.numeroCompra,'');
+    $('#cmp_proveedor').textContent = V(c.proveedorNombre,'');
+    $('#cmp_factura').textContent = V(c.noFacturaProveedor,'');
+    $('#cmp_bodega').textContent = V(c.bodegaDestinoNombre,'');
+    $('#cmp_estado').innerHTML = badge(c.estado);
+    const tot = `Subtotal: Q${money(c.subtotal)} | Desc: Q${money(c.descuentoGeneral)} | IVA: Q${money(c.iva)} | Total: Q${money(c.total)}`;
     $('#cmp_totales').textContent = tot;
 
     const tb = $('#tblDetalleExistente tbody'); tb.innerHTML='';
@@ -235,7 +382,7 @@ async function verCompra(id, abrir){
       const tr=document.createElement('tr');
       tr.innerHTML = `
         <td>${i+1}</td>
-        <td>${ntEsc(d.productoNombre ?? `ID ${d.productoId}`)}</td>
+        <td>${ntEsc(V(d.productoNombre, `ID ${d.productoId}`))}</td>
         <td class="text-end">${d.cantidadPedida ?? 0}</td>
         <td class="text-end">${money(d.precioUnitario)}</td>
         <td class="text-end">${money(d.descuentoLinea)}</td>
@@ -269,9 +416,10 @@ function abrirAgregarLineas(){
 }
 async function guardarLineas(ev){
   ev.preventDefault();
-  const compraId = parseInt($('#add_compraId').value,10);
-  const usuarioId = parseInt($('#add_usuarioId').value,10);
+  const compraId = toInt($('#add_compraId').value);
+  const usuarioId = toInt($('#add_usuarioId').value);
   const detalle = recolectarDetalle('#tblDetalleAgregar tbody');
+
   if(!detalle.length){ showToast('Agrega al menos una línea', 'warning', 'Validación'); return; }
   try{
     await ntPost(`${API}/${compraId}/detalles?usuarioId=${usuarioId}`, detalle);
@@ -288,7 +436,7 @@ async function guardarLineas(ev){
 /* ====================== editar línea ====================== */
 function abrirEditarLinea(detalleId){
   if(!compraActual) return;
-  const li = compraActual.detalle.find(x=> x.id === parseInt(detalleId,10));
+  const li = compraActual.detalle.find(x=> x.id === toInt(detalleId));
   if(!li) return;
   $('#ed_compraId').value = compraActual.cabecera.id;
   $('#ed_detalleId').value = li.id;
@@ -302,14 +450,14 @@ function abrirEditarLinea(detalleId){
 }
 async function guardarLinea(ev){
   ev.preventDefault();
-  const compraId  = parseInt($('#ed_compraId').value,10);
-  const detalleId = parseInt($('#ed_detalleId').value,10);
+  const compraId  = toInt($('#ed_compraId').value);
+  const detalleId = toInt($('#ed_detalleId').value);
   const payload = {
-    usuarioId: parseInt($('#ed_usuarioId').value,10),
+    usuarioId: toInt($('#ed_usuarioId').value),
     detalleId,
-    precioUnitario: Number($('#ed_precioUnitario').value||0),
-    descuentoLinea: $('#ed_descuentoLinea').value ? Number($('#ed_descuentoLinea').value) : null,
-    cantidadPedida: $('#ed_cantidadPedida').value ? parseInt($('#ed_cantidadPedida').value,10) : null,
+    precioUnitario: toDec($('#ed_precioUnitario').value),
+    descuentoLinea: $('#ed_descuentoLinea').value ? toDec($('#ed_descuentoLinea').value) : null,
+    cantidadPedida: $('#ed_cantidadPedida').value ? toInt($('#ed_cantidadPedida').value) : null,
     lote: $('#ed_lote').value || null,
     fechaVencimiento: $('#ed_fechaVencimiento').value || null
   };
@@ -351,8 +499,8 @@ function abrirAnular(){
 }
 async function anularCompra(ev){
   ev.preventDefault();
-  const compraId = parseInt($('#anu_compraId').value,10);
-  const usuarioId = parseInt($('#anu_usuarioId').value,10);
+  const compraId = toInt($('#anu_compraId').value);
+  const usuarioId = toInt($('#anu_usuarioId').value);
   const motivo = $('#anu_motivo').value.trim();
   if(!motivo){ showToast('Escriba un motivo de anulación', 'warning', 'Validación'); return; }
   try{
@@ -373,34 +521,38 @@ async function abrirSelectorModo(idCompra){
   await mm.open('#mdlModoEdicion');
 }
 async function elegirEditarCabecera(){
-  const id = parseInt($('#modo_compraId').value,10);
+  const id = toInt($('#modo_compraId').value);
   await verCompra(id, false);
-  $('#cabeceraTitle').textContent = `Editar compra ${compraActual.cabecera.numeroCompra}`;
-  $('#cab_compraId').value = compraActual.cabecera.id;
+  const c = compraActual.cabecera;
+
+  await cargarCatalogosUI({
+    provId:   c.proveedorId || null,
+    bodegaId: c.bodegaDestinoId || null,
+    compId:   c.empleadoCompradorId || null,
+    autoId:   c.empleadoAutorizaId || null
+  });
+
+  $('#cabeceraTitle').textContent = `Editar compra ${c.numeroCompra || ''}`;
+  $('#cab_compraId').value = c.id;
   $('#cab_usuarioId').value = 1;
-  $('#cab_numeroCompra').value = compraActual.cabecera.numeroCompra || '';
-  $('#cab_noFacturaProveedor').value = compraActual.cabecera.noFacturaProveedor || '';
-  $('#cab_fechaCompra').value = compraActual.cabecera.fechaCompra || '';
-  $('#cab_proveedorId').value = compraActual.cabecera.proveedorId || '';
-  $('#cab_empleadoCompradorId').value = compraActual.cabecera.empleadoCompradorId || '';
-  $('#cab_empleadoAutorizaId').value = compraActual.cabecera.empleadoAutorizaId || '';
-  $('#cab_bodegaDestinoId').value = compraActual.cabecera.bodegaDestinoId || '';
-  $('#cab_observaciones').value = compraActual.cabecera.observaciones || '';
-  $('#panelDetalleInicial').style.display = 'none';
+  $('#cab_numeroCompra').value = c.numeroCompra || '';
+  $('#cab_noFacturaProveedor').value = c.noFacturaProveedor || '';
+  $('#cab_fechaCompra').value = c.fechaCompra || '';
+  $('#cab_observaciones').value = c.observaciones || '';
+
   await mm.replace('#mdlCabecera');
 }
 async function elegirMaestroDetalle(){
-  const id = parseInt($('#modo_compraId').value,10);
+  const id = toInt($('#modo_compraId').value);
   await verCompra(id, true);
 }
 
 /* ====================== botón GUARDAR maestro–detalle ====================== */
 async function guardarMaster(){
   if (pendingChanges){
-    // Los cambios ya están persistidos por cada operación; aquí solo confirmamos y refrescamos.
     pendingChanges = false;
-    await buscar();          // refresca listado
-    await mm.close();        // cierra modal
+    await buscar();
+    await mm.close();
     showToast('Cambios guardados', 'success', 'Compras');
   }else{
     showToast('No hay cambios pendientes', 'info', 'Compras');
@@ -409,27 +561,39 @@ async function guardarMaster(){
 
 /* ====================== eventos / init ====================== */
 function bind(){
+  // filtros
   $('#btnBuscar').addEventListener('click', buscar);
   $('#btnRefrescar').addEventListener('click', buscar);
+  $('#fProveedorSel')?.addEventListener('change', e => $('#fProveedorId').value = e.target.value || '');
 
-  $('#btnNuevaCompra').addEventListener('click', async ()=>{
-    nuevaCabecera();
-    await mm.open('#mdlCabecera');
-  });
-
+  // nueva compra
+  $('#btnNuevaCompra').addEventListener('click', nuevaCabecera);
   $('#btnAddLinea').addEventListener('click', ()=> addLinea('#tblDetalleNuevo tbody'));
   $('#frmCabecera').addEventListener('submit', guardarCabecera);
 
-  // Tabla principal
+  // refrescar metas si cambia bodega
+  $('#cab_bodegaSel')?.addEventListener('change', () => {
+    const bId = $('#cab_bodegaSel').value || null;
+    $$('#tblDetalleNuevo tbody tr').forEach(tr=>{
+      const pid = tr.querySelector('.inp-productoId')?.value || tr.querySelector('select.prod-select')?.value;
+      if (pid) autofillProducto(tr, pid, bId);
+    });
+    $$('#tblDetalleAgregar tbody tr').forEach(tr=>{
+      const pid = tr.querySelector('.inp-productoId')?.value || tr.querySelector('select.prod-select')?.value;
+      if (pid) autofillProducto(tr, pid, bId);
+    });
+  });
+
+  // tabla principal
   $('#tblCompras').addEventListener('click', async (e)=>{
     const b = e.target.closest('button'); if(!b) return;
-    const id = parseInt(b.dataset.id,10);
+    const id = toInt(b.dataset.id);
     if (b.dataset.act==='ver'){ await verCompra(id, true); }
     if (b.dataset.act==='modo'){ await abrirSelectorModo(id); }
     if (b.dataset.act==='anular'){ await verCompra(id, false); abrirAnular(); }
   });
 
-  // Maestro–detalle
+  // maestro–detalle
   $('#btnAgregarDetalleModal').addEventListener('click', abrirAgregarLineas);
   $('#btnEditarCabeceraModal').addEventListener('click', elegirEditarCabecera);
   $('#btnAnularCompra').addEventListener('click', abrirAnular);
@@ -441,27 +605,26 @@ function bind(){
     if (dbtn) eliminarLinea(dbtn.dataset.delLinea);
   });
 
-  // Agregar líneas
+  // agregar líneas
   $('#btnAddLinea2').addEventListener('click', ()=> addLinea('#tblDetalleAgregar tbody'));
   $('#frmAgregarLineas').addEventListener('submit', guardarLineas);
 
-  // Editar línea
+  // editar línea
   $('#frmEditarLinea').addEventListener('submit', guardarLinea);
 
-  // Anular
+  // anular
   $('#frmAnular').addEventListener('submit', anularCompra);
 
-  // Selector modo
+  // selector modo
   $('#optEditarCabecera').addEventListener('click', elegirEditarCabecera);
   $('#optMaestroDetalle').addEventListener('click', elegirMaestroDetalle);
 
-  // Cierre seguro
+  // cierre seguro
   document.body.addEventListener('click', async (e)=>{
     const btn = e.target.closest('[data-mm-close]');
     if (!btn) return;
     await mm.close();
   });
 }
-
 async function init(){ bind(); await buscar(); }
 window.addEventListener('DOMContentLoaded', init);

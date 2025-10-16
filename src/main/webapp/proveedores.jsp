@@ -2,6 +2,12 @@
     Document   : proveedores
     Created on : 9 oct 2025, 20:15:20
     Author     : DELL
+
+    Notas técnicas:
+    - Este JSP solo arma la estructura visual (Bootstrap 5) y expone
+      parámetros de configuración para el JS (vía <meta> y una variable global).
+    - El nombre del empleado (registrado_por) se resuelve en el JS consultando
+      /api/proveedores/_empleados y mapeando id -> nombre.
 --%>
 
 <%@page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
@@ -12,13 +18,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>NextTech • Proveedores</title>
 
+  <%-- 
+    Meta usada por proveedores.js para resolver el backend sin tocar el código.
+    Ajusta el content si tu backend corre con context-path (p.ej. http://localhost:8080/nexttech-backend)
+  --%>
+  <meta name="api-base" content="http://localhost:8080" />
+
   <!-- Bootstrap + Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
-  <!-- Estilos: comunes + página -->
-  <link rel="stylesheet" href="assets/css/base.css?=6">
-  <link rel="stylesheet" href="assets/css/proveedores.css?v=6">
+  <!-- Estilos: comunes + página (usa querystring para cache-busting en dev) -->
+  <link rel="stylesheet" href="assets/css/base.css?v=7">
+  <link rel="stylesheet" href="assets/css/proveedores.css?v=7">
 </head>
 <body class="nt-bg">
   <!-- Navbar -->
@@ -65,7 +77,7 @@
         </div>
       </div>
 
-      <!-- Tabla (orden EXACTO del JSON que enviaste) -->
+      <!-- Tabla (orden EXACTO del JSON) -->
       <div class="card nt-card shadow-sm">
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0">
@@ -80,12 +92,12 @@
                 <th>Contacto principal</th>
                 <th>Días crédito</th>
                 <th>Activo</th>
-                <th>Registrado por</th>
+                <th>Registrado por <%-- aquí se mostrará el NOMBRE (no el id) --%></th>
                 <th class="text-end">Acciones</th>
               </tr>
             </thead>
             <tbody id="tblProveedores">
-              <!-- filas por JS -->
+              <%-- filas por JS --%>
             </tbody>
           </table>
         </div>
@@ -148,9 +160,12 @@
               <input id="prov_contacto_principal" class="form-control">
             </div>
             <div class="col-md-6">
-              <label class="form-label">Registrado por (ID empleado) *</label>
-              <input id="prov_registrado_por" type="number" class="form-control" required>
-              <div class="invalid-feedback">Indica un empleado válido.</div>
+              <label class="form-label">Registrado por (Empleado) *</label>
+              <%-- Combo cargado por JS desde /api/proveedores/_empleados --%>
+              <select id="prov_registrado_por" class="form-select" required>
+                <option value="">Seleccione un empleado...</option>
+              </select>
+              <div class="invalid-feedback">Selecciona un empleado válido.</div>
             </div>
             <div class="col-md-6 d-flex align-items-end">
               <div class="form-check form-switch">
@@ -195,7 +210,7 @@
           <button class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          ¿Deseas eliminar (lógico) el proveedor <span id="delNombre" class="fw-bold"></span>?
+          ¿Deseas eliminar al proveedor <span id="delNombre" class="fw-bold"></span>?
         </div>
         <div class="modal-footer">
           <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -212,8 +227,14 @@
 
   <!-- JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="assets/js/common.js"></script>
-  <script src="assets/js/proveedores.js"></script>
+
+  <%-- 
+    Exponemos una variable global opcional para override del API desde este JSP,
+    si necesitas cambiar rápidamente de entorno sin tocar el JS:
+    <script>window.NT_API_BASE = 'http://localhost:8080';</script>
+  --%>
+
+  <script src="assets/js/common.js?v=7"></script>
+  <script src="assets/js/proveedores.js?v=7"></script>
 </body>
 </html>
-
