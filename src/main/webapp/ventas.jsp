@@ -176,17 +176,19 @@
 
           <div class="table-responsive">
             <table class="table table-sm table-striped align-middle" id="tablaItems">
-              <thead>
-                <tr>
-                  <th style="width:320px;">Producto *</th>
-                  <th style="width:120px;">Cantidad *</th>
-                  <th style="width:150px;">Precio Unitario *</th>
-                  <th style="width:120px;">Descuento</th>
-                  <th style="width:140px;">Lote</th>
-                  <th style="width:140px;">Vence</th>
-                  <th style="width:60px;"></th>
-                </tr>
-              </thead>
+<thead>
+  <tr>
+    <th style="width:360px;">Producto *</th>
+    <th style="width:110px;">Stock</th>
+    <th style="width:120px;">Cantidad *</th>
+    <th style="width:150px;">Precio Unitario *</th>
+    <th style="width:120px;">Descuento</th>
+    <th style="width:140px;">Lote</th>
+    <th style="width:140px;">Vence</th>
+    <th style="width:60px;"></th>
+  </tr>
+</thead>
+
               <tbody></tbody>
             </table>
           </div>
@@ -311,7 +313,7 @@ const USER_ID = 1; // <-- AJUSTA si tu backend exige usuario autenticado
 const ctx     = '${pageContext.request.contextPath}';
 const commonHeaders = {'X-User-Id': String(USER_ID)};
 
-// ==== Utils ====
+// ================= Utils =================
 async function tryFetchJson(url, options){
   try{
     const res = await fetch(url, options || {});
@@ -340,44 +342,21 @@ function setErr(msg){
   document.getElementById('toastErrMsg').textContent = m;
   new bootstrap.Toast(document.getElementById('toastErr')).show();
 }
-function mapEstado(c){ return c==='A' ? 'Anulada' : (c==='P' ? 'Procesada' : String(c||'')); }
-// ==== Normalización de estado ====
-function estadoCode(v){
-  // toma lo que exista: estado, estadoVenta, estadoCodigo...
-  const raw = (
-    (v && (v.estado ?? v.estadoVenta ?? v.estadoCodigo)) ??
-    ''
-  ).toString().trim().toUpperCase();
-
-  // si el backend expone un booleano/flag:
-  if (v && (v.anulada === true || v.anulado === true || v.isAnulada === true)) {
-    return 'A';
-  }
-
-  // mapear variantes comunes
-  if (raw === 'A' || raw === 'ANULADA' || raw === 'ANULADO' || raw === 'AN') return 'A';
-  if (raw === 'P' || raw === 'PROCESADA' || raw === 'PROCESADO' || raw === 'PR' || raw === 'PENDIENTE') return 'P';
-
-  // si viene vacío pero las observaciones contienen ANULADA:
-  const obs = (v && v.observaciones ? String(v.observaciones) : '').toUpperCase();
-  if (obs.includes('ANULADA')) return 'A';
-
-  // por omisión, considérala procesada
-  return raw || 'P';
+function mapTipoPago(c){
+  if(!c) return '';
+  return c === 'C' ? 'Contado' : (c === 'R' ? 'Crédito' : c);
 }
-
 function estadoBadge(e){
   if(e === 'A') return '<span class="badge text-bg-danger">Anulada</span>';
   if(e === 'P') return '<span class="badge ok">Procesada</span>';
   return '<span class="badge text-bg-secondary">Desconocido</span>';
 }
 
-// ==== Tabla (lista de ventas) ====
+// ============== Tabla (lista de ventas) ==============
 let page = 0;
 const size = 10;
 let lastFilters = {};
 let cacheVentas = {}; // por id
-let lastRows = [];    // cache para filtrar anuladas en front
 
 async function cargar(params = {}) {
   const qs = new URLSearchParams({ page, size });
@@ -385,7 +364,6 @@ async function cargar(params = {}) {
   if (params.hasta) qs.set('hasta', params.hasta);
   if (params.clienteId) qs.set('clienteId', params.clienteId);
   if (params.numeroVenta) qs.set('numeroVenta', params.numeroVenta);
-  // nuevo: incluirAnuladas 1/0
   if (typeof params.incluirAnuladas !== 'undefined') {
     qs.set('incluirAnuladas', params.incluirAnuladas ? '1' : '0');
   }
@@ -395,29 +373,29 @@ async function cargar(params = {}) {
   if(!r.ok){ setErr((r.data && (r.data.error||r.data.detail)) || 'No se pudo consultar ventas'); }
 
   cacheVentas = {};
-  for (var i=0;i<rows.length;i++){ cacheVentas[rows[i].id] = rows[i]; }
+  for (let i=0;i<rows.length;i++){ cacheVentas[rows[i].id] = rows[i]; }
   render(rows);
-  document.getElementById('pActual').textContent = (page+1);
+  const p = document.getElementById('pActual'); if (p) p.textContent = (page+1);
 }
 
-
-function render(rows) {
+function render(rows){
   const tbody = document.querySelector('#tabla tbody');
   const empty = document.getElementById('tablaEmpty');
+  if (!tbody) return;
+
   tbody.innerHTML = '';
   if (!rows.length){
-    empty.classList.remove('d-none');
+    if (empty) empty.classList.remove('d-none');
     return;
   }
-  empty.classList.add('d-none');
+  if (empty) empty.classList.add('d-none');
 
-  for (var i=0;i<rows.length;i++) {
-    var v = rows[i];
-    var clienteTxt = (v && v.clienteNombre && String(v.clienteNombre).trim() !== '')
-                     ? v.clienteNombre
-                     : ('ID ' + (v && v.clienteId != null ? v.clienteId : ''));
-    var link = ctx + '/venta_detalle.jsp?id=' + (v && v.id != null ? v.id : '');
-    var tr = document.createElement('tr');
+  for (let i=0;i<rows.length;i++){
+    const v = rows[i];
+    const clienteTxt = (v && v.clienteNombre && String(v.clienteNombre).trim() !== '')
+                       ? v.clienteNombre : ('ID ' + (v && v.clienteId != null ? v.clienteId : ''));
+    const link = ctx + '/venta_detalle.jsp?id=' + (v && v.id != null ? v.id : '');
+    const tr = document.createElement('tr');
     tr.innerHTML =
         '<td>' + (v?.id ?? '') + '</td>'
       + '<td>' + (v?.numeroVenta ?? '') + '</td>'
@@ -437,11 +415,10 @@ function render(rows) {
   }
 }
 
-
 function buscar(e){
   e.preventDefault();
-  page = 0;
   const f = e.target;
+  page = 0;
   lastFilters = {
     desde: f.desde.value,
     hasta: f.hasta.value,
@@ -453,31 +430,22 @@ function buscar(e){
 }
 function limpiar(){
   document.getElementById('filtros').reset();
-  document.getElementById('incluirAnuladas').checked = false;
+  const chk = document.getElementById('incluirAnuladas');
+  if (chk) chk.checked = false;
   lastFilters = { incluirAnuladas:false };
   page = 0;
   cargar(lastFilters);
 }
+function cambiarPagina(delta){ page = Math.max(0, page + delta); cargar(lastFilters); }
 
-function cambiarPagina(delta){
-  page = Math.max(0, page + delta);
-  cargar(lastFilters);
-}
-
-// Toggle de anuladas
-document.addEventListener('DOMContentLoaded', ()=>{
-  const chk = document.getElementById('verAnuladas');
-  if(chk) chk.addEventListener('change', render);
-});
-
-// ==== Catálogos robustos ====
+// ============= Catálogos (cliente, bodega, serie, etc.) =============
 let _catalogosCargados = false;
-let _clientes = [], _empleados = [], _bodegas = [], _productos = [];
+let _clientes = [], _empleados = [], _bodegas = [];
 
 function fillSelect(sel, data, map, selected){
-  var html = '<option value="">Seleccione...</option>';
-  for (var i = 0; i < data.length; i++){
-    var o = map(data[i]);
+  let html = '<option value="">Seleccione...</option>';
+  for (let i=0;i<data.length;i++){
+    const o = map(data[i]);
     html += '<option value="'+o.value+'"'+ (String(selected)===String(o.value)?' selected':'') +'>'+o.text+'</option>';
   }
   sel.innerHTML = html;
@@ -491,7 +459,6 @@ async function cargarCatalogos(){
   let bod = await fetchJsonOrNull(API_CAT + '/bodegas?limit=200');
   let ser = await fetchJsonOrNull(API_CAT + '/series');
 
-  // fallbacks
   if (!cli) cli = await fetchJsonOrNull('http://localhost:8080/api/clientes?limit=200');
   if (!emp) emp = await fetchJsonOrNull('http://localhost:8080/api/empleados?limit=200');
   if (!bod) bod = await fetchJsonOrNull('http://localhost:8080/api/bodegas?limit=200');
@@ -502,72 +469,78 @@ async function cargarCatalogos(){
   _bodegas   = asArray(bod);
   const series = asArray(ser);
 
-  // clientes
-  fillSelect(
-    document.getElementById('selCliente'),
-    _clientes,
+  fillSelect(document.getElementById('selCliente'), _clientes,
     c => ({ value:c.id, text: ((c.codigo||('CLI-'+c.id)) + ' - ' + (c.nombre||'')) })
   );
-  // empleados (vendedor/cajero)
-  fillSelect(
-    document.getElementById('selVendedor'),
-    _empleados,
+  fillSelect(document.getElementById('selVendedor'), _empleados,
     e => ({ value:e.id, text: ((e.codigo||('EMP-'+e.id)) + ' - ' + (e.nombres||'') + ' ' + (e.apellidos||'')) })
   );
-  fillSelect(
-    document.getElementById('selCajero'),
-    _empleados,
+  fillSelect(document.getElementById('selCajero'), _empleados,
     e => ({ value:e.id, text: ((e.codigo||('EMP-'+e.id)) + ' - ' + (e.nombres||'') + ' ' + (e.apellidos||'')) })
   );
-  // bodegas
   const selBod = document.getElementById('selBodegaOrigen');
-  fillSelect(
-    selBod,
-    _bodegas,
-    b => ({ value:b.id, text: (b.nombre || ('Bodega '+b.id)) })
-  );
-  // series
-  fillSelect(
-    document.getElementById('selSerie'),
-    series,
-    s => ({ value: s.id, text: (s.serie + (s.correlativo ? ' ('+s.correlativo+')' : '')) })
-  );
+  fillSelect(selBod, _bodegas, b => ({ value:b.id, text:(b.nombre || ('Bodega '+b.id)) }));
+  fillSelect(document.getElementById('selSerie'), series, s => ({ value:s.id, text:(s.serie + (s.correlativo ? ' ('+s.correlativo+')' : '')) }));
 
   _catalogosCargados = true;
 
-  // ✅ pre-seleccionar Bodega Central (id=1) si existe
-  if ([...selBod.options].some(o => o.value === '1')) {
-    selBod.value = '1';
-  }
+  // Preselecciona bodega id=1 si existe
+  if ([...selBod.options].some(o => o.value === '1')) { selBod.value = '1'; }
 
-  // refresca productos en todas las filas según la bodega actual
+  // refresca productos en filas existentes
   await refrescarProductosDeTodasLasFilas();
 
-  // si no hay filas en Items, agrega una
-  const tieneFilas = document.querySelector('#tablaItems tbody tr') !== null;
-  if (!tieneFilas) agregarItem();
+  // si no hay filas, agrega una
+  if (!document.querySelector('#tablaItems tbody tr')) agregarItem();
 }
 
+// ================== Items (Nueva Venta) ==================
+/**
+ * Pide al backend productos de la bodega y carga opciones.
+ * NO muestra el stock en el texto visible del option.
+ * Deja data-precio y data-stock para usar en la fila.
+ */
+async function cargarProductosParaBodega(selectEl, bodegaId, selectedId){
+  selectEl.disabled = true;
+  selectEl.innerHTML = '<option value="">Cargando...</option>';
 
-function renderProductosOptions(selected){
-  var html = '<option value="">Seleccione...</option>';
-  for (var i = 0; i < _productos.length; i++){
-    var p = _productos[i];
-    var precio = (p.precioSugerido != null ? p.precioSugerido : (p.precio != null ? p.precio : 0));
-    var nombre = (p.nombre != null && p.nombre !== '') ? p.nombre : ('Producto ' + p.id);
-    html += '<option value="' + p.id + '" data-precio="' + precio + '"' +
-            (String(selected) === String(p.id) ? ' selected' : '') +
-            '>' + nombre + '</option>';
+ 
+  var url1 = API_CAT + '/productos-stock?bodegaId=' + encodeURIComponent(bodegaId || '');
+  let r = await fetchJsonOrNull(url1);
+
+  if (!r) {
+    var url2 = 'http://localhost:8080/api/catalogos/productos-stock?bodegaId=' + encodeURIComponent(bodegaId || '');
+    r = await fetchJsonOrNull(url2);
   }
-  return html;
+
+  const prods = asArray(r);
+  let html = '<option value="">Seleccione...</option>';
+  for (const p of prods){
+    const precio = Number(p.precioVenta ?? 0);
+    const stock  = Number(p.stockDisponible ?? 0);
+    const nombre = (p.nombre || ('Producto ' + p.id));
+    html += '<option value="' + p.id + '" data-precio="' + precio + '" data-stock="' + stock + '"' +
+            (String(selectedId) === String(p.id) ? ' selected' : '') + '>' +
+            nombre + '</option>';
+  }
+  selectEl.innerHTML = html || '<option value="">(sin datos)</option>';
+  selectEl.disabled = false;
 }
 
-function cargarProductosFila(selProducto, selectedId){
-  selProducto.innerHTML = renderProductosOptions(selectedId);
-  selProducto.disabled = false;
+
+/** Refresca productos de todas las filas según la bodega actual */
+async function refrescarProductosDeTodasLasFilas(){
+  const bodId = document.getElementById('selBodegaOrigen').value || '';
+  const selects = document.querySelectorAll('#tablaItems select[name="productoId"]');
+  for (const sel of selects){
+    const keep = sel.value || null;
+    await cargarProductosParaBodega(sel, bodId, keep);
+    // re-dispara change para que stock/precio se sincronicen
+    sel.dispatchEvent(new Event('change', { bubbles:true }));
+  }
 }
 
-// ==== Items del modal (nueva venta) ====
+/** Agrega una fila al tbody de Items */
 function agregarItem(){
   const tbody = document.querySelector('#tablaItems tbody');
   const tr = document.createElement('tr');
@@ -576,6 +549,9 @@ function agregarItem(){
       <select class="form-select form-select-sm" name="productoId" required>
         <option value="">Cargando...</option>
       </select>
+    </td>
+    <td class="text-center">
+      <span class="badge text-bg-secondary" data-stock="0">0</span>
     </td>
     <td><input type="number" step="1" min="1" class="form-control form-control-sm" name="cantidad" required></td>
     <td><input type="number" step="0.01" min="0" class="form-control form-control-sm" name="precioUnitario" required></td>
@@ -586,82 +562,47 @@ function agregarItem(){
   `;
   tbody.appendChild(tr);
 
+  // Poblado inicial de productos de acuerdo a la bodega seleccionada
   const selProd = tr.querySelector('select[name="productoId"]');
   const bodId   = document.getElementById('selBodegaOrigen').value || '';
   cargarProductosParaBodega(selProd, bodId, null);
 
-  // Autollenar precio al elegir producto
-  selProd.addEventListener('change', function(){
-    const opt = selProd.selectedOptions[0];
-    if (!opt) return;
-    const pr = Number(opt.getAttribute('data-precio') || 0);
-    if (pr > 0) tr.querySelector('input[name="precioUnitario"]').value = pr;
-  });
+  // Eventos de la fila
+  wireRowEvents(tr);
 }
 
-async function cargarBodegasFila(sel){
-  try{
-    let bod = await fetchJsonOrNull(API_CAT + '/bodegas?limit=200');
-    if (!bod) bod = await fetchJsonOrNull('http://localhost:8080/api/bodegas?limit=200');
-    const bodegas = asArray(bod);
-    let html = '<option value="">Seleccione...</option>';
-    for (let i=0;i<bodegas.length;i++){
-      const b = bodegas[i];
-      html += '<option value="'+b.id+'">'+ (b.nombre || ('Bodega '+b.id)) +'</option>';
-    }
-    sel.innerHTML = html;
-  }catch{
-    sel.innerHTML = '<option value="">(sin datos)</option>';
-  }
-}
-
+/** Conecta eventos de cambio/validación para una fila concreta */
 function wireRowEvents(tr){
-  const selBod = tr.querySelector('select[name="bodegaId"]');
   const selProd = tr.querySelector('select[name="productoId"]');
   const precio  = tr.querySelector('input[name="precioUnitario"]');
   const stockEl = tr.querySelector('[data-stock]');
   const cantInp = tr.querySelector('input[name="cantidad"]');
 
-  selBod.addEventListener('change', async function(){
-    selProd.disabled = true;
-    selProd.innerHTML = '<option value="">Cargando...</option>';
-    stockEl.textContent = '0';
-    stockEl.setAttribute('data-stock','0');
-    if (!selBod.value) { selProd.innerHTML = '<option value="">Seleccione bodega...</option>'; return; }
-    try{
-      // productos por bodega (dos rutas posibles)
-      let p1 = await fetchJsonOrNull(API_CAT + '/productos?bodegaId=' + encodeURIComponent(selBod.value));
-      if (!p1) p1 = await fetchJsonOrNull('http://localhost:8080/api/productos?bodegaId=' + encodeURIComponent(selBod.value));
-      const prods = asArray(p1);
-      let html = '<option value="">Seleccione...</option>';
-      for (let i=0;i<prods.length;i++){
-        const p = prods[i];
-        const st = (p.stockDisponible || p.stock || 0);
-        const pr = (p.precioSugerido || p.precio || 0);
-        html += '<option value="'+p.id+'" data-stock="'+st+'" data-precio="'+pr+'">'+ (p.nombre || ('Producto '+p.id)) +' (stock '+st+')</option>';
-      }
-      selProd.disabled = false;
-      selProd.innerHTML = html || '<option value="">(sin datos)</option>';
-    }catch{
-      selProd.innerHTML = '<option value="">(sin datos)</option>';
-      selProd.disabled = false;
-    }
-  });
-
+  // Al cambiar producto: actualizar stock (badge), max de cantidad y precio sugerido
   selProd.addEventListener('change', function(){
     const opt = selProd.selectedOptions[0];
-    if (!opt) return;
-    const st = Number(opt.getAttribute('data-stock') || 0);
-    const pr = Number(opt.getAttribute('data-precio') || 0);
+    let st = 0, pr = 0;
+    if (opt){
+      st = Number(opt.getAttribute('data-stock') || 0);
+      pr = Number(opt.getAttribute('data-precio') || 0);
+    }
     stockEl.textContent = String(st);
     stockEl.setAttribute('data-stock', String(st));
-    if (pr > 0) { precio.value = pr; }
+    cantInp.max = (st > 0 ? String(st) : '');
+    // si tienes autocorrección, descomenta la siguiente línea:
+    // if (cantInp.value && Number(cantInp.value) > st) cantInp.value = st || '';
+    if (pr > 0) precio.value = pr;
+
+    // limpia estado de validación
+    cantInp.classList.remove('is-invalid');
+    cantInp.setCustomValidity('');
   });
 
+  // Validar cantidad contra stock
   cantInp.addEventListener('input', function(){
     const st = Number(stockEl.getAttribute('data-stock') || 0);
     const q  = Number(cantInp.value || 0);
-    if (q > st && st > 0) {
+    if (st > 0 && q > st) {
       cantInp.classList.add('is-invalid');
       cantInp.setCustomValidity('No hay stock suficiente');
     } else {
@@ -671,18 +612,7 @@ function wireRowEvents(tr){
   });
 }
 
-function wireRowEvents(tr){
-  const selProd = tr.querySelector('select[name="productoId"]');
-  const precio  = tr.querySelector('input[name="precioUnitario"]');
-
-  selProd.addEventListener('change', function(){
-    const opt = selProd.selectedOptions[0];
-    if (!opt) return;
-    const pr = Number(opt.getAttribute('data-precio') || 0);
-    if (pr > 0) precio.value = pr;
-  });
-}
-// ==== Guardar NUEVA venta ====
+// ============== Guardar NUEVA venta ==============
 function leerItems(){
   const rows = Array.from(document.querySelectorAll('#tablaItems tbody tr'));
   return rows.map(function(r){
@@ -691,7 +621,6 @@ function leerItems(){
     const fv = v => (v==='' ? null : v);
     return {
       productoId: toNum(get('select[name="productoId"]')),
-      // bodegaId:  (se omite en creación)
       cantidad: toNum(get('input[name="cantidad"]')),
       precioUnitario: toNum(get('input[name="precioUnitario"]')),
       descuento: toNum(get('input[name="descuento"]')),
@@ -701,51 +630,10 @@ function leerItems(){
   }).filter(it => it.productoId && it.cantidad && it.precioUnitario);
 }
 
-async function cargarProductosParaBodega(selectEl, bodegaId, selectedId){
-  selectEl.disabled = true;
-  selectEl.innerHTML = '<option value="">Cargando...</option>';
-
-  // 1) ruta principal
-  let url1 = API_CAT + '/productos-stock?bodegaId=' + encodeURIComponent(bodegaId || '');
-  let r = await fetchJsonOrNull(url1);
-
-  // 2) fallback directo por si lo tienes expuesto así
-  if (!r) {
-    let url2 = 'http://localhost:8080/api/productos-stock?bodegaId=' + encodeURIComponent(bodegaId || '');
-    r = await fetchJsonOrNull(url2);
-  }
-
-  const prods = asArray(r);
-
-  let html = '<option value="">Seleccione...</option>';
-  for (const p of prods){
-    // usa camelCase que devuelve el endpoint
-    const precio = Number(p.precioVenta ?? 0);
-    const stock  = Number(p.stockDisponible ?? 0);
-    const nombre = (p.nombre || ('Producto ' + p.id));
-    html += '<option value="' + p.id + '" data-precio="' + precio + '" data-stock="' + stock + '"' +
-            (String(selectedId) === String(p.id) ? ' selected' : '') +
-            '>' + nombre + ' (stock ' + stock + ')</option>';
-  }
-  selectEl.innerHTML = html || '<option value="">(sin datos)</option>';
-  selectEl.disabled = false;
-}
-
-
-async function refrescarProductosDeTodasLasFilas(){
-  const bodId = document.getElementById('selBodegaOrigen').value || '';
-  const selects = document.querySelectorAll('#tablaItems select[name="productoId"]');
-  for (const sel of selects){
-    const keep = sel.value || null;       // conserva selección si existía
-    await cargarProductosParaBodega(sel, bodId, keep);
-  }
-}
-
 async function guardarVenta(e){
   e.preventDefault();
   const f = e.target;
 
-  // lee y valida IDs numéricos requeridos
   const clienteId = Number(f.clienteId.value);
   const bodegaId  = Number(f.bodegaOrigenId.value);
   const serieId   = Number(document.getElementById('selSerie').value || '');
@@ -757,16 +645,6 @@ async function guardarVenta(e){
   const items = leerItems();
   if (items.length === 0) { setErr('Agrega al menos un ítem'); return; }
 
-  // normaliza items (números y nulls)
-  const norm = it => ({
-    productoId: Number(it.productoId),
-    cantidad: Number(it.cantidad),
-    precioUnitario: Number(it.precioUnitario),
-    descuento: (it.descuento==null || it.descuento==='') ? null : Number(it.descuento),
-    lote: it.lote && it.lote.trim() !== '' ? it.lote.trim() : null,
-    fechaVencimiento: it.fechaVencimiento && it.fechaVencimiento !== '' ? it.fechaVencimiento : null
-  });
-
   const payload = {
     usuarioId: USER_ID,
     clienteId: clienteId,
@@ -775,11 +653,10 @@ async function guardarVenta(e){
     bodegaOrigenId: bodegaId,
     tipoPago: f.tipoPago.value || 'C',
     observaciones: f.observaciones.value || null,
-    serieId: serieId,                 // ← **CLAVE**
-    items: items.map(norm)
+    serieId: serieId,
+    items
   };
 
-  // (opcional) ayuda a depurar en consola
   console.log('POST /api/ventas payload =', payload);
 
   const r = await tryFetchJson(API, {
@@ -798,13 +675,13 @@ async function guardarVenta(e){
   bootstrap.Modal.getInstance(document.getElementById('modalNuevaVenta')).hide();
   document.getElementById('formVenta').reset();
   document.querySelector('#tablaItems tbody').innerHTML = '';
-  agregarItem(); // deja una fila limpia
+  agregarItem();
   setOk('Venta registrada');
   page = 0;
   cargar(lastFilters);
 }
 
-// ==== Selector de edición ====
+// ============== Acciones (editar / anular) ==============
 function abrirSelectorEdicion(id){
   const v = cacheVentas[id];
   if (!v){ setErr('Venta no encontrada'); return; }
@@ -812,48 +689,34 @@ function abrirSelectorEdicion(id){
   document.getElementById('editTargetNumero').textContent = v.numeroVenta || ('ID ' + id);
   new bootstrap.Modal(document.getElementById('modalAccionesEdicion')).show();
 }
-
 function abrirEditarCabecera(){
   const id = Number(document.getElementById('editTargetId').value);
   const v  = cacheVentas[id];
-  if (!_catalogosCargados){
-    cargarCatalogos().then(function(){ prepararModalEdicion(v); });
-  }else{
-    prepararModalEdicion(v);
-  }
+  if (!_catalogosCargados){ cargarCatalogos().then(()=> prepararModalEdicion(v)); }
+  else { prepararModalEdicion(v); }
   bootstrap.Modal.getInstance(document.getElementById('modalAccionesEdicion')).hide();
 }
 function abrirEditarMaestroDetalle(){
   const id = Number(document.getElementById('editTargetId').value);
-  window.location.href = ctx + '/venta_detalle.jsp?id=' + id; // (en futuro: modo edición)
+  window.location.href = ctx + '/venta_detalle.jsp?id=' + id;
 }
-
-// ==== Editar cabecera ====
 function prepararModalEdicion(v){
   document.getElementById('editVentaId').value = v.id;
   document.getElementById('editNumeroVenta').textContent = v.numeroVenta ? ('#'+v.numeroVenta) : ('ID '+v.id);
 
-  fillSelect(
-    document.getElementById('editCliente'),
-    _clientes,
+  fillSelect(document.getElementById('editCliente'), _clientes,
     c => ({ value:c.id, text:((c.codigo || ('CLI-'+c.id)) + ' - ' + (c.nombre || c.razonSocial || '')) }),
     String(v.clienteId)
   );
-  fillSelect(
-    document.getElementById('editVendedor'),
-    _empleados,
+  fillSelect(document.getElementById('editVendedor'), _empleados,
     e => ({ value:e.id, text:((e.codigo || ('EMP-'+e.id)) + ' - ' + (e.nombres || '') + ' ' + (e.apellidos || '')) }),
     v.vendedorId!=null?String(v.vendedorId):''
   );
-  fillSelect(
-    document.getElementById('editCajero'),
-    _empleados,
+  fillSelect(document.getElementById('editCajero'), _empleados,
     e => ({ value:e.id, text:((e.codigo || ('EMP-'+e.id)) + ' - ' + (e.nombres || '') + ' ' + (e.apellidos || '')) }),
     v.cajeroId!=null?String(v.cajeroId):''
   );
-  fillSelect(
-    document.getElementById('editBodega'),
-    _bodegas,
+  fillSelect(document.getElementById('editBodega'), _bodegas,
     b => ({ value:b.id, text:(b.nombre || ('Bodega '+b.id)) }),
     v.bodegaOrigenId!=null?String(v.bodegaOrigenId):''
   );
@@ -863,7 +726,6 @@ function prepararModalEdicion(v){
 
   new bootstrap.Modal(document.getElementById('modalEditarVenta')).show();
 }
-
 async function guardarEdicionVenta(e){
   e.preventDefault();
   const id   = Number(document.getElementById('editVentaId').value);
@@ -875,25 +737,17 @@ async function guardarEdicionVenta(e){
     bodegaOrigenId: valueOrNull(document.getElementById('editBodega').value),
     observaciones: document.getElementById('editObs').value || ''
   };
-
-  // Contrato canónico: PUT /api/ventas/{id}/header
   const r = await tryFetchJson(API + '/' + id + '/header', {
-    method: 'PUT',
-    headers: {'Content-Type':'application/json', ...commonHeaders},
-    body: JSON.stringify(body)
+    method:'PUT', headers:{'Content-Type':'application/json', ...commonHeaders}, body: JSON.stringify(body)
   });
-
-  if (!r.ok){
-    setErr((r.data && (r.data.error||r.data.detail)) || 'No se pudo actualizar');
-    return;
-  }
+  if (!r.ok){ setErr((r.data && (r.data.error||r.data.detail)) || 'No se pudo actualizar'); return; }
   bootstrap.Modal.getInstance(document.getElementById('modalEditarVenta')).hide();
   setOk('Venta actualizada');
   cargar(lastFilters);
 }
 function valueOrNull(v){ return (v==='' || v==null) ? null : Number(v); }
 
-// ==== Eliminar (lógico) ====
+// ============== Eliminar (anular) ==============
 function abrirEliminar(id){
   const v = cacheVentas[id];
   if (!v){ setErr('Venta no encontrada'); return; }
@@ -901,59 +755,38 @@ function abrirEliminar(id){
   document.getElementById('delNumeroVenta').textContent = v.numeroVenta || ('ID '+id);
   new bootstrap.Modal(document.getElementById('modalEliminar')).show();
 }
-
-function mapEstado(code){
-  const c = (code || '').toUpperCase();
-  if (c === 'A') return { code:'A', text:'Anulada',   className:'text-bg-danger' };
-  if (c === 'P') return { code:'P', text:'Procesada', className:'ok' }; // usa tu .badge.ok
-  return { code:c || '?', text:'Desconocido', className:'text-bg-secondary' };
-}
-
-function mapTipoPago(c){
-  if(!c) return '';
-  return c === 'C' ? 'Contado' :
-         c === 'R' ? 'Crédito' : c;
-}
-
 async function confirmarEliminar(){
   const id = Number(document.getElementById('delVentaId').value);
-
-  // Única ruta soportada: POST /api/ventas/{id}/anular
   const r = await tryFetchJson(API + '/' + id + '/anular', {
-    method:'POST',
-    headers: {'Content-Type':'application/json', ...commonHeaders},
-    body: JSON.stringify({})
+    method:'POST', headers: {'Content-Type':'application/json', ...commonHeaders}, body: JSON.stringify({})
   });
-
-  if(!r.ok){
-    setErr((r.data && (r.data.error||r.data.detail)) || 'No se pudo eliminar la venta');
-    return;
-  }
-
+  if(!r.ok){ setErr((r.data && (r.data.error||r.data.detail)) || 'No se pudo eliminar la venta'); return; }
   bootstrap.Modal.getInstance(document.getElementById('modalEliminar')).hide();
   setOk('Venta eliminada');
-  // refresca lista (la venta seguirá en BD con estado=A; por defecto se oculta)
   cargar(lastFilters);
 }
 
+// ============== Eventos globales ==============
 document.getElementById('selBodegaOrigen').addEventListener('change', () => {
-  // si no hay bodega, deja los selects vacíos
-  if (!document.getElementById('selBodegaOrigen').value){
+  const bodSel = document.getElementById('selBodegaOrigen').value;
+  if (!bodSel){
     document.querySelectorAll('#tablaItems select[name="productoId"]').forEach(sel => {
       sel.innerHTML = '<option value="">Seleccione...</option>';
     });
+    // reset stocks
+    document.querySelectorAll('#tablaItems [data-stock]').forEach(el => { el.textContent='0'; el.setAttribute('data-stock','0'); });
     return;
   }
   refrescarProductosDeTodasLasFilas();
 });
+
 // ==== Boot ====
 window.addEventListener('DOMContentLoaded', function(){
-  lastFilters = { incluirAnuladas: document.getElementById('incluirAnuladas').checked };
+  lastFilters = { incluirAnuladas: (document.getElementById('incluirAnuladas')?.checked) || false };
   cargar(lastFilters);      // tabla
   agregarItem();            // primera fila del modal "Nueva venta"
   document.getElementById('modalNuevaVenta').addEventListener('show.bs.modal', cargarCatalogos);
 });
-
 </script>
 </body>
 </html>
