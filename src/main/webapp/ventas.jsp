@@ -10,7 +10,8 @@
   <meta charset="UTF-8">
   <title>Ventas | NextTech</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/app.css?v=dark-purple-5">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/app.css?v=dark-purple-5-fix">
 </head>
 <body>
 <div class="container py-4">
@@ -21,31 +22,39 @@
   </div>
 
   <div class="card mb-3">
-    <div class="card-body">
-      <form id="filtros" onsubmit="buscar(event)" class="row g-3">
-        <div class="col-md-3">
-          <label class="form-label">Desde</label>
-          <input type="date" name="desde" class="form-control"/>
+  <div class="card-body">
+    <form id="filtros" onsubmit="buscar(event)" class="row g-3 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label">Desde</label>
+        <input type="date" name="desde" class="form-control"/>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Hasta</label>
+        <input type="date" name="hasta" class="form-control"/>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Cliente ID</label>
+        <input type="number" name="clienteId" min="1" placeholder="Ej. 1" class="form-control"/>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Número venta</label>
+        <input type="text" name="numeroVenta" placeholder="Ej. V-0007 o 007" class="form-control"/>
+      </div>
+
+      <div class="col-12 d-flex flex-wrap gap-3 justify-content-between align-items-center">
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" role="switch" id="incluirAnuladas" name="incluirAnuladas">
+          <label class="form-check-label" for="incluirAnuladas">Mostrar anuladas</label>
         </div>
-        <div class="col-md-3">
-          <label class="form-label">Hasta</label>
-          <input type="date" name="hasta" class="form-control"/>
+        <div class="d-flex gap-2 ms-auto">
+          <button class="btn btn-primary" type="submit"><i class="bi bi-search me-1"></i>Buscar</button>
+          <button class="btn btn-outline-secondary" type="button" onclick="limpiar()"><i class="bi bi-x-circle me-1"></i>Limpiar</button>
         </div>
-        <div class="col-md-3">
-          <label class="form-label">Cliente ID</label>
-          <input type="number" name="clienteId" min="1" placeholder="Ej. 1" class="form-control"/>
-        </div>
-        <div class="col-md-3">
-          <label class="form-label">Número venta</label>
-          <input type="text" name="numeroVenta" placeholder="Ej. V-0007 o 007" class="form-control"/>
-        </div>
-        <div class="col-12 d-flex gap-2 justify-content-end">
-          <button class="btn btn-primary" type="submit">Buscar</button>
-          <button class="btn btn-outline-secondary" type="button" onclick="limpiar()">Limpiar</button>
-        </div>
-      </form>
-    </div>
+      </div>
+    </form>
   </div>
+</div>
+
 
   <div class="d-flex justify-content-between align-items-center mb-2">
     <div class="d-flex align-items-center gap-2 pager">
@@ -96,6 +105,7 @@
 </div>
 
 <!-- Modal Nueva Venta -->
+<!-- Modal Nueva Venta -->
 <div class="modal fade" id="modalNuevaVenta" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-scrollable">
     <div class="modal-content">
@@ -113,24 +123,28 @@
                 <option value="">Cargando...</option>
               </select>
             </div>
+
             <div class="col-md-4">
               <label class="form-label">Vendedor</label>
               <select id="selVendedor" class="form-select" name="vendedorId">
                 <option value="">Cargando...</option>
               </select>
             </div>
+
             <div class="col-md-4">
               <label class="form-label">Cajero</label>
               <select id="selCajero" class="form-select" name="cajeroId">
                 <option value="">Cargando...</option>
               </select>
             </div>
+
             <div class="col-md-4">
-              <label class="form-label">Bodega Origen</label>
-              <select id="selBodegaOrigen" class="form-select" name="bodegaOrigenId">
+              <label class="form-label">Bodega Origen *</label>
+              <select id="selBodegaOrigen" class="form-select" name="bodegaOrigenId" required>
                 <option value="">Cargando...</option>
               </select>
             </div>
+
             <div class="col-md-4">
               <label class="form-label">Tipo de Pago *</label>
               <select class="form-select" name="tipoPago" required>
@@ -138,6 +152,15 @@
                 <option value="R">Crédito</option>
               </select>
             </div>
+
+            <!-- NUEVO: Serie de factura -->
+            <div class="col-md-4">
+              <label class="form-label">Serie *</label>
+              <select id="selSerie" class="form-select" name="serieId" required>
+                <option value="">Cargando...</option>
+              </select>
+            </div>
+
             <div class="col-12">
               <label class="form-label">Observaciones</label>
               <input type="text" class="form-control" name="observaciones" placeholder="Venta mostrador">
@@ -150,20 +173,19 @@
             <h6 class="m-0">Items</h6>
             <button type="button" class="btn btn-outline-primary btn-sm" onclick="agregarItem()">+ Agregar ítem</button>
           </div>
+
           <div class="table-responsive">
             <table class="table table-sm table-striped align-middle" id="tablaItems">
               <thead>
-              <tr>
-                <th style="width:180px;">Bodega *</th>
-                <th style="width:320px;">Producto *</th>
-                <th style="width:110px;">Stock</th>
-                <th style="width:120px;">Cantidad *</th>
-                <th style="width:150px;">Precio Unitario *</th>
-                <th style="width:120px;">Descuento</th>
-                <th style="width:140px;">Lote</th>
-                <th style="width:140px;">Vence</th>
-                <th style="width:60px;"></th>
-              </tr>
+                <tr>
+                  <th style="width:320px;">Producto *</th>
+                  <th style="width:120px;">Cantidad *</th>
+                  <th style="width:150px;">Precio Unitario *</th>
+                  <th style="width:120px;">Descuento</th>
+                  <th style="width:140px;">Lote</th>
+                  <th style="width:140px;">Vence</th>
+                  <th style="width:60px;"></th>
+                </tr>
               </thead>
               <tbody></tbody>
             </table>
@@ -179,6 +201,7 @@
     </div>
   </div>
 </div>
+
 
 <!-- Modal Selector de Edición -->
 <div class="modal fade" id="modalAccionesEdicion" tabindex="-1" aria-hidden="true">
@@ -284,7 +307,7 @@
 // ==== Endpoints / Config ====
 const API     = 'http://localhost:8080/api/ventas';
 const API_CAT = 'http://localhost:8080/api/catalogos';
-const USER_ID = 1; // <-- AJUSTA si tu backend exige el usuario autenticado
+const USER_ID = 1; // <-- AJUSTA si tu backend exige usuario autenticado
 const ctx     = '${pageContext.request.contextPath}';
 const commonHeaders = {'X-User-Id': String(USER_ID)};
 
@@ -312,13 +335,49 @@ function asArray(payload){
 }
 function formatMoney(n){ if(n==null) return ''; return new Intl.NumberFormat('es-GT',{style:'currency',currency:'GTQ'}).format(n); }
 function setOk(msg){ document.getElementById('toastOkMsg').textContent = msg || 'OK'; new bootstrap.Toast(document.getElementById('toastOk')).show(); }
-function setErr(msg){ document.getElementById('toastErrMsg').textContent = msg || 'Error interno'; new bootstrap.Toast(document.getElementById('toastErr')).show(); }
+function setErr(msg){
+  const m = typeof msg === 'string' ? msg : (msg && JSON.stringify(msg)) || 'Error interno';
+  document.getElementById('toastErrMsg').textContent = m;
+  new bootstrap.Toast(document.getElementById('toastErr')).show();
+}
+function mapEstado(c){ return c==='A' ? 'Anulada' : (c==='P' ? 'Procesada' : String(c||'')); }
+// ==== Normalización de estado ====
+function estadoCode(v){
+  // toma lo que exista: estado, estadoVenta, estadoCodigo...
+  const raw = (
+    (v && (v.estado ?? v.estadoVenta ?? v.estadoCodigo)) ??
+    ''
+  ).toString().trim().toUpperCase();
+
+  // si el backend expone un booleano/flag:
+  if (v && (v.anulada === true || v.anulado === true || v.isAnulada === true)) {
+    return 'A';
+  }
+
+  // mapear variantes comunes
+  if (raw === 'A' || raw === 'ANULADA' || raw === 'ANULADO' || raw === 'AN') return 'A';
+  if (raw === 'P' || raw === 'PROCESADA' || raw === 'PROCESADO' || raw === 'PR' || raw === 'PENDIENTE') return 'P';
+
+  // si viene vacío pero las observaciones contienen ANULADA:
+  const obs = (v && v.observaciones ? String(v.observaciones) : '').toUpperCase();
+  if (obs.includes('ANULADA')) return 'A';
+
+  // por omisión, considérala procesada
+  return raw || 'P';
+}
+
+function estadoBadge(e){
+  if(e === 'A') return '<span class="badge text-bg-danger">Anulada</span>';
+  if(e === 'P') return '<span class="badge ok">Procesada</span>';
+  return '<span class="badge text-bg-secondary">Desconocido</span>';
+}
 
 // ==== Tabla (lista de ventas) ====
 let page = 0;
 const size = 10;
 let lastFilters = {};
 let cacheVentas = {}; // por id
+let lastRows = [];    // cache para filtrar anuladas en front
 
 async function cargar(params = {}) {
   const qs = new URLSearchParams({ page, size });
@@ -326,6 +385,10 @@ async function cargar(params = {}) {
   if (params.hasta) qs.set('hasta', params.hasta);
   if (params.clienteId) qs.set('clienteId', params.clienteId);
   if (params.numeroVenta) qs.set('numeroVenta', params.numeroVenta);
+  // nuevo: incluirAnuladas 1/0
+  if (typeof params.incluirAnuladas !== 'undefined') {
+    qs.set('incluirAnuladas', params.incluirAnuladas ? '1' : '0');
+  }
 
   const r = await tryFetchJson(API + '?' + qs.toString(), { headers: commonHeaders });
   const rows = r.ok ? asArray(r.data) : [];
@@ -336,6 +399,7 @@ async function cargar(params = {}) {
   render(rows);
   document.getElementById('pActual').textContent = (page+1);
 }
+
 
 function render(rows) {
   const tbody = document.querySelector('#tabla tbody');
@@ -349,30 +413,30 @@ function render(rows) {
 
   for (var i=0;i<rows.length;i++) {
     var v = rows[i];
-    var estadoHtml = v && v.estado ? '<span class="badge ok">'+ v.estado +'</span>' : '';
     var clienteTxt = (v && v.clienteNombre && String(v.clienteNombre).trim() !== '')
                      ? v.clienteNombre
                      : ('ID ' + (v && v.clienteId != null ? v.clienteId : ''));
     var link = ctx + '/venta_detalle.jsp?id=' + (v && v.id != null ? v.id : '');
     var tr = document.createElement('tr');
     tr.innerHTML =
-        '<td>' + (v && v.id != null ? v.id : '') + '</td>'
-      + '<td>' + (v && v.numeroVenta != null ? v.numeroVenta : '') + '</td>'
-      + '<td>' + (v && v.fechaVenta != null ? v.fechaVenta : '') + '</td>'
+        '<td>' + (v?.id ?? '') + '</td>'
+      + '<td>' + (v?.numeroVenta ?? '') + '</td>'
+      + '<td>' + (v?.fechaVenta ?? '') + '</td>'
       + '<td>' + clienteTxt + '</td>'
       + '<td class="text-end">' + formatMoney(v ? v.total : null) + '</td>'
-      + '<td>' + estadoHtml + '</td>'
-      + '<td>' + ((v && v.tipoPago) ? v.tipoPago : '') + '</td>'
+      + '<td>' + estadoBadge(v?.estado) + '</td>'
+      + '<td>' + mapTipoPago(v?.tipoPago) + '</td>'
       + '<td class="text-end">'
       +   '<div class="btn-group btn-group-sm" role="group">'
-      +     '<button class="btn btn-outline-primary" onclick="abrirSelectorEdicion('+v.id+')">Actualizar</button>'
-      +     '<a class="btn btn-outline-secondary" href="'+link+'">Ver</a>'
-      +     '<button class="btn btn-outline-danger" onclick="abrirEliminar('+v.id+')">Eliminar</button>'
+      +     '<button class="btn btn-outline-primary" onclick="abrirSelectorEdicion('+v.id+')"><i class="bi bi-pencil"></i></button>'
+      +     '<a class="btn btn-outline-secondary" href="'+link+'"><i class="bi bi-eye"></i></a>'
+      +     '<button class="btn btn-outline-danger" onclick="abrirEliminar('+v.id+')"><i class="bi bi-trash"></i></button>'
       +   '</div>'
       + '</td>';
     tbody.appendChild(tr);
   }
 }
+
 
 function buscar(e){
   e.preventDefault();
@@ -382,125 +446,157 @@ function buscar(e){
     desde: f.desde.value,
     hasta: f.hasta.value,
     clienteId: f.clienteId.value,
-    numeroVenta: f.numeroVenta.value
+    numeroVenta: f.numeroVenta.value,
+    incluirAnuladas: document.getElementById('incluirAnuladas').checked
   };
   cargar(lastFilters);
 }
 function limpiar(){
   document.getElementById('filtros').reset();
-  lastFilters = {};
+  document.getElementById('incluirAnuladas').checked = false;
+  lastFilters = { incluirAnuladas:false };
   page = 0;
-  cargar();
+  cargar(lastFilters);
 }
+
 function cambiarPagina(delta){
   page = Math.max(0, page + delta);
   cargar(lastFilters);
 }
 
+// Toggle de anuladas
+document.addEventListener('DOMContentLoaded', ()=>{
+  const chk = document.getElementById('verAnuladas');
+  if(chk) chk.addEventListener('change', render);
+});
+
 // ==== Catálogos robustos ====
 let _catalogosCargados = false;
-let _clientes=[], _empleados=[], _bodegas=[];
+let _clientes = [], _empleados = [], _bodegas = [], _productos = [];
 
 function fillSelect(sel, data, map, selected){
   var html = '<option value="">Seleccione...</option>';
-  for (var i=0;i<data.length;i++){
+  for (var i = 0; i < data.length; i++){
     var o = map(data[i]);
-    html += '<option value="'+o.value+'"'+(String(selected)===String(o.value)?' selected':'')+'>'+o.text+'</option>';
+    html += '<option value="'+o.value+'"'+ (String(selected)===String(o.value)?' selected':'') +'>'+o.text+'</option>';
   }
   sel.innerHTML = html;
 }
 
 async function cargarCatalogos(){
   if (_catalogosCargados) return;
-  try{
-    // Intento 1: /api/catalogos/*
-    let cli = await fetchJsonOrNull(API_CAT + '/clientes?limit=200');
-    let emp = await fetchJsonOrNull(API_CAT + '/empleados?limit=200');
-    let bod = await fetchJsonOrNull(API_CAT + '/bodegas?limit=200');
 
-    // Intento 2: /api/*
-    if (!cli) cli = await fetchJsonOrNull('http://localhost:8080/api/clientes?limit=200');
-    if (!emp) emp = await fetchJsonOrNull('http://localhost:8080/api/empleados?limit=200');
-    if (!bod) bod = await fetchJsonOrNull('http://localhost:8080/api/bodegas?limit=200');
+  let cli = await fetchJsonOrNull(API_CAT + '/clientes?limit=200');
+  let emp = await fetchJsonOrNull(API_CAT + '/empleados?limit=200');
+  let bod = await fetchJsonOrNull(API_CAT + '/bodegas?limit=200');
+  let ser = await fetchJsonOrNull(API_CAT + '/series');
 
-    _clientes  = asArray(cli);
-    _empleados = asArray(emp);
-    _bodegas   = asArray(bod);
+  // fallbacks
+  if (!cli) cli = await fetchJsonOrNull('http://localhost:8080/api/clientes?limit=200');
+  if (!emp) emp = await fetchJsonOrNull('http://localhost:8080/api/empleados?limit=200');
+  if (!bod) bod = await fetchJsonOrNull('http://localhost:8080/api/bodegas?limit=200');
+  if (!ser) ser = await fetchJsonOrNull('http://localhost:8080/api/catalogos/series');
 
-    // Relleno para "Nueva venta"
-    fillSelect(
-      document.getElementById('selCliente'),
-      _clientes,
-      function(c){ 
-        return { 
-          value: c.id,
-          text: ( (c.codigo || ('CLI-'+c.id)) + ' - ' + (c.nombre || c.razonSocial || '') )
-        };
-      }
-    );
-    fillSelect(
-      document.getElementById('selVendedor'),
-      _empleados,
-      function(e){
-        return {
-          value: e.id,
-          text: ( (e.codigo || ('EMP-'+e.id)) + ' - ' + (e.nombres || '') + ' ' + (e.apellidos || '') )
-        };
-      }
-    );
-    fillSelect(
-      document.getElementById('selCajero'),
-      _empleados,
-      function(e){
-        return {
-          value: e.id,
-          text: ( (e.codigo || ('EMP-'+e.id)) + ' - ' + (e.nombres || '') + ' ' + (e.apellidos || '') )
-        };
-      }
-    );
-    fillSelect(
-      document.getElementById('selBodegaOrigen'),
-      _bodegas,
-      function(b){ return { value:b.id, text:(b.nombre || ('Bodega '+b.id)) }; }
-    );
+  _clientes  = asArray(cli);
+  _empleados = asArray(emp);
+  _bodegas   = asArray(bod);
+  const series = asArray(ser);
 
-    _catalogosCargados = true;
-  }catch(err){
-    console.error('Error catálogos:', err);
-    setErr('No se pudieron cargar catálogos');
-    // fallback mínimo para no bloquear
-    document.getElementById('selCliente').innerHTML = '<option value="">(sin datos)</option>';
-    document.getElementById('selVendedor').innerHTML = '<option value="">(sin datos)</option>';
-    document.getElementById('selCajero').innerHTML = '<option value="">(sin datos)</option>';
-    document.getElementById('selBodegaOrigen').innerHTML = '<option value="">(sin datos)</option>';
+  // clientes
+  fillSelect(
+    document.getElementById('selCliente'),
+    _clientes,
+    c => ({ value:c.id, text: ((c.codigo||('CLI-'+c.id)) + ' - ' + (c.nombre||'')) })
+  );
+  // empleados (vendedor/cajero)
+  fillSelect(
+    document.getElementById('selVendedor'),
+    _empleados,
+    e => ({ value:e.id, text: ((e.codigo||('EMP-'+e.id)) + ' - ' + (e.nombres||'') + ' ' + (e.apellidos||'')) })
+  );
+  fillSelect(
+    document.getElementById('selCajero'),
+    _empleados,
+    e => ({ value:e.id, text: ((e.codigo||('EMP-'+e.id)) + ' - ' + (e.nombres||'') + ' ' + (e.apellidos||'')) })
+  );
+  // bodegas
+  const selBod = document.getElementById('selBodegaOrigen');
+  fillSelect(
+    selBod,
+    _bodegas,
+    b => ({ value:b.id, text: (b.nombre || ('Bodega '+b.id)) })
+  );
+  // series
+  fillSelect(
+    document.getElementById('selSerie'),
+    series,
+    s => ({ value: s.id, text: (s.serie + (s.correlativo ? ' ('+s.correlativo+')' : '')) })
+  );
+
+  _catalogosCargados = true;
+
+  // ✅ pre-seleccionar Bodega Central (id=1) si existe
+  if ([...selBod.options].some(o => o.value === '1')) {
+    selBod.value = '1';
   }
+
+  // refresca productos en todas las filas según la bodega actual
+  await refrescarProductosDeTodasLasFilas();
+
+  // si no hay filas en Items, agrega una
+  const tieneFilas = document.querySelector('#tablaItems tbody tr') !== null;
+  if (!tieneFilas) agregarItem();
+}
+
+
+function renderProductosOptions(selected){
+  var html = '<option value="">Seleccione...</option>';
+  for (var i = 0; i < _productos.length; i++){
+    var p = _productos[i];
+    var precio = (p.precioSugerido != null ? p.precioSugerido : (p.precio != null ? p.precio : 0));
+    var nombre = (p.nombre != null && p.nombre !== '') ? p.nombre : ('Producto ' + p.id);
+    html += '<option value="' + p.id + '" data-precio="' + precio + '"' +
+            (String(selected) === String(p.id) ? ' selected' : '') +
+            '>' + nombre + '</option>';
+  }
+  return html;
+}
+
+function cargarProductosFila(selProducto, selectedId){
+  selProducto.innerHTML = renderProductosOptions(selectedId);
+  selProducto.disabled = false;
 }
 
 // ==== Items del modal (nueva venta) ====
 function agregarItem(){
   const tbody = document.querySelector('#tablaItems tbody');
   const tr = document.createElement('tr');
-  tr.innerHTML =
-      '<td>'
-    + '  <select class="form-select form-select-sm" name="bodegaId" required>'
-    + '    <option value="">Seleccione...</option>'
-    + '  </select>'
-    + '</td>'
-    + '<td>'
-    + '  <select class="form-select form-select-sm" name="productoId" required disabled>'
-    + '    <option value="">Seleccione bodega...</option>'
-    + '  </select>'
-    + '</td>'
-    + '<td><span class="badge text-bg-secondary" data-stock="0">0</span></td>'
-    + '<td><input type="number" step="0.01" min="0.01" class="form-control form-control-sm" name="cantidad" required></td>'
-    + '<td><input type="number" step="0.01" min="0" class="form-control form-control-sm" name="precioUnitario" required></td>'
-    + '<td><input type="number" step="0.01" min="0" class="form-control form-control-sm" name="descuento"></td>'
-    + '<td><input type="text" class="form-control form-control-sm" name="lote" placeholder="S/N"></td>'
-    + '<td><input type="date" class="form-control form-control-sm" name="fechaVencimiento"></td>'
-    + '<td><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest(\'tr\').remove()">X</button></td>';
+  tr.innerHTML = `
+    <td>
+      <select class="form-select form-select-sm" name="productoId" required>
+        <option value="">Cargando...</option>
+      </select>
+    </td>
+    <td><input type="number" step="1" min="1" class="form-control form-control-sm" name="cantidad" required></td>
+    <td><input type="number" step="0.01" min="0" class="form-control form-control-sm" name="precioUnitario" required></td>
+    <td><input type="number" step="0.01" min="0" class="form-control form-control-sm" name="descuento"></td>
+    <td><input type="text" class="form-control form-control-sm" name="lote" placeholder="S/N"></td>
+    <td><input type="date" class="form-control form-control-sm" name="fechaVencimiento"></td>
+    <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('tr').remove()">X</button></td>
+  `;
   tbody.appendChild(tr);
-  cargarBodegasFila(tr.querySelector('select[name="bodegaId"]'));
-  wireRowEvents(tr);
+
+  const selProd = tr.querySelector('select[name="productoId"]');
+  const bodId   = document.getElementById('selBodegaOrigen').value || '';
+  cargarProductosParaBodega(selProd, bodId, null);
+
+  // Autollenar precio al elegir producto
+  selProd.addEventListener('change', function(){
+    const opt = selProd.selectedOptions[0];
+    if (!opt) return;
+    const pr = Number(opt.getAttribute('data-precio') || 0);
+    if (pr > 0) tr.querySelector('input[name="precioUnitario"]').value = pr;
+  });
 }
 
 async function cargarBodegasFila(sel){
@@ -508,9 +604,9 @@ async function cargarBodegasFila(sel){
     let bod = await fetchJsonOrNull(API_CAT + '/bodegas?limit=200');
     if (!bod) bod = await fetchJsonOrNull('http://localhost:8080/api/bodegas?limit=200');
     const bodegas = asArray(bod);
-    var html = '<option value="">Seleccione...</option>';
-    for (var i=0;i<bodegas.length;i++){
-      var b = bodegas[i];
+    let html = '<option value="">Seleccione...</option>';
+    for (let i=0;i<bodegas.length;i++){
+      const b = bodegas[i];
       html += '<option value="'+b.id+'">'+ (b.nombre || ('Bodega '+b.id)) +'</option>';
     }
     sel.innerHTML = html;
@@ -537,11 +633,11 @@ function wireRowEvents(tr){
       let p1 = await fetchJsonOrNull(API_CAT + '/productos?bodegaId=' + encodeURIComponent(selBod.value));
       if (!p1) p1 = await fetchJsonOrNull('http://localhost:8080/api/productos?bodegaId=' + encodeURIComponent(selBod.value));
       const prods = asArray(p1);
-      var html = '<option value="">Seleccione...</option>';
-      for (var i=0;i<prods.length;i++){
-        var p = prods[i];
-        var st = (p.stockDisponible || p.stock || 0);
-        var pr = (p.precioSugerido || p.precio || 0);
+      let html = '<option value="">Seleccione...</option>';
+      for (let i=0;i<prods.length;i++){
+        const p = prods[i];
+        const st = (p.stockDisponible || p.stock || 0);
+        const pr = (p.precioSugerido || p.precio || 0);
         html += '<option value="'+p.id+'" data-stock="'+st+'" data-precio="'+pr+'">'+ (p.nombre || ('Producto '+p.id)) +' (stock '+st+')</option>';
       }
       selProd.disabled = false;
@@ -575,49 +671,134 @@ function wireRowEvents(tr){
   });
 }
 
+function wireRowEvents(tr){
+  const selProd = tr.querySelector('select[name="productoId"]');
+  const precio  = tr.querySelector('input[name="precioUnitario"]');
+
+  selProd.addEventListener('change', function(){
+    const opt = selProd.selectedOptions[0];
+    if (!opt) return;
+    const pr = Number(opt.getAttribute('data-precio') || 0);
+    if (pr > 0) precio.value = pr;
+  });
+}
 // ==== Guardar NUEVA venta ====
 function leerItems(){
   const rows = Array.from(document.querySelectorAll('#tablaItems tbody tr'));
   return rows.map(function(r){
-    const get = function(sel){ const el = r.querySelector(sel); return el ? el.value : null; };
-    const toNum = function(v){ return (v==='' || v==null) ? null : Number(v); };
-    const fv = function(v){ return (v==='' ? null : v); };
+    const get = sel => { const el = r.querySelector(sel); return el ? el.value : null; };
+    const toNum = v => (v==='' || v==null) ? null : Number(v);
+    const fv = v => (v==='' ? null : v);
     return {
       productoId: toNum(get('select[name="productoId"]')),
-      bodegaId: toNum(get('select[name="bodegaId"]')),
+      // bodegaId:  (se omite en creación)
       cantidad: toNum(get('input[name="cantidad"]')),
       precioUnitario: toNum(get('input[name="precioUnitario"]')),
       descuento: toNum(get('input[name="descuento"]')),
       lote: fv(get('input[name="lote"]')),
       fechaVencimiento: fv(get('input[name="fechaVencimiento"]'))
     };
-  }).filter(function(it){ return it.productoId && it.bodegaId && it.cantidad && it.precioUnitario; });
+  }).filter(it => it.productoId && it.cantidad && it.precioUnitario);
+}
+
+async function cargarProductosParaBodega(selectEl, bodegaId, selectedId){
+  selectEl.disabled = true;
+  selectEl.innerHTML = '<option value="">Cargando...</option>';
+
+  // 1) ruta principal
+  let url1 = API_CAT + '/productos-stock?bodegaId=' + encodeURIComponent(bodegaId || '');
+  let r = await fetchJsonOrNull(url1);
+
+  // 2) fallback directo por si lo tienes expuesto así
+  if (!r) {
+    let url2 = 'http://localhost:8080/api/productos-stock?bodegaId=' + encodeURIComponent(bodegaId || '');
+    r = await fetchJsonOrNull(url2);
+  }
+
+  const prods = asArray(r);
+
+  let html = '<option value="">Seleccione...</option>';
+  for (const p of prods){
+    // usa camelCase que devuelve el endpoint
+    const precio = Number(p.precioVenta ?? 0);
+    const stock  = Number(p.stockDisponible ?? 0);
+    const nombre = (p.nombre || ('Producto ' + p.id));
+    html += '<option value="' + p.id + '" data-precio="' + precio + '" data-stock="' + stock + '"' +
+            (String(selectedId) === String(p.id) ? ' selected' : '') +
+            '>' + nombre + ' (stock ' + stock + ')</option>';
+  }
+  selectEl.innerHTML = html || '<option value="">(sin datos)</option>';
+  selectEl.disabled = false;
+}
+
+
+async function refrescarProductosDeTodasLasFilas(){
+  const bodId = document.getElementById('selBodegaOrigen').value || '';
+  const selects = document.querySelectorAll('#tablaItems select[name="productoId"]');
+  for (const sel of selects){
+    const keep = sel.value || null;       // conserva selección si existía
+    await cargarProductosParaBodega(sel, bodId, keep);
+  }
 }
 
 async function guardarVenta(e){
   e.preventDefault();
   const f = e.target;
+
+  // lee y valida IDs numéricos requeridos
+  const clienteId = Number(f.clienteId.value);
+  const bodegaId  = Number(f.bodegaOrigenId.value);
+  const serieId   = Number(document.getElementById('selSerie').value || '');
+
+  if (!clienteId) { setErr('Selecciona un cliente'); return; }
+  if (!bodegaId)  { setErr('Selecciona la bodega de origen'); return; }
+  if (!serieId)   { setErr('Selecciona la serie de factura'); return; }
+
   const items = leerItems();
   if (items.length === 0) { setErr('Agrega al menos un ítem'); return; }
 
+  // normaliza items (números y nulls)
+  const norm = it => ({
+    productoId: Number(it.productoId),
+    cantidad: Number(it.cantidad),
+    precioUnitario: Number(it.precioUnitario),
+    descuento: (it.descuento==null || it.descuento==='') ? null : Number(it.descuento),
+    lote: it.lote && it.lote.trim() !== '' ? it.lote.trim() : null,
+    fechaVencimiento: it.fechaVencimiento && it.fechaVencimiento !== '' ? it.fechaVencimiento : null
+  });
+
   const payload = {
     usuarioId: USER_ID,
-    clienteId: Number(f.clienteId.value),
+    clienteId: clienteId,
     vendedorId: f.vendedorId.value ? Number(f.vendedorId.value) : null,
-    cajeroId: f.cajeroId.value ? Number(f.cajeroId.value) : null,
-    bodegaOrigenId: f.bodegaOrigenId.value ? Number(f.bodegaOrigenId.value) : null,
+    cajeroId:   f.cajeroId.value   ? Number(f.cajeroId.value)   : null,
+    bodegaOrigenId: bodegaId,
     tipoPago: f.tipoPago.value || 'C',
-    observaciones: f.observaciones.value || '',
-    items: items
+    observaciones: f.observaciones.value || null,
+    serieId: serieId,                 // ← **CLAVE**
+    items: items.map(norm)
   };
 
-  const r = await tryFetchJson(API, { method:'POST', headers:{'Content-Type':'application/json', ...commonHeaders}, body: JSON.stringify(payload) });
-  if (!r.ok) { setErr((r.data && (r.data.error||r.data.detail)) || 'No se pudo registrar la venta'); return; }
+  // (opcional) ayuda a depurar en consola
+  console.log('POST /api/ventas payload =', payload);
+
+  const r = await tryFetchJson(API, {
+    method:'POST',
+    headers:{'Content-Type':'application/json', ...commonHeaders},
+    body: JSON.stringify(payload)
+  });
+
+  if (!r.ok) {
+    const msg = (r.data && (r.data.error || r.data.message || r.data.detail)) || 'No se pudo registrar la venta';
+    setErr(msg);
+    console.error('POST /ventas fallo', r.data || {});
+    return;
+  }
 
   bootstrap.Modal.getInstance(document.getElementById('modalNuevaVenta')).hide();
   document.getElementById('formVenta').reset();
   document.querySelector('#tablaItems tbody').innerHTML = '';
-  agregarItem();
+  agregarItem(); // deja una fila limpia
   setOk('Venta registrada');
   page = 0;
   cargar(lastFilters);
@@ -655,25 +836,25 @@ function prepararModalEdicion(v){
   fillSelect(
     document.getElementById('editCliente'),
     _clientes,
-    function(c){ return { value:c.id, text:( (c.codigo || ('CLI-'+c.id)) + ' - ' + (c.nombre || c.razonSocial || '') ) } },
+    c => ({ value:c.id, text:((c.codigo || ('CLI-'+c.id)) + ' - ' + (c.nombre || c.razonSocial || '')) }),
     String(v.clienteId)
   );
   fillSelect(
     document.getElementById('editVendedor'),
     _empleados,
-    function(e){ return { value:e.id, text:( (e.codigo || ('EMP-'+e.id)) + ' - ' + (e.nombres || '') + ' ' + (e.apellidos || '') ) } },
+    e => ({ value:e.id, text:((e.codigo || ('EMP-'+e.id)) + ' - ' + (e.nombres || '') + ' ' + (e.apellidos || '')) }),
     v.vendedorId!=null?String(v.vendedorId):''
   );
   fillSelect(
     document.getElementById('editCajero'),
     _empleados,
-    function(e){ return { value:e.id, text:( (e.codigo || ('EMP-'+e.id)) + ' - ' + (e.nombres || '') + ' ' + (e.apellidos || '') ) } },
+    e => ({ value:e.id, text:((e.codigo || ('EMP-'+e.id)) + ' - ' + (e.nombres || '') + ' ' + (e.apellidos || '')) }),
     v.cajeroId!=null?String(v.cajeroId):''
   );
   fillSelect(
     document.getElementById('editBodega'),
     _bodegas,
-    function(b){ return { value:b.id, text:(b.nombre || ('Bodega '+b.id)) } },
+    b => ({ value:b.id, text:(b.nombre || ('Bodega '+b.id)) }),
     v.bodegaOrigenId!=null?String(v.bodegaOrigenId):''
   );
 
@@ -695,8 +876,8 @@ async function guardarEdicionVenta(e){
     observaciones: document.getElementById('editObs').value || ''
   };
 
-  // Intento principal: PUT /api/ventas/{id}?usuarioId=...
-  let r = await tryFetchJson(API + '/' + id + '?usuarioId=' + encodeURIComponent(USER_ID), {
+  // Contrato canónico: PUT /api/ventas/{id}/header
+  const r = await tryFetchJson(API + '/' + id + '/header', {
     method: 'PUT',
     headers: {'Content-Type':'application/json', ...commonHeaders},
     body: JSON.stringify(body)
@@ -712,7 +893,7 @@ async function guardarEdicionVenta(e){
 }
 function valueOrNull(v){ return (v==='' || v==null) ? null : Number(v); }
 
-// ==== Eliminar (lógico) con rutas alternativas ====
+// ==== Eliminar (lógico) ====
 function abrirEliminar(id){
   const v = cacheVentas[id];
   if (!v){ setErr('Venta no encontrada'); return; }
@@ -721,32 +902,28 @@ function abrirEliminar(id){
   new bootstrap.Modal(document.getElementById('modalEliminar')).show();
 }
 
+function mapEstado(code){
+  const c = (code || '').toUpperCase();
+  if (c === 'A') return { code:'A', text:'Anulada',   className:'text-bg-danger' };
+  if (c === 'P') return { code:'P', text:'Procesada', className:'ok' }; // usa tu .badge.ok
+  return { code:c || '?', text:'Desconocido', className:'text-bg-secondary' };
+}
+
+function mapTipoPago(c){
+  if(!c) return '';
+  return c === 'C' ? 'Contado' :
+         c === 'R' ? 'Crédito' : c;
+}
+
 async function confirmarEliminar(){
   const id = Number(document.getElementById('delVentaId').value);
 
-  // 1) DELETE /api/ventas/{id}
-  let r = await tryFetchJson(API + '/' + id + '?usuarioId=' + encodeURIComponent(USER_ID), {
-    method:'DELETE',
-    headers: commonHeaders
+  // Única ruta soportada: POST /api/ventas/{id}/anular
+  const r = await tryFetchJson(API + '/' + id + '/anular', {
+    method:'POST',
+    headers: {'Content-Type':'application/json', ...commonHeaders},
+    body: JSON.stringify({})
   });
-
-  // 2) POST /api/ventas/{id}/anular
-  if(!r.ok){
-    r = await tryFetchJson(API + '/' + id + '/anular?usuarioId=' + encodeURIComponent(USER_ID), {
-      method:'POST',
-      headers: {'Content-Type':'application/json', ...commonHeaders},
-      body: JSON.stringify({})
-    });
-  }
-
-  // 3) PUT /api/ventas/{id}/anular
-  if(!r.ok){
-    r = await tryFetchJson(API + '/' + id + '/anular?usuarioId=' + encodeURIComponent(USER_ID), {
-      method:'PUT',
-      headers: {'Content-Type':'application/json', ...commonHeaders},
-      body: JSON.stringify({})
-    });
-  }
 
   if(!r.ok){
     setErr((r.data && (r.data.error||r.data.detail)) || 'No se pudo eliminar la venta');
@@ -755,15 +932,28 @@ async function confirmarEliminar(){
 
   bootstrap.Modal.getInstance(document.getElementById('modalEliminar')).hide();
   setOk('Venta eliminada');
+  // refresca lista (la venta seguirá en BD con estado=A; por defecto se oculta)
   cargar(lastFilters);
 }
 
+document.getElementById('selBodegaOrigen').addEventListener('change', () => {
+  // si no hay bodega, deja los selects vacíos
+  if (!document.getElementById('selBodegaOrigen').value){
+    document.querySelectorAll('#tablaItems select[name="productoId"]').forEach(sel => {
+      sel.innerHTML = '<option value="">Seleccione...</option>';
+    });
+    return;
+  }
+  refrescarProductosDeTodasLasFilas();
+});
 // ==== Boot ====
 window.addEventListener('DOMContentLoaded', function(){
-  cargar();          // tabla
-  agregarItem();     // primera fila del modal "Nueva venta"
+  lastFilters = { incluirAnuladas: document.getElementById('incluirAnuladas').checked };
+  cargar(lastFilters);      // tabla
+  agregarItem();            // primera fila del modal "Nueva venta"
   document.getElementById('modalNuevaVenta').addEventListener('show.bs.modal', cargarCatalogos);
 });
+
 </script>
 </body>
 </html>
