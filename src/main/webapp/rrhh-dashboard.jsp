@@ -1,21 +1,18 @@
-<%-- 
-    Document   : departamentos
-    Created on : 13/10/2025, 01:33:59
-    Author     : Christian
---%>
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <title>NextTech · RRHH</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- IMPORTANTE: Base del backend -->
+  <meta name="api-base" content="http://localhost:8080"/>
 
   <!-- Bootstrap 5 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Tema oscuro base -->
   <link rel="stylesheet" href="assets/css/base.css">
-
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <style>
     .nt-fullpane { min-height: calc(100vh - 70px); padding-top: 1rem; padding-bottom: 2rem; }
@@ -54,15 +51,12 @@
       <li class="nav-item" role="presentation">
         <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-deptos" type="button" role="tab">Departamentos</button>
       </li>
-      <!-- NUEVO: Seguridad / Usuarios -->
       <li class="nav-item" role="presentation">
         <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-usuarios" type="button" role="tab">Usuarios</button>
       </li>
     </ul>
 
     <div class="tab-content">
-
-      <!-- ========================== EMPLEADOS ========================== -->
       <div id="tab-empleados" class="tab-pane fade show active nt-fullpane" role="tabpanel">
         <div class="row g-3 mb-2">
           <div class="col-6 col-lg-3"><div class="card nt-kpi"><p>Total empleados</p><h2 id="kpiEmpTotal">—</h2></div></div>
@@ -73,7 +67,6 @@
         <jsp:include page="empleados.jsp" />
       </div>
 
-      <!-- ========================== PUESTOS ========================== -->
       <div id="tab-puestos" class="tab-pane fade nt-fullpane" role="tabpanel">
         <div class="row g-3 mb-2">
           <div class="col-6 col-lg-3"><div class="card nt-kpi"><p>Puestos</p><h2 id="kpiPuestosTotal">—</h2></div></div>
@@ -81,7 +74,6 @@
         <jsp:include page="puestos.jsp" />
       </div>
 
-      <!-- ========================== DEPARTAMENTOS ========================== -->
       <div id="tab-deptos" class="tab-pane fade nt-fullpane" role="tabpanel">
         <div class="row g-3 mb-2">
           <div class="col-6 col-lg-3"><div class="card nt-kpi"><p>Departamentos</p><h2 id="kpiDeptoTotal">—</h2></div></div>
@@ -89,11 +81,9 @@
         <jsp:include page="departamentos.jsp" />
       </div>
 
-      <!-- ========================== USUARIOS (SEGURIDAD) ========================== -->
       <div id="tab-usuarios" class="tab-pane fade nt-fullpane" role="tabpanel">
         <jsp:include page="usuarios.jsp" />
       </div>
-
     </div>
   </div>
 
@@ -112,14 +102,16 @@
   <!-- Bootstrap bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-  <!-- JS comunes -->
-  <script src="assets/js/common_recursos.js"></script>
+  <!-- ✅ Carga primero el common que inyecta Authorization -->
+  <script src="assets/js/common.api.js?v=99"></script>
+
+  <!-- JS comunes del módulo RRHH -->
+  <script src="assets/js/common_recursos.js?v=2"></script>
 
   <!-- Módulos -->
   <script src="assets/js/empleados.js"></script>
   <script src="assets/js/puestos.js"></script>
   <script src="assets/js/departamentos.js"></script>
-  <!-- NUEVO: Seguridad / Usuarios -->
   <script src="assets/js/usuarios.js"></script>
 
   <!-- Arranque -->

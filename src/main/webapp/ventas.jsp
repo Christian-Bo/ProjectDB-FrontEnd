@@ -12,6 +12,8 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/app.css?v=dark-purple-5-fix">
+  <script src="assets/js/common.js?v=99"></script>
+
 </head>
 <body>
 <div class="container py-4">
@@ -306,11 +308,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-// ==== Endpoints / Config ====
-const API     = 'http://localhost:8080/api/ventas';
-const API_CAT = 'http://localhost:8080/api/catalogos';
+// ==== Endpoints / Config (renombrados para no chocar con window.API de common.js) ====
+const API_VENTAS     = 'http://localhost:8080/api/ventas';
+const API_VENTAS_CAT = 'http://localhost:8080/api/catalogos';
 const USER_ID = 1; // <-- AJUSTA si tu backend exige usuario autenticado
-const ctx     = '${pageContext.request.contextPath}';
+const ctx            = '${pageContext.request.contextPath}';
 const commonHeaders = {'X-User-Id': String(USER_ID)};
 
 // ================= Utils =================
@@ -368,7 +370,7 @@ async function cargar(params = {}) {
     qs.set('incluirAnuladas', params.incluirAnuladas ? '1' : '0');
   }
 
-  const r = await tryFetchJson(API + '?' + qs.toString(), { headers: commonHeaders });
+  const r = await tryFetchJson(API_VENTAS + '?' + qs.toString(), { headers: commonHeaders });
   const rows = r.ok ? asArray(r.data) : [];
   if(!r.ok){ setErr((r.data && (r.data.error||r.data.detail)) || 'No se pudo consultar ventas'); }
 
@@ -454,9 +456,9 @@ function fillSelect(sel, data, map, selected){
 async function cargarCatalogos(){
   if (_catalogosCargados) return;
 
-  let cli = await fetchJsonOrNull(API_CAT + '/clientes?limit=200');
-  let emp = await fetchJsonOrNull(API_CAT + '/empleados?limit=200');
-  let bod = await fetchJsonOrNull(API_CAT + '/bodegas?limit=200');
+  let cli = await fetchJsonOrNull(API_VENTAS_CAT + '/clientes?limit=200');
+  let emp = await fetchJsonOrNull(API_VENTAS_CAT + '/empleados?limit=200');
+  let bod = await fetchJsonOrNull(API_VENTAS_CAT + '/bodegas?limit=200');
   let ser = await fetchJsonOrNull(API_CAT + '/series');
 
   if (!cli) cli = await fetchJsonOrNull('http://localhost:8080/api/clientes?limit=200');
@@ -788,5 +790,6 @@ window.addEventListener('DOMContentLoaded', function(){
   document.getElementById('modalNuevaVenta').addEventListener('show.bs.modal', cargarCatalogos);
 });
 </script>
+
 </body>
 </html>
