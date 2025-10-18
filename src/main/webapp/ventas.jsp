@@ -13,7 +13,6 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/app.css?v=dark-purple-5-fix">
   <script src="assets/js/common.js?v=99"></script>
-
 </head>
 <body>
 <div class="container py-4">
@@ -24,39 +23,38 @@
   </div>
 
   <div class="card mb-3">
-  <div class="card-body">
-    <form id="filtros" onsubmit="buscar(event)" class="row g-3 align-items-end">
-      <div class="col-md-3">
-        <label class="form-label">Desde</label>
-        <input type="date" name="desde" class="form-control"/>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Hasta</label>
-        <input type="date" name="hasta" class="form-control"/>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Cliente ID</label>
-        <input type="number" name="clienteId" min="1" placeholder="Ej. 1" class="form-control"/>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Número venta</label>
-        <input type="text" name="numeroVenta" placeholder="Ej. V-0007 o 007" class="form-control"/>
-      </div>
+    <div class="card-body">
+      <form id="filtros" onsubmit="buscar(event)" class="row g-3 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label">Desde</label>
+          <input type="date" name="desde" class="form-control"/>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Hasta</label>
+          <input type="date" name="hasta" class="form-control"/>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Cliente ID</label>
+          <input type="number" name="clienteId" min="1" placeholder="Ej. 1" class="form-control"/>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Número venta</label>
+          <input type="text" name="numeroVenta" placeholder="Ej. V-0007 o 007" class="form-control"/>
+        </div>
 
-      <div class="col-12 d-flex flex-wrap gap-3 justify-content-between align-items-center">
-        <div class="form-check form-switch">
-          <input class="form-check-input" type="checkbox" role="switch" id="incluirAnuladas" name="incluirAnuladas">
-          <label class="form-check-label" for="incluirAnuladas">Mostrar anuladas</label>
+        <div class="col-12 d-flex flex-wrap gap-3 justify-content-between align-items-center">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" role="switch" id="incluirAnuladas" name="incluirAnuladas">
+            <label class="form-check-label" for="incluirAnuladas">Mostrar anuladas</label>
+          </div>
+          <div class="d-flex gap-2 ms-auto">
+            <button class="btn btn-primary" type="submit"><i class="bi bi-search me-1"></i>Buscar</button>
+            <button class="btn btn-outline-secondary" type="button" onclick="limpiar()"><i class="bi bi-x-circle me-1"></i>Limpiar</button>
+          </div>
         </div>
-        <div class="d-flex gap-2 ms-auto">
-          <button class="btn btn-primary" type="submit"><i class="bi bi-search me-1"></i>Buscar</button>
-          <button class="btn btn-outline-secondary" type="button" onclick="limpiar()"><i class="bi bi-x-circle me-1"></i>Limpiar</button>
-        </div>
-      </div>
-    </form>
+      </form>
+    </div>
   </div>
-</div>
-
 
   <div class="d-flex justify-content-between align-items-center mb-2">
     <div class="d-flex align-items-center gap-2 pager">
@@ -107,7 +105,6 @@
 </div>
 
 <!-- Modal Nueva Venta -->
-<!-- Modal Nueva Venta -->
 <div class="modal fade" id="modalNuevaVenta" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-scrollable">
     <div class="modal-content">
@@ -155,7 +152,6 @@
               </select>
             </div>
 
-            <!-- NUEVO: Serie de factura -->
             <div class="col-md-4">
               <label class="form-label">Serie *</label>
               <select id="selSerie" class="form-select" name="serieId" required>
@@ -178,19 +174,18 @@
 
           <div class="table-responsive">
             <table class="table table-sm table-striped align-middle" id="tablaItems">
-<thead>
-  <tr>
-    <th style="width:360px;">Producto *</th>
-    <th style="width:110px;">Stock</th>
-    <th style="width:120px;">Cantidad *</th>
-    <th style="width:150px;">Precio Unitario *</th>
-    <th style="width:120px;">Descuento</th>
-    <th style="width:140px;">Lote</th>
-    <th style="width:140px;">Vence</th>
-    <th style="width:60px;"></th>
-  </tr>
-</thead>
-
+              <thead>
+                <tr>
+                  <th style="width:360px;">Producto *</th>
+                  <th style="width:110px;">Stock</th>
+                  <th style="width:120px;">Cantidad *</th>
+                  <th style="width:150px;">Precio Unitario *</th>
+                  <th style="width:120px;">Descuento</th>
+                  <th style="width:140px;">Lote</th>
+                  <th style="width:140px;">Vence</th>
+                  <th style="width:60px;"></th>
+                </tr>
+              </thead>
               <tbody></tbody>
             </table>
           </div>
@@ -205,7 +200,6 @@
     </div>
   </div>
 </div>
-
 
 <!-- Modal Selector de Edición -->
 <div class="modal fade" id="modalAccionesEdicion" tabindex="-1" aria-hidden="true">
@@ -312,7 +306,7 @@
 const API_VENTAS     = 'http://localhost:8080/api/ventas';
 const API_VENTAS_CAT = 'http://localhost:8080/api/catalogos';
 const USER_ID = 1; // <-- AJUSTA si tu backend exige usuario autenticado
-const ctx            = '${pageContext.request.contextPath}';
+const ctx     = '${pageContext.request.contextPath}';
 const commonHeaders = {'X-User-Id': String(USER_ID)};
 
 // ================= Utils =================
@@ -344,10 +338,7 @@ function setErr(msg){
   document.getElementById('toastErrMsg').textContent = m;
   new bootstrap.Toast(document.getElementById('toastErr')).show();
 }
-function mapTipoPago(c){
-  if(!c) return '';
-  return c === 'C' ? 'Contado' : (c === 'R' ? 'Crédito' : c);
-}
+function mapTipoPago(c){ if(!c) return ''; return c === 'C' ? 'Contado' : (c === 'R' ? 'Crédito' : c); }
 function estadoBadge(e){
   if(e === 'A') return '<span class="badge text-bg-danger">Anulada</span>';
   if(e === 'P') return '<span class="badge ok">Procesada</span>';
@@ -397,20 +388,27 @@ function render(rows){
     const clienteTxt = (v && v.clienteNombre && String(v.clienteNombre).trim() !== '')
                        ? v.clienteNombre : ('ID ' + (v && v.clienteId != null ? v.clienteId : ''));
     const link = ctx + '/venta_detalle.jsp?id=' + (v && v.id != null ? v.id : '');
+    const idTxt     = (v && v.id != null) ? v.id : '';
+    const numTxt    = (v && v.numeroVenta != null) ? v.numeroVenta : '';
+    const fechaTxt  = (v && v.fechaVenta != null) ? v.fechaVenta : '';
+    const totalVal  = (v && v.total != null) ? v.total : null;
+    const estadoTxt = (v && v.estado != null) ? v.estado : null;
+    const tipoTxt   = (v && v.tipoPago != null) ? v.tipoPago : null;
+
     const tr = document.createElement('tr');
     tr.innerHTML =
-        '<td>' + (v?.id ?? '') + '</td>'
-      + '<td>' + (v?.numeroVenta ?? '') + '</td>'
-      + '<td>' + (v?.fechaVenta ?? '') + '</td>'
+        '<td>' + idTxt + '</td>'
+      + '<td>' + numTxt + '</td>'
+      + '<td>' + fechaTxt + '</td>'
       + '<td>' + clienteTxt + '</td>'
-      + '<td class="text-end">' + formatMoney(v ? v.total : null) + '</td>'
-      + '<td>' + estadoBadge(v?.estado) + '</td>'
-      + '<td>' + mapTipoPago(v?.tipoPago) + '</td>'
+      + '<td class="text-end">' + formatMoney(totalVal) + '</td>'
+      + '<td>' + estadoBadge(estadoTxt) + '</td>'
+      + '<td>' + mapTipoPago(tipoTxt) + '</td>'
       + '<td class="text-end">'
       +   '<div class="btn-group btn-group-sm" role="group">'
-      +     '<button class="btn btn-outline-primary" onclick="abrirSelectorEdicion('+v.id+')"><i class="bi bi-pencil"></i></button>'
+      +     '<button class="btn btn-outline-primary" onclick="abrirSelectorEdicion('+idTxt+')"><i class="bi bi-pencil"></i></button>'
       +     '<a class="btn btn-outline-secondary" href="'+link+'"><i class="bi bi-eye"></i></a>'
-      +     '<button class="btn btn-outline-danger" onclick="abrirEliminar('+v.id+')"><i class="bi bi-trash"></i></button>'
+      +     '<button class="btn btn-outline-danger" onclick="abrirEliminar('+idTxt+')"><i class="bi bi-trash"></i></button>'
       +   '</div>'
       + '</td>';
     tbody.appendChild(tr);
@@ -456,14 +454,16 @@ function fillSelect(sel, data, map, selected){
 async function cargarCatalogos(){
   if (_catalogosCargados) return;
 
+  // produ
   let cli = await fetchJsonOrNull(API_VENTAS_CAT + '/clientes?limit=200');
   let emp = await fetchJsonOrNull(API_VENTAS_CAT + '/empleados?limit=200');
   let bod = await fetchJsonOrNull(API_VENTAS_CAT + '/bodegas?limit=200');
-  let ser = await fetchJsonOrNull(API_CAT + '/series');
+  let ser = await fetchJsonOrNull(API_VENTAS_CAT + '/series');
 
-  if (!cli) cli = await fetchJsonOrNull('http://localhost:8080/api/clientes?limit=200');
-  if (!emp) emp = await fetchJsonOrNull('http://localhost:8080/api/empleados?limit=200');
-  if (!bod) bod = await fetchJsonOrNull('http://localhost:8080/api/bodegas?limit=200');
+  // fallbacks locales
+  if (!cli) cli = await fetchJsonOrNull('http://localhost:8080/api/catalogos/clientes?limit=200');
+  if (!emp) emp = await fetchJsonOrNull('http://localhost:8080/api/catalogos/empleados?limit=200');
+  if (!bod) bod = await fetchJsonOrNull('http://localhost:8080/api/catalogos/bodegas?limit=200');
   if (!ser) ser = await fetchJsonOrNull('http://localhost:8080/api/catalogos/series');
 
   _clientes  = asArray(cli);
@@ -506,29 +506,29 @@ async function cargarProductosParaBodega(selectEl, bodegaId, selectedId){
   selectEl.disabled = true;
   selectEl.innerHTML = '<option value="">Cargando...</option>';
 
- 
-  var url1 = API_CAT + '/productos-stock?bodegaId=' + encodeURIComponent(bodegaId || '');
+  let url1 = API_VENTAS_CAT + '/productos-stock?bodegaId=' + encodeURIComponent(bodegaId || '');
   let r = await fetchJsonOrNull(url1);
 
   if (!r) {
-    var url2 = 'http://localhost:8080/api/catalogos/productos-stock?bodegaId=' + encodeURIComponent(bodegaId || '');
+    let url2 = 'http://localhost:8080/api/catalogos/productos-stock?bodegaId=' + encodeURIComponent(bodegaId || '');
     r = await fetchJsonOrNull(url2);
   }
 
   const prods = asArray(r);
   let html = '<option value="">Seleccione...</option>';
-  for (const p of prods){
-    const precio = Number(p.precioVenta ?? 0);
-    const stock  = Number(p.stockDisponible ?? 0);
-    const nombre = (p.nombre || ('Producto ' + p.id));
-    html += '<option value="' + p.id + '" data-precio="' + precio + '" data-stock="' + stock + '"' +
-            (String(selectedId) === String(p.id) ? ' selected' : '') + '>' +
+  for (let i=0;i<prods.length;i++){
+    const p = prods[i];
+    const precio = Number((p && p.precioVenta) != null ? p.precioVenta : 0);
+    const stock  = Number((p && p.stockDisponible) != null ? p.stockDisponible : 0);
+    const nombre = (p && p.nombre) ? p.nombre : ('Producto ' + (p && p.id != null ? p.id : ''));
+    const pid    = (p && p.id != null) ? p.id : '';
+    html += '<option value="' + pid + '" data-precio="' + precio + '" data-stock="' + stock + '"' +
+            (String(selectedId) === String(pid) ? ' selected' : '') + '>' +
             nombre + '</option>';
   }
   selectEl.innerHTML = html || '<option value="">(sin datos)</option>';
   selectEl.disabled = false;
 }
-
 
 /** Refresca productos de todas las filas según la bodega actual */
 async function refrescarProductosDeTodasLasFilas(){
@@ -591,8 +591,6 @@ function wireRowEvents(tr){
     stockEl.textContent = String(st);
     stockEl.setAttribute('data-stock', String(st));
     cantInp.max = (st > 0 ? String(st) : '');
-    // si tienes autocorrección, descomenta la siguiente línea:
-    // if (cantInp.value && Number(cantInp.value) > st) cantInp.value = st || '';
     if (pr > 0) precio.value = pr;
 
     // limpia estado de validación
@@ -659,9 +657,7 @@ async function guardarVenta(e){
     items
   };
 
-  console.log('POST /api/ventas payload =', payload);
-
-  const r = await tryFetchJson(API, {
+  const r = await tryFetchJson(API_VENTAS, {
     method:'POST',
     headers:{'Content-Type':'application/json', ...commonHeaders},
     body: JSON.stringify(payload)
@@ -739,7 +735,7 @@ async function guardarEdicionVenta(e){
     bodegaOrigenId: valueOrNull(document.getElementById('editBodega').value),
     observaciones: document.getElementById('editObs').value || ''
   };
-  const r = await tryFetchJson(API + '/' + id + '/header', {
+  const r = await tryFetchJson(API_VENTAS + '/' + id + '/header', {
     method:'PUT', headers:{'Content-Type':'application/json', ...commonHeaders}, body: JSON.stringify(body)
   });
   if (!r.ok){ setErr((r.data && (r.data.error||r.data.detail)) || 'No se pudo actualizar'); return; }
@@ -759,7 +755,7 @@ function abrirEliminar(id){
 }
 async function confirmarEliminar(){
   const id = Number(document.getElementById('delVentaId').value);
-  const r = await tryFetchJson(API + '/' + id + '/anular', {
+  const r = await tryFetchJson(API_VENTAS + '/' + id + '/anular', {
     method:'POST', headers: {'Content-Type':'application/json', ...commonHeaders}, body: JSON.stringify({})
   });
   if(!r.ok){ setErr((r.data && (r.data.error||r.data.detail)) || 'No se pudo eliminar la venta'); return; }
