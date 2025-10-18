@@ -11,6 +11,8 @@
   <title>Ventas | NextTech</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/app.css?v=dark-purple-4">
+  <script src="assets/js/common.js?v=99"></script>
+
 </head>
 <body>
 <div class="container py-4">
@@ -182,16 +184,19 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-// ==== Endpoints ====
-const API     = 'http://localhost:8080/api/ventas';
-const API_CAT = 'http://localhost:8080/api/catalogos';
-const ctx     = '${pageContext.request.contextPath}';
+// ==== Endpoints (renombrados para no chocar con window.API de common.js) ====
+const API_VENTAS     = 'http://localhost:8080/api/ventas';
+const API_VENTAS_CAT = 'http://localhost:8080/api/catalogos';
+const ctx            = '${pageContext.request.contextPath}';
 
 // ==== Utils ====
+// fetchJson usa fetch "pelado"; el common.js (v99) ya parcha fetch para inyectar Authorization y X-User-Id.
 async function fetchJson(url){
-  const res = await fetch(url);
+  const res  = await fetch(url);
   if(!res.ok) throw new Error('HTTP '+res.status+' al llamar: '+url);
-  return res.json();
+  // intenta JSON; si no, devuelve texto
+  const text = await res.text();
+  try { return text ? JSON.parse(text) : null; } catch { return text; }
 }
 function asArray(payload){
   if (Array.isArray(payload)) return payload;
@@ -213,7 +218,7 @@ async function cargar(params = {}) {
     if (params.clienteId) qs.set('clienteId', params.clienteId);
     if (params.numeroVenta) qs.set('numeroVenta', params.numeroVenta);
 
-    const data = await fetchJson(API + '?' + qs.toString());
+    const data = await fetchJson(API_VENTAS + '?' + qs.toString());
     const rows = asArray(data);
     render(rows);
     document.getElementById('pActual').textContent = (page+1);
@@ -293,9 +298,9 @@ function fillSelect(sel, data, map){
 async function cargarCatalogos(){
   if (_catalogosCargados) return;
   try{
-    const cliRaw = await fetchJson(API_CAT + '/clientes?limit=100');
-    const empRaw = await fetchJson(API_CAT + '/empleados?limit=100');
-    const bodRaw = await fetchJson(API_CAT + '/bodegas?limit=100');
+    const cliRaw = await fetchJson(API_VENTAS_CAT + '/clientes?limit=100');
+    const empRaw = await fetchJson(API_VENTAS_CAT + '/empleados?limit=100');
+    const bodRaw = await fetchJson(API_VENTAS_CAT + '/bodegas?limit=100');
     const clientes  = asArray(cliRaw);
     const empleados = asArray(empRaw);
     const bodegas   = asArray(bodRaw);
@@ -372,7 +377,7 @@ function agregarItem(){
 
 async function cargarBodegasFila(sel){
   try{
-    const raw = await fetchJson(API_CAT + '/bodegas?limit=100');
+    const raw = await fetchJson(API_VENTAS_CAT + '/bodegas?limit=100');
     const bodegas = asArray(raw);
     var html = '<option value="">Seleccione...</option>';
     for (var i=0;i<bodegas.length;i++){
@@ -399,7 +404,7 @@ function wireRowEvents(tr){
     stockEl.setAttribute('data-stock','0');
     if (!selBod.value) { selProd.innerHTML = '<option value="">Seleccione bodega...</option>'; return; }
     try{
-      const raw   = await fetchJson(API_CAT + '/productos?bodegaId=' + encodeURIComponent(selBod.value));
+      const raw   = await fetchJson(API_VENTAS_CAT + '/productos?bodegaId=' + encodeURIComponent(selBod.value));
       const prods = asArray(raw);
       var html = '<option value="">Seleccione...</option>';
       for (var i=0;i<prods.length;i++){
@@ -476,7 +481,7 @@ async function guardarVenta(e){
   };
 
   try {
-    const res = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const res  = await fetch(API_VENTAS, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
     const data = await res.json().catch(function(){ return {}; });
     if (!res.ok) { showErr((data && data.error) ? data.error : 'No se pudo registrar la venta'); return; }
 
@@ -505,5 +510,6 @@ window.addEventListener('DOMContentLoaded', function(){
   document.getElementById('modalNuevaVenta').addEventListener('show.bs.modal', cargarCatalogos);
 });
 </script>
+
 </body>
 </html>

@@ -1,65 +1,189 @@
 /* 
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/JavaScript.js to edit this template
+ * assets/js/rrhh/common.js
+ * Helpers compartidos: HTTP, sesión, toasts, dashboard y catálogos
+ * (versión robusta, no elimina nada de lo original; solo añade compat y resiliencia)
  */
 
-
-// assets/js/rrhh/common.js
-// Helpers compartidos: HTTP, sesión, toasts, dashboard y catálogos
-
 (function (global) {
-  const baseUrl = global.BACKEND_BASE || 'http://localhost:8080'; 
+  /* =========================
+   *   BASE DEL BACKEND
+   * ========================= */
+  (function resolveBase() {
+    try {
+      const meta = document.querySelector('meta[name="api-base"]');
+      const fromMeta = meta?.getAttribute('content')?.trim() || '';
+      const fromLS   = localStorage.getItem('api_base') || '';
+      // Respeta global.BACKEND_BASE si lo definiste en otro lado
+      global.BACKEND_BASE = (global.BACKEND_BASE || fromMeta || fromLS || 'http://localhost:8080').replace(/\/$/, '');
+    } catch {
+      global.BACKEND_BASE = 'http://localhost:8080';
+    }
+  })();
 
-  // ======= Sesión / Auth =======
-  function getToken() {
-    return (window.sessionTokenFromServer || '') ||
-           localStorage.getItem('sessionToken')   ||
-           localStorage.getItem('auth_token')     || '';   // 👈 añade este fallback
+  // Base local para exportar en NT
+  const baseUrl = global.BACKEND_BASE;
+
+  /* =========================
+   *   SESIÓN / AUTH
+   * ========================= */
+  function loadSessionCompat() {
+    // 1) nt.session (formato {token, expiresAt, user})
+    try {
+      const raw = localStorage.getItem('nt.session');
+      if (raw) {
+        const s = JSON.parse(raw);
+        if (s?.token) return s;
+      }
+    } catch {}
+
+    // 2) Auth.load() si lo tienes
+    try {
+      if (global.Auth && typeof global.Auth.load === 'function') {
+        const s = global.Auth.load();
+        if (s?.token) return s;
+      }
+    } catch {}
+
+    // 3) Tokens sueltos
+    const t = localStorage.getItem('sessionToken') || localStorage.getItem('auth_token');
+    if (t) return { token: t };
+
+    // 4) Inyección del servidor
+    if (global.sessionTokenFromServer) return { token: global.sessionTokenFromServer };
+
+    return null;
   }
+
+  function getToken() {
+    return loadSessionCompat()?.token || '';
+  }
+
   function authHeader() {
     const t = getToken();
     return t ? { 'Authorization': 'Bearer ' + t } : {};
   }
 
-  // ======= HTTP =======
-  async function http(url, opts = {}) {
-    const res = await fetch(url, {
-      ...opts,
-      headers: { 'Content-Type': 'application/json', ...authHeader(), ...(opts.headers || {}) }
-    });
-    if (!res.ok) {
-      let msg = 'Error ' + res.status;
-      try { const j = await res.json(); msg = j.detail || j.error || msg; } catch (_) { }
-      throw new Error(msg);
-    }
-    return res.status === 204 ? null : res.json();
+  /* =========================
+   *   UTILES DE URL/ERRORES
+   * ========================= */
+  function absUrl(pathOrUrl) {
+    if (!pathOrUrl) return baseUrl;
+    if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
+    if (pathOrUrl.startsWith('/')) return baseUrl + pathOrUrl;
+    // relativo al documento → conviértelo a absoluto del host actual
+    return new URL(pathOrUrl, window.location.origin).toString();
   }
 
-  // ======= Toasts (Bootstrap) =======
+  function extractMessageFromHtml(html) {
+    try {
+      const tmp = document.implementation.createHTMLDocument('');
+      tmp.documentElement.innerHTML = html;
+      const t = tmp.querySelector('title')?.textContent?.trim();
+      const h1 = tmp.querySelector('h1')?.textContent?.trim();
+      const joined = [t, h1].filter(Boolean).join(' – ');
+      return joined || html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200);
+    } catch { return String(html); }
+  }
+
+  function parseApiError(text, status) {
+    if (!text) return `HTTP ${status}`;
+    // JSON
+    try {
+      const j = JSON.parse(text);
+      return j.detail || j.message || j.error || `HTTP ${status}`;
+    } catch {}
+    // HTML (Tomcat)
+    if (/<html[^>]*>/i.test(text)) return extractMessageFromHtml(text);
+    // Texto plano
+    return text;
+  }
+
+  /* =========================
+   *   HTTP (inyecta Bearer)
+   * ========================= */
+  async function http(urlOrPath, opts = {}) {
+    const url = absUrl(String(urlOrPath || ''));
+    const method = String(opts.method || 'GET').toUpperCase();
+
+    // Headers base
+    const headers = new Headers(opts.headers || {});
+    if (!headers.has('Accept')) headers.set('Accept', 'application/json');
+    // Compat X-User-Id (si algún SP lo necesita)
+    if (!headers.has('X-User-Id')) headers.set('X-User-Id', '1');
+
+    // Authorization
+    if (!headers.has('Authorization')) {
+      const t = getToken();
+      if (t) headers.set('Authorization', 'Bearer ' + t);
+    }
+
+    // Content-Type JSON solo si mandamos body
+    const hasBody = opts.body !== undefined && opts.body !== null;
+    if (hasBody && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+
+    // Normaliza body si es objeto y Content-Type es JSON
+    let body = opts.body;
+    if (hasBody && headers.get('Content-Type')?.includes('application/json') && typeof body !== 'string') {
+      try { body = JSON.stringify(body); } catch {}
+    }
+
+    const res = await fetch(url, { ...opts, method, headers, body });
+    const raw = await res.text();
+
+    if (res.ok) {
+      if (!raw) return null;
+      try { return JSON.parse(raw); } catch { return raw; }
+    }
+
+    // 401/403 → limpiar y redirigir (si no estamos en login/index)
+    if (res.status === 401 || res.status === 403) {
+      try { localStorage.removeItem('nt.session'); } catch {}
+      try { localStorage.removeItem('auth_token'); localStorage.removeItem('sessionToken'); } catch {}
+      const p = (location.pathname || '').toLowerCase();
+      const inLogin = p.endsWith('/login.jsp') || p.endsWith('/index.jsp');
+      if (!inLogin) setTimeout(() => location.href = 'index.jsp', 500);
+    }
+
+    const nice = parseApiError(raw, res.status);
+    throw new Error(nice);
+  }
+
+  /* =========================
+   *   TOASTS (Bootstrap)
+   * ========================= */
   let toastRef;
   function ensureToast() {
     if (toastRef) return toastRef;
     const el = document.getElementById('ntToast');
-    if (!el) return null;
+    if (!el || typeof bootstrap === 'undefined') return null;
     toastRef = new bootstrap.Toast(el, { delay: 3500 });
     return toastRef;
   }
   function showToast(title, body, type = 'info') {
     const t = ensureToast();
-    if (!t) return alert((title ? title + ': ' : '') + (body || ''));
+    if (!t) {
+      // Fallback si no hay Bootstrap Toast
+      alert((title ? title + ': ' : '') + (body || ''));
+      return;
+    }
     const wrap = document.getElementById('ntToast');
     wrap.classList.remove('nt-toast-success', 'nt-toast-error', 'nt-toast-info');
     wrap.classList.add(type === 'success' ? 'nt-toast-success' : (type === 'error' ? 'nt-toast-error' : 'nt-toast-info'));
-    document.getElementById('toastTitle').innerText = title || 'Info';
-    document.getElementById('toastBody').innerText = body || '';
-    document.getElementById('toastTime').innerText = new Date().toLocaleTimeString();
+    const ttl = document.getElementById('toastTitle');
+    const msg = document.getElementById('toastBody');
+    const tim = document.getElementById('toastTime');
+    if (ttl) ttl.innerText = title || 'Info';
+    if (msg) msg.innerText = body || '';
+    if (tim) tim.innerText = new Date().toLocaleTimeString();
     t.show();
   }
 
-  // ======= Navbar / Me =======
+  /* =========================
+   *   NAVBAR / ME / LOGOUT
+   * ========================= */
   async function loadMe() {
     try {
-      const me = await http(`${baseUrl}/api/auth/me`);
+      const me = await http('/api/auth/me');
       const slot = document.getElementById('loginUser');
       if (slot) slot.innerText = (me?.nombreUsuario || 'Usuario') + (me?.rolNombre ? ' · ' + me.rolNombre : '');
     } catch {
@@ -67,20 +191,26 @@
       if (slot) slot.innerText = 'Sesión no iniciada';
     }
   }
+
   async function logout() {
     const t = getToken();
     if (t) {
-      try { await http(`${baseUrl}/api/auth/logout`, { method: 'POST', body: JSON.stringify({ token: t }) }); } catch { }
+      try {
+        await http('/api/auth/logout', { method: 'POST', body: { token: t } });
+      } catch { /* no romper flujo de salida */ }
     }
-    localStorage.removeItem('sessionToken');
+    try { localStorage.removeItem('nt.session'); } catch {}
+    try { localStorage.removeItem('auth_token'); localStorage.removeItem('sessionToken'); } catch {}
     global.sessionTokenFromServer = '';
     showToast('Sesión', 'Has cerrado sesión', 'success');
-    setTimeout(() => location.reload(), 700);
+    setTimeout(() => location.href = 'index.jsp', 700);
   }
 
-  // ======= Dashboard KPIs =======
+  /* =========================
+   *   DASHBOARD KPIs RRHH
+   * ========================= */
   async function loadDashboardKPIs() {
-    const d = await http(`${baseUrl}/api/rrhh/dashboard`);
+    const d = await http('/api/rrhh/dashboard');
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = (val ?? '—'); };
     set('kpiEmpTotal', d.totalEmpleados);
     set('kpiEmpActivos', d.activos);
@@ -90,22 +220,27 @@
     set('kpiPuestosTotal', d.totalPuestos);
   }
 
-  // ======= Catálogos =======
+  /* =========================
+   *   CATÁLOGOS RRHH
+   * ========================= */
   async function loadDepartamentosCatalog() {
-    return http(`${baseUrl}/api/rrhh/departamentos`);
+    return http('/api/rrhh/departamentos');
   }
   async function loadPuestosCatalog(departamentoId = null) {
-    const url = new URL(`${baseUrl}/api/rrhh/puestos`, location.origin);
-    if (departamentoId) url.searchParams.set('departamentoId', departamentoId);
-    return http(url.toString());
+    const u = new URL(absUrl('/api/rrhh/puestos'));
+    if (departamentoId) u.searchParams.set('departamentoId', departamentoId);
+    return http(u.toString());
   }
   async function loadEmpleadosPageForJefes(size = 100) {
-    const url = new URL(`${baseUrl}/api/rrhh/empleados`, location.origin);
-    url.searchParams.set('page', 0); url.searchParams.set('size', size);
-    return http(url.toString());
+    const u = new URL(absUrl('/api/rrhh/empleados'));
+    u.searchParams.set('page', 0);
+    u.searchParams.set('size', size);
+    return http(u.toString());
   }
 
-  // ======= Util: paginación simple =======
+  /* =========================
+   *   PAGINACIÓN SIMPLE
+   * ========================= */
   function renderPagination(el, pageNumber, totalPages, onChange) {
     if (!el) return;
     el.innerHTML = '';
@@ -124,7 +259,9 @@
     el.appendChild(make('»', totalPages - 1, pageNumber >= totalPages - 1));
   }
 
-  // Exponer en global
+  /* =========================
+   *   EXPORTAR EN GLOBAL
+   * ========================= */
   global.NT = {
     baseUrl,
     http,

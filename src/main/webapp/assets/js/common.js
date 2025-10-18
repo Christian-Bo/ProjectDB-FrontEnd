@@ -1,278 +1,295 @@
-/* 
- * common.js — utilidades compartidas (v15)
- * - Autodetección robusta de API_BASE (meta -> cache -> location.origin) con sondeo.
- * - ntBuildUrl(path) para convertir rutas relativas en absolutas con la base vigente.
- * - ntGet/ntPost/ntPut/ntDelete toleran rutas relativas o absolutas.
- * - Compatibilidad con API.request/API.toast ya usada en Proveedores.
- * - Manejo de errores Tomcat/HTML con mensajes claros.
- * - Suavizado para catálogos (/api/compras/catalogos/*): ante 500, retorna [] en GET.
- * - Nuevos helpers opcionales: ntGetSafe(), ntGetOrEmpty().
- */
+/* ==========================================================
+ * common.api.js — helpers + parche de fetch con Bearer
+ * Seguro frente a doble declaración de API (no usa `const API`)
+ * ========================================================== */
 
-(function(){
-  console.debug('[common] loaded v15');
-
-  /* ============================
-   * 1) Resolución de API_BASE
-   * ============================ */
-
-  // 1.1 Preferencias (sin I/O)
-  function preferredBase() {
-    try {
-      if (window.API_BASE) return String(window.API_BASE).replace(/\/$/, '');
-      const m = document.querySelector('meta[name="api-base"]');
-      if (m && m.content) return String(m.content).replace(/\/$/, '');
-      const cached = localStorage.getItem('nt.apiBase.ok');
-      if (cached) return String(cached).replace(/\/$/, '');
-    } catch {}
-    return location.origin.replace(/\/$/, '');
-  }
-
-  // 1.2 Base actual (considera cache si existe)
-  function currentBase() {
-    const cached = localStorage.getItem('nt.apiBase.ok');
-    if (cached) return String(cached).replace(/\/$/,'');
-    return preferredBase();
-  }
-
-  // 1.3 Setter con saneo + log
-  function setApiBase(b) {
-    window.API_BASE = String(b || preferredBase()).replace(/\/$/,'');
-    console.log('%c[common] API_BASE = ' + window.API_BASE, 'color:#7f5af0');
-    return window.API_BASE;
-  }
-
-  // 1.4 Sonda de candidatos; memoriza la primera base que responda
-  async function probeBaseList(candidates, probePath='/api/compras') {
-    const unique = Array.from(new Set((candidates||[]).filter(Boolean))).map(b => String(b).replace(/\/$/,''));
-    for (const base of unique) {
-      const url = `${base}${probePath}`;
-      try {
-        const res = await fetch(url, { method:'GET' });
-        // Cualquier 2xx-4xx nos sirve para saber que hay servidor vivo
-        if (res.ok || (res.status >= 200 && res.status < 500)) {
-          localStorage.setItem('nt.apiBase.ok', base);
-          setApiBase(base);
-          return base;
-        }
-      } catch(_e) { /* probar siguiente */ }
-    }
-    return setApiBase(preferredBase());
-  }
-
-  // 1.5 API pública para re-sondear cuando quieras
-  window.getApiBase    = () => currentBase();
-  window.ntPickApiBase = async function(candidates, probePath='/api/compras'){
-    return probeBaseList(candidates, probePath);
-  };
-
-  // 1.6 Arranque: fija base y lanza sonda no bloqueante
-  setApiBase(currentBase());
-  (async ()=>{
-    const meta   = document.querySelector('meta[name="api-base"]')?.content;
-    const cached = localStorage.getItem('nt.apiBase.ok');
-    const same   = location.origin;
-    await probeBaseList([meta, cached, same]);
-  })();
-
-
-  /* ============================
-   * 2) UI helpers (toasts, confirm)
-   * ============================ */
-
-  window.ntToast = function ({title='Mensaje', body='', type='info', delay=4500}) {
-    const container = document.getElementById('toastStack') || (() => {
-      const wrap = document.createElement('div');
-      wrap.id = 'toastStack';
-      wrap.className = 'toast-container position-fixed top-0 end-0 p-3';
-      wrap.style.zIndex = 1080;
-      document.body.appendChild(wrap);
-      return wrap;
-    })();
-
-    const icon = type==='success' ? 'bi-check-circle-fill'
-               : type==='error'   ? 'bi-x-circle-fill'
-               : type==='warning' ? 'bi-exclamation-triangle-fill'
-               : 'bi-info-circle-fill';
-
-    const toast = document.createElement('div');
-    toast.className = `toast nt-toast-${type}`;
-    toast.innerHTML = `
-      <div class="toast-header">
-        <i class="bi ${icon} me-2"></i>
-        <strong class="me-auto">${title}</strong>
-        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Cerrar"></button>
-      </div>
-      <div class="toast-body">${body}</div>`;
-    container.appendChild(toast);
-    const bs = new bootstrap.Toast(toast, {delay});
-    bs.show();
-    toast.addEventListener('hidden.bs.toast', ()=> toast.remove());
-  };
-  window.showToast = (message, type='info', title='Mensaje') => window.ntToast({ title, body: message, type, delay: 4200 });
-
-  window.ntEsc = s => String(s ?? '').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-
-  // Intenta extraer un mensaje útil de respuestas HTML (p.ej. Tomcat 500)
-  function extractMessageFromHtml(html) {
-    try {
-      const tmp = document.implementation.createHTMLDocument('');
-      tmp.documentElement.innerHTML = html;
-      const t = tmp.querySelector('title')?.textContent?.trim();
-      const h1 = tmp.querySelector('h1')?.textContent?.trim();
-      // Combina título y H1 si existen
-      const joined = [t, h1].filter(Boolean).join(' – ');
-      return joined || html.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,180);
-    } catch { return html; }
-  }
-
-  window.ntParseApiError = (txt) => {
-    if (!txt) return 'Error';
-    // Si viene JSON
-    try { const j=JSON.parse(txt); return j.error||j.message||j.detail||txt; } catch {}
-    // Si parece HTML (Tomcat)
-    if (/<html[^>]*>/i.test(txt)) return extractMessageFromHtml(txt);
-    // Texto plano
-    return String(txt).trim();
-  };
-
-
-  /* ==========================================
-   * 3) Construcción de URL y fetch JSON robusto
-   * ========================================== */
-
-  // Convierte rutas relativas en absolutas usando la base vigente
-  window.ntBuildUrl = function(path){
-    if (!path) return currentBase();
-    if (/^https?:\/\//i.test(path)) return path; // ya es absoluta
-    const BASE = currentBase();
-    const slash = path.startsWith('/') ? '' : '/';
-    return (`${BASE}${slash}${path}`).replace(/([^:]\/)\/+/g, '$1'); // normaliza //
-  };
-
-  // Detección de ruta de catálogo de compras
-  function isComprasCatalog(url) {
-    try {
-      const u = new URL(url);
-      return /\/api\/compras\/catalogos\//i.test(u.pathname);
-    } catch {
-      return /\/api\/compras\/catalogos\//i.test(url);
-    }
-  }
-
-  async function ntFetchJson(method, urlOrPath, body) {
-    const url = ntBuildUrl(urlOrPath);
-    try{
-      const opts = { method, headers: {} };
-      if (body !== undefined) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
-      const res = await fetch(url, opts);
-      const raw = await res.text();
-
-      if (!res.ok) {
-        // Si respuesta es HTML (Tomcat), conviértela a mensaje legible
-        const parsed = window.ntParseApiError(raw || `HTTP ${res.status}`);
-        // Suavizado específico para CATÁLOGOS: devuelve [] en GET cuando el backend responde 5xx
-        if (method === 'GET' && res.status >= 500 && isComprasCatalog(url)) {
-          console.warn(`[common] catálogo falló con ${res.status} en ${url}. Devolviendo [] para no romper la UI. Detalle: ${parsed}`);
-          return [];
-        }
-        throw new Error(parsed);
-      }
-      if (!raw) return null;
-
-      // Intenta JSON; si no, intenta parsear HTML -> mensaje
-      try { return JSON.parse(raw); }
-      catch { 
-        const msg = window.ntParseApiError(raw);
-        // Si la ruta es de catálogo y la respuesta no es JSON, regresamos []
-        if (method === 'GET' && isComprasCatalog(url)) {
-          console.warn(`[common] catálogo no devolvió JSON en ${url}. Devolviendo [].`);
-          return [];
-        }
-        throw new Error(msg);
-      }
-    }catch(err){
-      const isConn = /Failed to fetch|NetworkError|ERR_CONNECTION|TypeError|CORS/i.test(String(err));
-      const nice = isConn ? `No se pudo contactar el backend.\nURL: ${url}\nVerifica servidor/URL/CORS.` : err.message;
-      // Para catálogos, ante error de red devolvemos [] para mantener UI operativa
-      if (method === 'GET' && isComprasCatalog(url)) {
-        console.warn(`[common] error de red al cargar catálogo ${url}. Se devuelve []. Error: ${nice}`);
-        return [];
-      }
-      throw new Error(nice);
-    }
-  }
-
-  // Helpers globales (rutas relativas o absolutas, ambas sirven)
-  window.ntGet    = (pathOrUrl)        => ntFetchJson('GET', pathOrUrl);
-  window.ntPost   = (pathOrUrl, body)  => ntFetchJson('POST', pathOrUrl, body);
-  window.ntPut    = (pathOrUrl, body)  => ntFetchJson('PUT', pathOrUrl, body);
-  window.ntDelete = (pathOrUrl)        => ntFetchJson('DELETE', pathOrUrl);
-
-  // ===== Helpers opcionales (no rompen nada existente) =====
-  // ntGetSafe: retorna null (o el fallback provisto) si hay error.
-  window.ntGetSafe = async function(pathOrUrl, fallback=null){
-    try { return await ntGet(pathOrUrl); }
-    catch(e){ console.warn('[common] ntGetSafe:', e?.message || e); return fallback; }
-  };
-  // ntGetOrEmpty: atajo para colecciones; retorna [] si hay error.
-  window.ntGetOrEmpty = async function(pathOrUrl){
-    const r = await window.ntGetSafe(pathOrUrl, []);
-    return Array.isArray(r) ? r : [];
-  };
-
-
-  /* ==============================
-   * 4) Compatibilidad: window.API
-   * ==============================
-   * API.request(path, { method, headers, json, body, userId })
-   * API.toast(msg, type)
-   */
-  window.API = (function () {
-
-    function buildUrl(path) { return window.ntBuildUrl(path); }
-
-    async function request(path, { method = 'GET', headers = {}, json, body, userId = 1 } = {}) {
-      const upper = String(method).toUpperCase();
-      const url = buildUrl(path);
-      const baseHeaders = { 'Accept': 'application/json' };
-      if (upper === 'POST' || upper === 'PUT' || upper === 'DELETE') {
-        baseHeaders['X-User-Id'] = String(userId);
-      }
-      if (json !== undefined) baseHeaders['Content-Type'] = 'application/json';
-
-      let res, payload, ct, raw;
-      try{
-        res = await fetch(url, {
-          method: upper,
-          mode: 'cors',
-          headers: { ...baseHeaders, ...headers },
-          body: json !== undefined ? JSON.stringify(json) : body,
-        });
-        ct  = res.headers.get('content-type') || '';
-        raw = await res.text();
-        payload = ct.includes('application/json') ? (raw ? JSON.parse(raw) : null) : raw;
-      }catch(err){
-        const isConn = /Failed to fetch|NetworkError|ERR_CONNECTION|TypeError|CORS/i.test(String(err));
-        const nice = isConn ? `No se pudo contactar el backend.\nURL: ${url}` : String(err);
-        throw new Error(nice);
-      }
-
-      if (!res.ok) {
-        const parsed = typeof payload === 'string' ? window.ntParseApiError(payload) : (payload?.message || payload?.error || res.statusText);
-        // Igual que en ntFetchJson: suaviza catálogos 5xx en GET
-        if (upper === 'GET' && res.status >= 500 && isComprasCatalog(url)) {
-          console.warn(`[common/API] catálogo falló con ${res.status} en ${url}. Devolviendo [] para no romper la UI. Detalle: ${parsed}`);
-          return [];
-        }
-        throw new Error(`HTTP ${res.status} – ${parsed}`);
-      }
-      return payload;
-    }
-
-    function toast(msg, type = 'info') { showToast(msg, type); }
-
-    return { request, toast };
-  })();
-
+/* ---------------- API BASE ---------------- */
+(function resolveApiBase(){
+  const meta = document.querySelector('meta[name="api-base"]');
+  const fromMeta = meta?.getAttribute('content')?.trim() || '';
+  const fromLS   = localStorage.getItem('api_base') || '';
+  window.API_BASE = fromMeta || fromLS || '';
+  console.log('[common] API_BASE =', window.API_BASE || '(relativo)');
 })();
+
+/* ---------------- SESIÓN / TOKEN (varias fuentes) ---------------- */
+function loadSession() {
+  try {
+    const raw = localStorage.getItem('nt.session');
+    if (raw) {
+      const s = JSON.parse(raw);
+      if (s && s.token) return s;
+    }
+  } catch {}
+
+  try {
+    if (window.Auth && typeof Auth.load === 'function') {
+      const s = Auth.load();
+      if (s && s.token) return s;
+    }
+  } catch {}
+
+  const t = localStorage.getItem('auth_token') || localStorage.getItem('sessionToken');
+  if (t) return { token: t };
+
+  return null;
+}
+
+/* ---------------- Headers comunes ---------------- */
+function buildHeaders(extra = {}) {
+  const h = {
+    'Accept': 'application/json',
+    ...extra
+  };
+
+  const s = loadSession();
+  if (s?.token) h['Authorization'] = 'Bearer ' + s.token;
+
+  // Compatibilidad con back/BD legacy
+  const compatUserId = (window.API && window.API.userId != null) ? window.API.userId : 1;
+  h['X-User-Id'] = String(compatUserId);
+
+  return h;
+}
+
+/* ---------------- URL absoluta ---------------- */
+function __absUrl(pathOrUrl) {
+  if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
+  if (pathOrUrl.startsWith('/')) {
+    if (window.API_BASE) return window.API_BASE + pathOrUrl;
+    return new URL(pathOrUrl, window.location.origin).toString();
+  }
+  return new URL(pathOrUrl, window.location.origin).toString();
+}
+
+/* ---------------- HTTP Helpers base (crudos) ---------------- */
+async function apiGet(path, params = {}) {
+  const base = (window.API && window.API.baseUrl) ? window.API.baseUrl : '';
+  const url = new URL(base + path, window.location.origin);
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') url.searchParams.append(k, v);
+  });
+  const res = await fetch(url, { headers: buildHeaders() });
+  return handleResponse(res);
+}
+
+async function apiSend(method, path, bodyObj) {
+  const base = (window.API && window.API.baseUrl) ? window.API.baseUrl : '';
+  const res = await fetch(base + path, {
+    method,
+    headers: buildHeaders({ 'Content-Type': 'application/json' }),
+    body: (bodyObj === undefined ? null : JSON.stringify(bodyObj))
+  });
+  return handleResponse(res);
+}
+
+async function apiDelete(path) {
+  const base = (window.API && window.API.baseUrl) ? window.API.baseUrl : '';
+  const res = await fetch(base + path, {
+    method: 'DELETE',
+    headers: buildHeaders()
+  });
+  return handleResponse(res);
+}
+
+/* ---------------- Manejo de errores mejorado ---------------- */
+function __extractMessageFromHtml(html) {
+  try {
+    const tmp = document.implementation.createHTMLDocument('');
+    tmp.documentElement.innerHTML = html;
+    const t = tmp.querySelector('title')?.textContent?.trim();
+    const h1 = tmp.querySelector('h1')?.textContent?.trim();
+    const joined = [t, h1].filter(Boolean).join(' – ');
+    return joined || html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 220);
+  } catch { return html; }
+}
+
+function ntParseApiError(txt) {
+  if (!txt) return 'Error';
+  try { const j = JSON.parse(txt); return j.detail || j.message || j.error || txt; } catch {}
+  if (/<html[^>]*>/i.test(txt)) return __extractMessageFromHtml(txt);
+  return String(txt).trim();
+}
+
+async function handleResponse(res) {
+  const text = await res.text();
+  const tryJson = () => { try { return text ? JSON.parse(text) : null; } catch { return null; } };
+
+  if (res.ok) {
+    const data = tryJson();
+    return (data !== null ? data : text || null);
+  }
+
+  if (res.status === 401 || res.status === 403) {
+    const s = loadSession();
+    if (s?.token) {
+      const isLogin = /login\.jsp$/i.test(location.pathname) || /index\.jsp$/i.test(location.pathname);
+      if (!isLogin) {
+        try { localStorage.removeItem('nt.session'); } catch {}
+        try { localStorage.removeItem('auth_token'); localStorage.removeItem('sessionToken'); } catch {}
+        showToast('Sesión expirada. Vuelve a iniciar sesión.', 'warning');
+        setTimeout(() => { window.location.href = 'index.jsp'; }, 600);
+      }
+    }
+  }
+
+  let msg = text || `HTTP ${res.status}`;
+  const j = tryJson();
+  if (j) {
+    msg = j.detail || j.message || j.error || JSON.stringify(j);
+  } else {
+    msg = ntParseApiError(text || msg);
+  }
+  throw new Error(msg);
+}
+
+/* ---------------- UI Utils (toasts + helpers) ---------------- */
+function showToast(message, level = 'primary') {
+  const toastEl = document.getElementById('appToast');
+  const msgEl = document.getElementById('toastMsg');
+  if (!toastEl || !msgEl || typeof bootstrap === 'undefined') {
+    console[level === 'danger' ? 'error' : 'log'](`[${level}] ${message}`);
+    return;
+  }
+  msgEl.textContent = message;
+  toastEl.className = `toast align-items-center text-bg-${level} border-0`;
+  bootstrap.Toast.getOrCreateInstance(toastEl, { delay: 2800 }).show();
+}
+
+function formToObject(formEl) {
+  const data = {};
+  new FormData(formEl).forEach((v, k) => { data[k] = v; });
+  return data;
+}
+
+function setValue(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.value = value ?? '';
+}
+
+/* ---------------- Parche global de fetch (inyecta Bearer) ---------------- */
+(function patchFetchForAuth(){
+  if (!window.fetch) return;
+  const originalFetch = window.fetch;
+  window.fetch = function(input, init) {
+    init = init || {};
+    let hdrs = init.headers instanceof Headers ? init.headers : new Headers(init.headers || {});
+    if (!hdrs.has('Authorization')) {
+      const s = loadSession();
+      if (s && s.token) hdrs.set('Authorization', 'Bearer ' + s.token);
+    }
+    const userId = (window.API && window.API.userId != null) ? window.API.userId : 1;
+    if (!hdrs.has('X-User-Id')) hdrs.set('X-User-Id', String(userId));
+    if (!hdrs.has('Accept')) hdrs.set('Accept', 'application/json');
+
+    const m = (init.method || 'GET').toUpperCase();
+    if ((m === 'POST' || m === 'PUT' || m === 'PATCH') && init.body && typeof init.body === 'object') {
+      if (!hdrs.has('Content-Type')) hdrs.set('Content-Type', 'application/json');
+      try { init.body = JSON.stringify(init.body); } catch {}
+    }
+
+    init.headers = hdrs;
+
+    // DEBUG útil: primer request sensible
+    const urlStr = (typeof input === 'string') ? __absUrl(input) : String(input);
+    if (typeof urlStr === 'string' && urlStr.includes('/api/proveedores/_empleados')) {
+      console.log('[common] Calling', urlStr, 'Authorization:', hdrs.get('Authorization'));
+    }
+
+    return originalFetch(input, init);
+  };
+})();
+
+/* =========================================================
+ * Polyfills esperados por módulos existentes
+ * ========================================================= */
+if (typeof window.ntEsc !== 'function') {
+  window.ntEsc = function (s) {
+    return String(s ?? '').replace(/[&<>"']/g, function(ch){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]);
+    });
+  };
+}
+if (typeof window.ntToast !== 'function') {
+  window.ntToast = function (msg, level = 'primary') {
+    try { showToast(msg, level); } catch { console.log(`[${level}] ${msg}`); }
+  };
+}
+if (typeof window.ntAlert !== 'function') {
+  window.ntAlert = function (msg, level = 'primary') {
+    try { showToast(msg, level); } catch { console.log(`[${level}] ${msg}`); }
+  };
+}
+if (typeof window.ntParseApiError !== 'function') {
+  window.ntParseApiError = ntParseApiError;
+}
+
+/* =========================================================
+ * API público global — EXTENSIÓN, no redeclaración
+ * (evita conflicto con otros archivos que también definan API)
+ * ========================================================= */
+(function initGlobalAPI(){
+  // Usa el existente o crea uno vacío
+  window.API = window.API || {};
+
+  // Base URL: respeta la ya cargada si existe
+  if (typeof window.API.baseUrl === 'undefined') {
+    window.API.baseUrl = (localStorage.getItem('api_base') || '');
+  }
+  if (typeof window.API.userId === 'undefined') {
+    window.API.userId = 1;
+  }
+
+  // Atajos: si ya existen, NO los pisamos
+  if (typeof window.API.get !== 'function')    window.API.get    = (path, params = {}) => apiGet(path, params);
+  if (typeof window.API.post !== 'function')   window.API.post   = (path, body) => apiSend('POST', path, body);
+  if (typeof window.API.put !== 'function')    window.API.put    = (path, body) => apiSend('PUT', path, body);
+  if (typeof window.API.patch !== 'function')  window.API.patch  = (path, body) => apiSend('PATCH', path, body);
+  if (typeof window.API.delete !== 'function') window.API.delete = (path) => apiDelete(path);
+
+  // Compat: API.request / API.toast
+  if (typeof window.API.request !== 'function') {
+    window.API.request = async function(path, { method='GET', headers={}, json, body, userId = window.API.userId } = {}) {
+      const base = window.API.baseUrl || '';
+      const h = buildHeaders(headers);
+      const upper = String(method).toUpperCase();
+      if (json !== undefined) h['Content-Type'] = 'application/json';
+
+      const res = await fetch(base + path, {
+        method: upper,
+        headers: h,
+        body: json !== undefined ? JSON.stringify(json) : (body ?? null)
+      });
+      return handleResponse(res);
+    };
+  }
+  if (typeof window.API.toast !== 'function') {
+    window.API.toast = (msg, type='info') => showToast(msg, type);
+  }
+})();
+
+/* =========================================================
+ * Exposición utilitaria (por si alguien la necesita)
+ * ========================================================= */
+window.NT = window.NT || {};
+window.NT.http = {
+  request: async (pathOrUrl, options = {}) => {
+    const res = await fetch(pathOrUrl, options);
+    const text = await res.text();
+    const tryJson = () => { try { return text ? JSON.parse(text) : null; } catch { return null; } };
+    if (res.ok) return (tryJson() ?? text ?? null);
+    let msg = text || `HTTP ${res.status}`;
+    const j = tryJson(); msg = j ? (j.detail || j.message || j.error || JSON.stringify(j)) : ntParseApiError(msg);
+    throw new Error(msg);
+  },
+  getJson:  (url, params) => (params ? fetch(new URL(__absUrl(url))).then(handleResponse) : fetch(url).then(handleResponse)),
+  postJson: (url, body)   => fetch(url, { method:'POST', body }).then(handleResponse),
+  putJson:  (url, body)   => fetch(url, { method:'PUT',  body }).then(handleResponse),
+  patchJson:(url, body)   => fetch(url, { method:'PATCH',body }).then(handleResponse),
+  del:      (url)         => fetch(url, { method:'DELETE'}).then(handleResponse),
+  withQuery: function(url, params = {}) {
+    const u = new URL(__absUrl(url));
+    Object.entries(params).forEach(([k,v]) => { if (v!==undefined && v!==null && v!=='') u.searchParams.append(k,v); });
+    return u.toString();
+  }
+};

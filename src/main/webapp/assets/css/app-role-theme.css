@@ -1,0 +1,19 @@
+/*
+Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+Click nbfs://nbhost/SystemFileSystem/Templates/Other/CascadeStyleSheet.css to edit this template
+*/
+/* 
+    Created on : 16/10/2025, 16:46:09
+    Author     : Christian
+*/
+:root{
+  --brand:#1f6feb; /* one color across all dashboards */
+  --bg:#0d1117; --surface:#161b22; --surface-2:#0b1320;
+  --text:#c9d1d9; --muted:#8b949e; --border:#30363d;
+}
+.nt-bg{ background:var(--bg); color:var(--text); }
+.nt-header{ background:var(--surface); border-bottom:1px solid var(--border); }
+.nt-card{ background:var(--surface); border:1px solid var(--border); border-radius:16px; }
+a, .btn-link{ color:var(--brand); }
+.btn-primary{ background:var(--brand); border-color:var(--brand); }
+

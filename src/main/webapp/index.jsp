@@ -1,7 +1,7 @@
 <%-- 
-    Document   : index
-    Created on : 9/10/2025, 22:56:53
-    Author     : Christian
+  Document   : index
+  Title      : Iniciar sesión • Nextech
+  Author     : Christian
 --%>
 <%@page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
@@ -21,9 +21,9 @@
 
   <!-- Estilos específicos del login -->
   <link rel="stylesheet" href="assets/css/login.css">
-</head> 
+</head>
 <body class="nt-bg">
-  
+
 <main class="min-vh-100 d-flex align-items-center justify-content-center nt-bg overflow-hidden">
   <!-- Fondo animado -->
   <div class="nt-orbits">
@@ -48,17 +48,12 @@
             Tecnología que impulsa tus decisiones.
           </p>
         </div>
-        <!-- Glow decorativo -->
         <div class="hero-glow"></div>
       </aside>
 
       <!-- FORM -->
       <section class="col-12 col-lg-6 bg-white form-pane">
         <div class="p-4 p-lg-5 h-100 d-flex flex-column justify-content-center">
-          <div class="d-flex justify-content-end small mb-2">
-            <!-- Eliminado el link de "Regístrate" -->
-          </div>
-
           <div class="d-flex align-items-center gap-2 mb-1">
             <div class="nt-logo">
               <i class="bi bi-kanban"></i>
@@ -121,9 +116,24 @@
   </div>
 </main>
 
+<!-- Helpers -->
+<script src="assets/js/common.api.js"></script>
+<script src="assets/js/auth.guard.js"></script>
+
 <script>
-  // API base (editable por localStorage)
-  const API_BASE = localStorage.getItem('api_base') || 'http://localhost:8080';
+  // Redirige si ya hay sesión activa
+  (function autoRedirectIfLogged() {
+    try {
+      const s = Auth.load?.();
+      if (s?.token) { Auth.gotoDashboard(); }
+    } catch {}
+  })();
+
+  // 🔧 Fijar base del API al backend en 8080 (puedes sobrescribir con localStorage.api_base)
+  (function configureApiBase(){
+    // Si usas context-path, cambia a: 'http://localhost:8080/nexttech-backend'
+    API.baseUrl = localStorage.getItem('api_base') || 'http://localhost:8080';
+  })();
 
   // util toast
   function showToast(msg, type='danger') {
@@ -134,19 +144,17 @@
         ${msg}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
       </div>`;
-    // shake si error
     if (type === 'danger') {
       const card = document.querySelector('.auth-card');
       if (card) {
         card.classList.remove('shake');
-        // fuerza reflow para reiniciar animación
         void card.offsetWidth;
         card.classList.add('shake');
       }
     }
   }
 
-  // eye toggle
+  // Ojo mostrar/ocultar
   (function(){
     const toggle = document.getElementById('togglePwd');
     const pwd = document.getElementById('password');
@@ -159,7 +167,7 @@
     }
   })();
 
-  // Enter en password
+  // Enter envía
   (function(){
     const pwd = document.getElementById('password');
     const btn = document.getElementById('goDash');
@@ -173,7 +181,7 @@
     }
   })();
 
-  // Prefill remember_user
+  // Prefill remember_user y año
   (function(){
     const remembered = localStorage.getItem('remember_user');
     if (remembered) {
@@ -201,9 +209,7 @@
     }
   }
 
-  // Validación rápida
   function validate() {
-    const form = document.getElementById('loginForm');
     const u = document.getElementById('username');
     const p = document.getElementById('password');
     let ok = true;
@@ -212,6 +218,7 @@
     return ok;
   }
 
+  // CLICK: login
   (function(){
     const btn = document.getElementById('goDash');
     if (!btn) return;
@@ -225,58 +232,42 @@
       const nombreUsuario = document.getElementById('username').value.trim();
       const password = document.getElementById('password').value;
 
-      const url = new URL('/api/auth/login', API_BASE).toString();
-      console.log('[LOGIN] POST', url);
-
       try {
         setLoading(true);
-        const resp = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nombreUsuario, password })
-        });
 
-        console.log('[LOGIN] status', resp.status, 'from', resp.url);
+        // API.post devuelve JSON directamente o lanza Error si !ok
+        const data = await API.post('/api/auth/login', { nombreUsuario, password });
 
-        let data = null;
-        try { data = await resp.json(); } catch {}
-
-        if (!resp.ok) {
-          const msg = (data && (data.detail || data.message || data.error)) || `Error ${resp.status}`;
-          showToast(msg, 'danger');
+        if (!data?.token) {
+          showToast('Login OK pero sin token en la respuesta', 'warning');
           return;
         }
 
-        if (data?.token) {
-          localStorage.setItem('auth_token', data.token);
-          localStorage.setItem('sessionToken', data.token);
-          if (data.expiresAt) localStorage.setItem('auth_expires', data.expiresAt);
-          if (data.user) localStorage.setItem('auth_user', JSON.stringify(data.user));
+        // Guardar sesión y enviar a dashboard según rol
+        const session = { token: data.token, expiresAt: data.expiresAt, user: data.user };
+        Auth.save(session);
 
-          if (document.getElementById('remember')?.checked) {
-            localStorage.setItem('remember_user', nombreUsuario);
-          } else {
-            localStorage.removeItem('remember_user');
-          }
-
-          // pequeña transición de salida
-          document.querySelector('.auth-card')?.classList.add('card-success');
-          setTimeout(() => {
-            window.location.href = '<%= request.getContextPath() %>dashboard.jsp';
-          }, 350);
+        // Recordarme (solo el usuario)
+        if (document.getElementById('remember')?.checked) {
+          localStorage.setItem('remember_user', nombreUsuario);
         } else {
-          showToast('Login OK pero sin token en la respuesta', 'warning');
+          localStorage.removeItem('remember_user');
         }
+
+        // Transición y redirección
+        document.querySelector('.auth-card')?.classList.add('card-success');
+        setTimeout(() => Auth.gotoDashboard(), 300);
+
       } catch (e) {
         console.error(e);
-        showToast('No se pudo conectar con el backend en :8080', 'danger');
+        showToast(e.message || 'No se pudo conectar con el backend', 'danger');
       } finally {
         setLoading(false);
       }
     });
   })();
 
-  // Link de olvidé contraseña (dummy)
+  // Link "olvidé contraseña" (informativo)
   document.getElementById('forgotLink')?.addEventListener('click', (e) => {
     e.preventDefault();
     showToast('Contacta al administrador para restablecer tu contraseña.', 'info');

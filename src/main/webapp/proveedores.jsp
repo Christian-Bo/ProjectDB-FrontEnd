@@ -234,7 +234,7 @@
     <script>window.NT_API_BASE = 'http://localhost:8080';</script>
   --%>
 
-  <script src="assets/js/common.js?v=7"></script>
+  <script src="assets/js/common.js?v=99"></script>
   <script src="assets/js/proveedores.js?v=7"></script>
 </body>
 </html>
