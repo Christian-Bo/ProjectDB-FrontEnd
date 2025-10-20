@@ -279,6 +279,66 @@
   </div>
 </div>
 
+
+<!-- Modal: Editar maestro-detalle -->
+<div class="modal fade" id="modalEditarDetalle" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          Editar detalle <span id="detNumeroVenta" class="text-muted"></span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="detVentaId">
+        <div class="row g-3 mb-2">
+          <div class="col-md-6">
+            <label class="form-label">Bodega para movimientos *</label>
+            <select id="selBodegaDet" class="form-select" required>
+              <option value="">Cargando...</option>
+            </select>
+            <div class="form-text">Se usa para validar/afectar stock al guardar los cambios.</div>
+          </div>
+          <div class="col-md-6 d-flex align-items-end justify-content-end">
+            <button class="btn btn-outline-primary btn-sm" type="button" onclick="agregarItemDet()">+ Agregar línea</button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-sm table-striped align-middle" id="tablaEditarDetalle">
+            <thead>
+              <tr>
+                <th style="width:340px;">Producto *</th>
+                <th style="width:90px;">Stock</th>
+                <th style="width:110px;">Cantidad *</th>
+                <th style="width:140px;">Precio *</th>
+                <th style="width:120px;">Descuento</th>
+                <th style="width:120px;">Lote</th>
+                <th style="width:140px;">Vence</th>
+                <th style="width:60px;"></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="form-text">
+          Las líneas existentes se marcan con acción <b>U</b> (Actualizar). Puedes cambiarlas a <b>D</b> (Eliminar).
+          Las nuevas líneas se crean con acción <b>A</b> (Agregar).
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-primary" onclick="guardarEdicionDetalle()">Guardar cambios</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 <!-- Modal Confirmar Eliminación -->
 <div class="modal fade" id="modalEliminar" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
@@ -387,7 +447,7 @@ function render(rows){
     const v = rows[i];
     const clienteTxt = (v && v.clienteNombre && String(v.clienteNombre).trim() !== '')
                        ? v.clienteNombre : ('ID ' + (v && v.clienteId != null ? v.clienteId : ''));
-    const link = ctx + '/venta_detalle.jsp?id=' + (v && v.id != null ? v.id : '');
+    const link   = ctx + '/venta_detalle.jsp?id=' + (v && v.id != null ? v.id : '');
     const idTxt     = (v && v.id != null) ? v.id : '';
     const numTxt    = (v && v.numeroVenta != null) ? v.numeroVenta : '';
     const fechaTxt  = (v && v.fechaVenta != null) ? v.fechaVenta : '';
@@ -454,7 +514,7 @@ function fillSelect(sel, data, map, selected){
 async function cargarCatalogos(){
   if (_catalogosCargados) return;
 
-  // produ
+  // producción
   let cli = await fetchJsonOrNull(API_VENTAS_CAT + '/clientes?limit=200');
   let emp = await fetchJsonOrNull(API_VENTAS_CAT + '/empleados?limit=200');
   let bod = await fetchJsonOrNull(API_VENTAS_CAT + '/bodegas?limit=200');
@@ -696,7 +756,9 @@ function abrirEditarCabecera(){
 }
 function abrirEditarMaestroDetalle(){
   const id = Number(document.getElementById('editTargetId').value);
-  window.location.href = ctx + '/venta_detalle.jsp?id=' + id;
+  const doOpen = () => cargarDetalleVentaEnModal(id);
+  if (!_catalogosCargados){ cargarCatalogos().then(doOpen); } else { doOpen(); }
+  bootstrap.Modal.getInstance(document.getElementById('modalAccionesEdicion')).hide();
 }
 function prepararModalEdicion(v){
   document.getElementById('editVentaId').value = v.id;
@@ -714,11 +776,8 @@ function prepararModalEdicion(v){
     e => ({ value:e.id, text:((e.codigo || ('EMP-'+e.id)) + ' - ' + (e.nombres || '') + ' ' + (e.apellidos || '')) }),
     v.cajeroId!=null?String(v.cajeroId):''
   );
-  fillSelect(document.getElementById('editBodega'), _bodegas,
-    b => ({ value:b.id, text:(b.nombre || ('Bodega '+b.id)) }),
-    v.bodegaOrigenId!=null?String(v.bodegaOrigenId):''
-  );
 
+  // Nota: el backend no actualiza bodegaOrigen en /header
   document.getElementById('editTipoPago').value = (v.tipoPago || 'C');
   document.getElementById('editObs').value = (v.observaciones || '');
 
@@ -732,7 +791,6 @@ async function guardarEdicionVenta(e){
     tipoPago:  document.getElementById('editTipoPago').value || 'C',
     vendedorId: valueOrNull(document.getElementById('editVendedor').value),
     cajeroId:   valueOrNull(document.getElementById('editCajero').value),
-    bodegaOrigenId: valueOrNull(document.getElementById('editBodega').value),
     observaciones: document.getElementById('editObs').value || ''
   };
   const r = await tryFetchJson(API_VENTAS + '/' + id + '/header', {
@@ -764,18 +822,247 @@ async function confirmarEliminar(){
   cargar(lastFilters);
 }
 
-// ============== Eventos globales ==============
-document.getElementById('selBodegaOrigen').addEventListener('change', () => {
-  const bodSel = document.getElementById('selBodegaOrigen').value;
-  if (!bodSel){
-    document.querySelectorAll('#tablaItems select[name="productoId"]').forEach(sel => {
-      sel.innerHTML = '<option value="">Seleccione...</option>';
+// ============== EDITOR MAESTRO-DETALLE (SIN columna "Acción") ==============
+const DELETED_IDS = new Set(); // líneas existentes eliminadas
+
+/** Carga header+detalle, arma el modal y muestra */
+async function cargarDetalleVentaEnModal(ventaId){
+  const r = await tryFetchJson(API_VENTAS + '/' + ventaId, { headers: commonHeaders });
+  if(!r.ok){ setErr((r.data && (r.data.error||r.data.detail)) || 'No se pudo cargar la venta'); return; }
+  const h = r.data || {};
+  const items = Array.isArray(h.items) ? h.items : [];
+
+  // ids del modal de detalle:
+  // - detVentaId (hidden)
+  // - detNumeroVenta (span)
+  // - selBodegaDet (select bodega para movimientos)
+  // - tablaEditarDetalle (tabla con tbody)
+  // - modalEditarDetalle (modal)
+
+  document.getElementById('detVentaId').value = h.id || ventaId;
+  document.getElementById('detNumeroVenta').textContent = h.numeroVenta ? ('#' + h.numeroVenta) : ('ID ' + ventaId);
+
+  // bodega por defecto = bodegaOrigen de la venta
+  const selB = document.getElementById('selBodegaDet');
+  fillSelect(selB, _bodegas, b => ({ value: b.id, text: (b.nombre || ('Bodega ' + b.id)) }),
+            (h.bodegaOrigenId!=null?String(h.bodegaOrigenId):''));
+
+  // limpiar estado
+  DELETED_IDS.clear();
+  const tbody = document.querySelector('#tablaEditarDetalle tbody');
+  tbody.innerHTML = '';
+
+  // construir filas para cada item existente (marcadas como "no nuevas")
+  for (let i=0;i<items.length;i++){
+    const it = items[i];
+    const tr = construirFilaDetalle({
+      detalleId: it.id,
+      productoId: it.productoId,
+      cantidad: it.cantidad,
+      precioUnitario: it.precioUnitario,
+      descuentoLinea: it.descuentoLinea,
+      lote: it.lote || '',
+      fechaVencimiento: it.fechaVencimiento || '',
+      isNueva: false
     });
-    // reset stocks
-    document.querySelectorAll('#tablaItems [data-stock]').forEach(el => { el.textContent='0'; el.setAttribute('data-stock','0'); });
+    tbody.appendChild(tr);
+  }
+
+  // cargar opciones de producto (según bodega seleccionada) y seleccionar cada producto
+  await refrescarProductosEnTablaDetalle();
+
+  // mostrar modal
+  new bootstrap.Modal(document.getElementById('modalEditarDetalle')).show();
+}
+
+/** Construye una fila del editor de detalle (sin columna "Acción") */
+function construirFilaDetalle(op){
+  const tr = document.createElement('tr');
+  tr.dataset.detalleId = op && op.detalleId ? String(op.detalleId) : '';
+  tr.dataset.isNueva   = op && op.isNueva ? '1' : '0';
+  if (op && op.productoId != null) tr.dataset.pid = String(op.productoId);
+
+  tr.innerHTML = `
+    <td>
+      <select class="form-select form-select-sm det-producto" required>
+        <option value="">Cargando...</option>
+      </select>
+    </td>
+    <td class="text-center"><span class="badge text-bg-secondary det-stock" data-stock="0">0</span></td>
+    <td><input type="number" class="form-control form-control-sm det-cantidad" min="1" step="1" required value="${op && op.cantidad != null ? op.cantidad : ''}"></td>
+    <td><input type="number" class="form-control form-control-sm det-precio" min="0" step="0.01" required value="${op && op.precioUnitario != null ? op.precioUnitario : ''}"></td>
+    <td><input type="number" class="form-control form-control-sm det-desc" min="0" step="0.01" value="${op && op.descuentoLinea != null ? op.descuentoLinea : ''}"></td>
+    <td><input type="text" class="form-control form-control-sm det-lote" placeholder="S/N" value="${op && op.lote ? op.lote : ''}"></td>
+    <td><input type="date" class="form-control form-control-sm det-vence" value="${op && op.fechaVencimiento ? op.fechaVencimiento : ''}"></td>
+    <td><button type="button" class="btn btn-sm btn-outline-danger det-del">X</button></td>
+  `;
+
+  wireRowEventsDet(tr);
+  return tr;
+}
+
+/** Agregar línea nueva (se marca internamente como nueva) */
+function agregarItemDet(){
+  const tbody = document.querySelector('#tablaEditarDetalle tbody');
+  const tr = construirFilaDetalle({ isNueva:true });
+  tbody.appendChild(tr);
+  refrescarProductosEnTablaDetalle();
+}
+
+/** Carga productos para cada fila según la bodega seleccionada en el modal */
+async function refrescarProductosEnTablaDetalle(){
+  const bodId = document.getElementById('selBodegaDet').value || '';
+  const rows = document.querySelectorAll('#tablaEditarDetalle tbody tr');
+
+  for (const tr of rows){
+    const sel = tr.querySelector('.det-producto');
+    const keepId = tr.dataset.pid || sel.value || null;
+    await cargarProductosParaBodega(sel, bodId, keepId);
+    sel.dispatchEvent(new Event('change', { bubbles:true }));
+  }
+}
+
+/** Eventos por fila en el modal de detalle */
+function wireRowEventsDet(tr){
+  const selProd = tr.querySelector('.det-producto');
+  const precio  = tr.querySelector('.det-precio');
+  const stockEl = tr.querySelector('.det-stock');
+  const cantInp = tr.querySelector('.det-cantidad');
+  const btnDel  = tr.querySelector('.det-del');
+
+  selProd.addEventListener('change', function(){
+    const opt = selProd.selectedOptions[0];
+    let st = 0, pr = 0;
+    if (opt){
+      st = Number(opt.getAttribute('data-stock') || 0);
+      pr = Number(opt.getAttribute('data-precio') || 0);
+    }
+    stockEl.textContent = String(st);
+    stockEl.setAttribute('data-stock', String(st));
+    cantInp.max = (st > 0 ? String(st) : '');
+    // Precio sugerido del producto SIEMPRE al cambiar
+    if (pr > 0) precio.value = pr;
+
+    cantInp.classList.remove('is-invalid');
+    cantInp.setCustomValidity('');
+  });
+
+  cantInp.addEventListener('input', function(){
+    const st = Number(stockEl.getAttribute('data-stock') || 0);
+    const q  = Number(cantInp.value || 0);
+    if (st > 0 && q > st) {
+      cantInp.classList.add('is-invalid');
+      cantInp.setCustomValidity('No hay stock suficiente');
+    } else {
+      cantInp.classList.remove('is-invalid');
+      cantInp.setCustomValidity('');
+    }
+  });
+
+  // Eliminar: si la línea existía => queda registrada en DELETED_IDS; si era nueva, solo se remueve
+  btnDel.addEventListener('click', function(){
+    const detId = tr.dataset.detalleId;
+    const esNueva = tr.dataset.isNueva === '1';
+    if (detId && !esNueva) {
+      DELETED_IDS.add(Number(detId));
+    }
+    tr.remove();
+  });
+}
+
+/** Construye payload para PUT /api/ventas/{id}/detalle (acciones internas) */
+function construirPayloadDetalle(){
+  const items = [];
+  const bodegaId = Number(document.getElementById('selBodegaDet').value || 0);
+
+  // Filas visibles => A (nuevas) o U (existentes)
+  document.querySelectorAll('#tablaEditarDetalle tbody tr').forEach(tr => {
+    const detalleId = tr.dataset.detalleId ? Number(tr.dataset.detalleId) : null;
+    const esNueva   = tr.dataset.isNueva === '1';
+    const productoId = Number(tr.querySelector('.det-producto')?.value || 0);
+    const cantidad   = Number(tr.querySelector('.det-cantidad')?.value || 0);
+    const precio     = Number(tr.querySelector('.det-precio')?.value || 0);
+    const descInp    = tr.querySelector('.det-desc')?.value;
+    const lote       = tr.querySelector('.det-lote')?.value || null;
+    const vence      = tr.querySelector('.det-vence')?.value || null;
+
+    if (!productoId || !cantidad || !precio) return;
+
+    items.push({
+      detalleId: detalleId,                 // null para nuevas
+      productoId: productoId,
+      bodegaId: bodegaId || null,
+      cantidad: cantidad,
+      precioUnitario: precio,
+      descuentoLinea: (descInp===''||descInp==null) ? null : Number(descInp),
+      accion: esNueva || !detalleId ? 'A' : 'U',
+      lote: lote,
+      fechaVencimiento: vence
+    });
+  });
+
+  // Líneas eliminadas => D
+  DELETED_IDS.forEach(id => {
+    items.push({
+      detalleId: id,
+      productoId: null,
+      bodegaId: null,
+      cantidad: null,
+      precioUnitario: null,
+      descuentoLinea: null,
+      accion: 'D',
+      lote: null,
+      fechaVencimiento: null
+    });
+  });
+
+  return items;
+}
+
+/** Guardar edición del detalle vía PUT /api/ventas/{id}/detalle */
+async function guardarEdicionDetalle(){
+  const ventaId = Number(document.getElementById('detVentaId').value);
+  const bod = document.getElementById('selBodegaDet').value;
+  if (!bod){ setErr('Selecciona la bodega para movimientos.'); return; }
+
+  const items = construirPayloadDetalle();
+  if (items.length === 0){ setErr('No hay cambios por enviar.'); return; }
+
+  const r = await tryFetchJson(API_VENTAS + '/' + ventaId + '/detalle', {
+    method:'PUT',
+    headers: {'Content-Type':'application/json', ...commonHeaders},
+    body: JSON.stringify(items)
+  });
+
+  if (!r.ok){
+    setErr((r.data && (r.data.error||r.data.detail)) || 'No se pudo actualizar el detalle');
     return;
   }
-  refrescarProductosDeTodasLasFilas();
+
+  DELETED_IDS.clear();
+  bootstrap.Modal.getInstance(document.getElementById('modalEditarDetalle')).hide();
+  setOk('Detalle actualizado');
+  cargar(lastFilters);
+}
+
+/** Cuando cambie la bodega del modal, refrescar catálogo/stock de las filas */
+document.addEventListener('DOMContentLoaded', function(){
+  const sel = document.getElementById('selBodegaDet');
+  if (sel){
+    sel.addEventListener('change', function(){
+      if (!sel.value){
+        const rows = document.querySelectorAll('#tablaEditarDetalle tbody tr');
+        for (const tr of rows){
+          tr.querySelector('.det-producto').innerHTML = '<option value="">Seleccione...</option>';
+          const st = tr.querySelector('.det-stock');
+          st.textContent = '0';
+          st.setAttribute('data-stock','0');
+        }
+        return;
+      }
+      refrescarProductosEnTablaDetalle();
+    });
+  }
 });
 
 // ==== Boot ====
@@ -786,6 +1073,5 @@ window.addEventListener('DOMContentLoaded', function(){
   document.getElementById('modalNuevaVenta').addEventListener('show.bs.modal', cargarCatalogos);
 });
 </script>
-
 </body>
 </html>
