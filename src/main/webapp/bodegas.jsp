@@ -15,35 +15,63 @@
   <!-- Estilos comunes -->
   <link rel="stylesheet" href="assets/css/base.css">
   <link rel="stylesheet" href="assets/css/app.css">
+
+  <style>
+    html, body { height: 100%; }
+    body.nt-bg {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    main.flex-grow-1 { flex: 1 1 auto; display: flex; flex-direction: column; }
+
+    /* Topbar minimal */
+    .nt-topbar{
+      background: var(--nt-surface);
+      border-bottom: 1px solid var(--nt-border);
+    }
+    /* Siempre a la izquierda */
+    .nt-left { display:flex; justify-content:flex-start; align-items:center; width:100%; }
+    .nt-back{ display:inline-flex; align-items:center; gap:.5rem; }
+  </style>
+
+  <script src="assets/js/auth.guard.js"></script>
+  <script>
+    function backToDashboard(){
+      const role = (Auth.role?.() || '').toUpperCase();
+      switch(role){
+        case 'ADMIN':      location.href='dashboard_admin.jsp'; break;
+        case 'FINANZAS':   location.href='dashboard_finanzas.jsp'; break;
+        case 'AUDITOR':    location.href='dashboard_auditor.jsp'; break;
+        case 'OPERACIONES':
+        default:           location.href='dashboard_operaciones.jsp'; break;
+      }
+    }
+  </script>
 </head>
 <body class="nt-bg">
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg nt-navbar shadow-sm">
-    <div class="container">
-      <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="./">
-        <i class="bi bi-boxes"></i> NextTech
-      </a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
-        <span class="navbar-toggler-icon"></span>
+  <!-- Topbar: botón Regresar alineado a la IZQUIERDA -->
+  <div class="nt-topbar py-2">
+    <div class="container d-flex justify-content-end">
+      <button class="btn btn-outline-light btn-sm nt-back" onclick="backToDashboard()">
+        <i class="bi bi-arrow-left"></i> Regresar
       </button>
-      <div id="navMain" class="collapse navbar-collapse">
-        <ul class="navbar-nav ms-auto">
-          <li class="nav-item"><a class="nav-link" href="Dashboard.jsp"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
-          <li class="nav-item"><a class="nav-link active" href="bodegas.jsp"><i class="bi bi-building"></i> Bodegas</a></li>
-        </ul>
-      </div>
     </div>
-  </nav>
+  </div>
 
   <!-- Contenido -->
-  <main class="py-4">
-    <div class="container">
+  <main class="py-4 flex-grow-1">
+    <div class="container d-flex flex-column">
       <div class="d-flex align-items-center justify-content-between mb-3">
         <div>
           <h1 class="h3 nt-title mb-1"><i class="bi bi-building"></i> Gestión de Bodegas</h1>
           <p class="mb-0 nt-subtitle">Administra las bodegas y almacenes del sistema.</p>
         </div>
-        <div><button id="btnOpenCreate" class="btn nt-btn-accent"><i class="bi bi-plus-circle"></i> Nueva Bodega</button></div>
+        <div>
+          <button id="btnOpenCreate" class="btn nt-btn-accent">
+            <i class="bi bi-plus-circle"></i> Nueva Bodega
+          </button>
+        </div>
       </div>
 
       <!-- Filtros -->
@@ -57,12 +85,14 @@
             <input id="chkSoloActivos" class="form-check-input" type="checkbox" checked>
             <label for="chkSoloActivos" class="form-check-label">Solo activas</label>
           </div>
-          <button id="btnBuscar" class="btn btn-outline-dark ms-md-auto"><i class="bi bi-arrow-repeat"></i> Buscar</button>
+          <button id="btnBuscar" class="btn btn-outline-dark ms-md-auto">
+            <i class="bi bi-arrow-repeat"></i> Buscar
+          </button>
         </div>
       </div>
 
       <!-- Tabla -->
-      <div class="card nt-card shadow-sm">
+      <div class="card nt-card shadow-sm mb-3 flex-grow-1 d-flex flex-column">
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0">
             <thead class="table-light nt-table-head">
@@ -78,7 +108,9 @@
               </tr>
             </thead>
             <tbody id="tblBodegas">
-              <tr><td colspan="8" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></td></tr>
+              <tr><td colspan="8" class="text-center py-4">
+                <div class="spinner-border text-primary" role="status"></div>
+              </td></tr>
             </tbody>
           </table>
         </div>
@@ -132,7 +164,9 @@
         </div>
         <div class="modal-footer">
           <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
-          <button id="btnSave" type="submit" class="btn nt-btn-accent"><i class="bi bi-check2-circle"></i> Guardar</button>
+          <button id="btnSave" type="submit" class="btn nt-btn-accent">
+            <i class="bi bi-check2-circle"></i> Guardar
+          </button>
         </div>
       </form>
     </div>
@@ -169,7 +203,9 @@
         </div>
         <div class="modal-footer">
           <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button id="btnConfirmDelete" class="btn btn-danger"><i class="bi bi-trash"></i> Desactivar</button>
+          <button id="btnConfirmDelete" class="btn btn-danger">
+            <i class="bi bi-trash"></i> Desactivar
+          </button>
         </div>
       </div>
     </div>

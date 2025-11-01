@@ -13,28 +13,90 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
   <!-- Estilos comunes -->
-  <link rel="stylesheet" href="assets/css/base.css">
-  <link rel="stylesheet" href="assets/css/app.css">
+  <link rel="stylesheet" href="assets/css/base.css?v=13">
+  <link rel="stylesheet" href="assets/css/app.css?v=13">
+
+  <style>
+    /* Topbar y tipografía NextTech */
+    .nt-topbar{background:var(--nt-surface-1);border-bottom:1px solid var(--nt-border);}
+    .nt-title{color:var(--nt-fg-strong);}
+    .nt-subtitle{color:var(--nt-fg-muted);}
+    .nt-card{background:var(--nt-surface-1);border:1px solid var(--nt-border);border-radius:1rem;transition:.12s;}
+    .nt-card:hover{transform:translateY(-1px);border-color:var(--nt-accent);box-shadow:0 10px 24px rgba(0,0,0,.35);}
+    .nt-table-head{background:var(--nt-surface-2);color:var(--nt-fg);}
+    .nt-back{display:inline-flex;align-items:center;gap:.5rem;border:1px solid var(--nt-border);background:transparent;color:var(--nt-primary);}
+    .nt-back:hover{background:var(--nt-surface-2);}
+
+    /* Tabs estilo NextTech (pills planas) */
+    .nt-pills .nav-link{
+      border:1px solid var(--nt-border);
+      background:var(--nt-surface-1);
+      color:var(--nt-fg);
+      margin-right:.5rem;
+      border-radius:.75rem;
+    }
+    .nt-pills .nav-link:hover{background:var(--nt-surface-2);}
+    .nt-pills .nav-link.active{
+      background:var(--nt-accent); color:#fff; border-color:transparent;
+      box-shadow:0 6px 16px rgba(0,0,0,.25);
+    }
+
+    /* Mensajes de tabla */
+    .nt-empty{color:var(--nt-fg-muted);}
+    .nt-error{color:#ff6b6b;}
+  </style>
+
+  <script src="assets/js/auth.guard.js"></script>
+  <script>
+    // Roles permitidos y chip de rol
+    window.addEventListener('DOMContentLoaded', () => {
+      Auth?.ensure?.(['OPERACIONES','ADMIN','FINANZAS','AUDITOR']);
+      const role = (Auth.role?.() || '').toUpperCase();
+      const chip = document.getElementById('roleChip');
+      if(chip){ chip.textContent = role || 'MÓDULO'; }
+    });
+
+    // Botón Regresar inteligente por rol
+    function parseAuthUser(){
+      try{
+        if (window.Auth?.user) return window.Auth.user;
+        const raw = localStorage.getItem('auth_user');
+        return raw ? JSON.parse(raw) : null;
+      }catch(_){ return null; }
+    }
+    function homeForRole(role){
+      const HOME_BY_ROLE = {
+        'ADMIN': 'Dashboard.jsp',
+        'OPERADOR': 'dashboard_operador.jsp',
+        'FINANZAS': 'dashboard_finanzas.jsp',
+        'AUDITOR': 'dashboard_auditor.jsp',
+        'RRHH': 'rrhh-dashboard.jsp'
+      };
+      return HOME_BY_ROLE[role?.toUpperCase?.()] || 'Dashboard.jsp';
+    }
+    function goBack(){
+      if (history.length > 1) { history.back(); return; }
+      const user = parseAuthUser();
+      location.href = homeForRole(user?.role || user?.rol);
+    }
+  </script>
 </head>
 <body class="nt-bg">
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg nt-navbar shadow-sm">
-    <div class="container-fluid">
-      <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="./">
-        <i class="bi bi-boxes"></i> NextTech
+
+  <!-- Topbar minimal -->
+  <div class="nt-topbar py-2">
+    <div class="container-fluid d-flex align-items-center justify-content-between">
+      <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="Dashboard.jsp" title="Ir al dashboard">
+        <i class="bi bi-box-seam"></i> NextTech — Inventario
       </a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div id="navMain" class="collapse navbar-collapse">
-        <ul class="navbar-nav ms-auto">
-          <li class="nav-item"><a class="nav-link" href="Dashboard.jsp"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
-          <li class="nav-item"><a class="nav-link" href="bodegas.jsp"><i class="bi bi-building"></i> Bodegas</a></li>
-          <li class="nav-item"><a class="nav-link active" href="inventario.jsp"><i class="bi bi-box-seam"></i> Inventario</a></li>
-        </ul>
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge text-bg-secondary" id="roleChip">MÓDULO</span>
+        <button class="btn btn-sm nt-back" onclick="goBack()">
+          <i class="bi bi-arrow-left"></i> Regresar
+        </button>
       </div>
     </div>
-  </nav>
+  </div>
 
   <!-- Contenido -->
   <main class="py-4">
@@ -47,7 +109,7 @@
       </div>
 
       <!-- Tabs de Navegación -->
-      <ul class="nav nav-tabs mb-3" id="inventarioTabs" role="tablist">
+      <ul class="nav nt-pills mb-3" id="inventarioTabs" role="tablist">
         <li class="nav-item" role="presentation">
           <button class="nav-link active" id="stock-tab" data-bs-toggle="tab" data-bs-target="#stock" type="button">
             <i class="bi bi-boxes"></i> Stock
@@ -84,7 +146,7 @@
                 <input id="txtSearchStock" class="form-control" placeholder="Buscar por nombre o código..."/>
               </div>
               <div class="align-self-end">
-                <button id="btnBuscarStock" class="btn btn-primary"><i class="bi bi-search"></i> Buscar</button>
+                <button id="btnBuscarStock" class="btn nt-btn-accent"><i class="bi bi-search"></i> Buscar</button>
               </div>
             </div>
           </div>
@@ -93,7 +155,7 @@
           <div class="card nt-card shadow-sm">
             <div class="table-responsive">
               <table class="table table-hover align-middle mb-0">
-                <thead class="table-light nt-table-head">
+                <thead class="nt-table-head">
                   <tr>
                     <th>Código</th>
                     <th>Producto</th>
@@ -107,7 +169,7 @@
                   </tr>
                 </thead>
                 <tbody id="tblStock">
-                  <tr><td colspan="9" class="text-center py-4"><div class="spinner-border text-primary"></div></td></tr>
+                  <tr><td colspan="9" class="text-center py-4"><div class="spinner-border"></div></td></tr>
                 </tbody>
               </table>
             </div>
@@ -138,7 +200,7 @@
                   <input id="filtroFechaHasta" type="date" class="form-control"/>
                 </div>
                 <div class="col-md-3 d-flex align-items-end">
-                  <button id="btnBuscarMov" class="btn btn-primary w-100"><i class="bi bi-search"></i> Buscar</button>
+                  <button id="btnBuscarMov" class="btn nt-btn-accent w-100"><i class="bi bi-search"></i> Buscar</button>
                 </div>
               </div>
             </div>
@@ -148,7 +210,7 @@
           <div class="card nt-card shadow-sm">
             <div class="table-responsive">
               <table class="table table-hover align-middle mb-0 small">
-                <thead class="table-light nt-table-head">
+                <thead class="nt-table-head">
                   <tr>
                     <th>Fecha</th>
                     <th>Tipo</th>
@@ -162,7 +224,7 @@
                   </tr>
                 </thead>
                 <tbody id="tblMovimientos">
-                  <tr><td colspan="9" class="text-center py-4"><div class="spinner-border text-primary"></div></td></tr>
+                  <tr><td colspan="9" class="text-center py-4"><div class="spinner-border"></div></td></tr>
                 </tbody>
               </table>
             </div>
@@ -193,7 +255,7 @@
                 </select>
               </div>
               <div>
-                <button id="btnBuscarAlert" class="btn btn-primary"><i class="bi bi-search"></i> Buscar</button>
+                <button id="btnBuscarAlert" class="btn nt-btn-accent"><i class="bi bi-search"></i> Buscar</button>
               </div>
             </div>
           </div>
@@ -202,7 +264,7 @@
           <div class="card nt-card shadow-sm">
             <div class="table-responsive">
               <table class="table table-hover align-middle mb-0">
-                <thead class="table-light nt-table-head">
+                <thead class="nt-table-head">
                   <tr>
                     <th>Fecha</th>
                     <th>Tipo</th>
@@ -214,7 +276,7 @@
                   </tr>
                 </thead>
                 <tbody id="tblAlertas">
-                  <tr><td colspan="7" class="text-center py-4"><div class="spinner-border text-primary"></div></td></tr>
+                  <tr><td colspan="7" class="text-center py-4"><div class="spinner-border"></div></td></tr>
                 </tbody>
               </table>
             </div>
@@ -235,7 +297,7 @@
 
   <!-- JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="assets/js/common.js"></script>
-  <script src="assets/js/inventario.js"></script>
+  <script src="assets/js/common.js?v=11"></script>
+  <script src="assets/js/inventario.js?v=13"></script>
 </body>
 </html>

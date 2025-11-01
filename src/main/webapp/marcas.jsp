@@ -6,38 +6,117 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>NextTech • Marcas</title>
 
-  <!-- Ajusta la base del API a tu backend -->
+  <!-- Base del API -->
   <meta name="api-base" content="http://localhost:8080"/>
 
   <!-- Bootstrap + Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
-  <!-- Tus estilos -->
+  <!-- Estilos -->
   <link rel="stylesheet" href="assets/css/base.css?v=1">
   <link rel="stylesheet" href="assets/css/app.css?v=1">
+
+  <style>
+    /* Layout a pantalla completa (fondo hasta abajo) */
+    html, body { height: 100%; }
+    body.nt-bg { min-height: 100vh; display: flex; flex-direction: column; }
+    main.flex-grow-1 { flex: 1 1 auto; display: flex; flex-direction: column; }
+
+    /* Topbar */
+    .nt-navbar{ background: var(--nt-surface); border-bottom: 1px solid var(--nt-border); }
+    .nt-navbar .container{
+      display:flex; align-items:center; justify-content:space-between;
+    }
+
+    /* Botón Regresar */
+    .nt-back {
+      display:inline-flex; align-items:center; gap:.5rem;
+      border:1px solid var(--nt-border); background: transparent; color: var(--nt-primary);
+    }
+    .nt-back:hover{ background: var(--nt-surface-2); color: var(--nt-primary); }
+
+    /* (opcionales) estilos de tarjetas */
+    .modo-card{
+      border:1px solid var(--nt-border);
+      background: var(--nt-surface);
+      border-radius: 14px;
+      padding: 1rem;
+      cursor: pointer;
+      transition: transform .08s ease, background .15s ease, border-color .15s ease;
+      height: 100%;
+    }
+    .modo-card:hover{ transform: translateY(-1px); background: var(--nt-surface-2); border-color: var(--nt-border); }
+    .modo-card .icon{
+      width:48px;height:48px;border-radius:12px;
+      display:flex;align-items:center;justify-content:center;
+      background: rgba(127,90,240,.15);
+      margin-bottom:.5rem;
+      font-size: 1.35rem;
+    }
+    .modo-card h6{ color: var(--nt-primary); margin:0; }
+    .modo-card p{ margin: .25rem 0 0; color: var(--nt-text); }
+
+    .det-mini { font-size:.8rem; color: var(--nt-text); }
+    .det-meta { display:flex; gap:.5rem; flex-wrap:wrap; }
+    .det-meta .form-control-plaintext { padding:0; min-height:auto; }
+
+    .legacy-producto-id{ display:none !important; }
+  </style>
+
+  <script src="assets/js/auth.guard.js"></script>
+  <script>
+    // Helpers de navegación
+    function parseAuthUser(){
+      try{
+        if (window.Auth?.user) return window.Auth.user;
+        const raw = localStorage.getItem('auth_user');
+        return raw ? JSON.parse(raw) : null;
+      }catch(_){ return null; }
+    }
+    function homeForRole(role){
+      const map = {
+        'ADMIN':'dashboard_admin.jsp',
+        'FINANZAS':'dashboard_finanzas.jsp',
+        'AUDITOR':'dashboard_auditor.jsp',
+        'RRHH':'dashboard_rrhh.jsp',
+        'OPERACIONES':'dashboard_operaciones.jsp',
+        'OPERADOR':'dashboard_operaciones.jsp'
+      };
+      return map[(role||'').toUpperCase()] || 'Dashboard.jsp';
+    }
+    function goBack(){
+      if (history.length > 1) { history.back(); return; }
+      const user = parseAuthUser();
+      location.href = homeForRole(user?.role || user?.rol);
+    }
+
+    // (Opcional) proteger ruta + pintar chip si existiera
+    window.addEventListener('DOMContentLoaded', () => {
+      Auth?.ensure?.(['OPERACIONES','ADMIN','FINANZAS','AUDITOR']);
+      const role=(Auth.role?.()||'').toUpperCase();
+      const chip=document.getElementById('roleChip'); if(chip) chip.textContent=role||'MÓDULO';
+    });
+  </script>
 </head>
 <body class="nt-bg">
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg nt-navbar shadow-sm">
+
+  <!-- Topbar: botón Regresar a la DERECHA -->
+  <header class="navbar nt-navbar">
     <div class="container">
-      <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="./">
-        <i class="bi bi-boxes"></i> NextTech
+      <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="Dashboard.jsp" title="Ir al dashboard">
+        <i class="bi bi-bag-plus"></i> Nextech — Marcas
       </a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div id="navMain" class="collapse navbar-collapse">
-        <ul class="navbar-nav ms-auto">
-          <li class="nav-item"><a class="nav-link" href="Dashboard.jsp"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
-          <li class="nav-item"><a class="nav-link active" href="marcas.jsp"><i class="bi bi-tags"></i> Marcas</a></li>
-        </ul>
+      <div class="d-flex align-items-center gap-2">
+        <button type="button" class="btn btn-sm nt-back" onclick="goBack()" title="Regresar">
+          <i class="bi bi-arrow-left"></i> Regresar
+        </button>
       </div>
     </div>
-  </nav>
+  </header>
 
   <!-- Contenido -->
-  <main class="py-4">
+  <main class="py-4 flex-grow-1">
     <div class="container">
 
       <div class="d-flex align-items-center justify-content-between mb-3">
@@ -175,6 +254,7 @@
 
   <!-- JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/common.api.js?v=99"></script>
   <script src="assets/js/marcas.js?v=3"></script>
 </body>
 </html>

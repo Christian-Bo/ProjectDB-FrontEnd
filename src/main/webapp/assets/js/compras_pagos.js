@@ -1,21 +1,26 @@
 /* 
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/JavaScript.js to edit this template
+ * compras_pagos.js — Pagos de Compras (ARREGLADO)
+ * - Usa URL ABSOLUTA basada en <meta name="api-base"> o window.API_BASE
+ * - No depende de rutas relativas (evita 404 en :8082)
+ * - Mantiene snake_case en payload para compatibilidad con tu backend actual
  */
 
-// compras_pagos.js — Pagos de Compras (CORREGIDO)
-// - Requiere: assets/js/common.js (define window.API)
-// - Endpoints usados (desde ComprasPagosController):
-//     GET    /api/compras/pagos?compraId=&texto=
-//     POST   /api/compras/pagos
-//     PUT    /api/compras/pagos/{id}
-//     DELETE /api/compras/pagos/{id}
-
 (function () {
-  // ===== Helpers DOM =====
+  // ===== Helpers =====
   const q  = (s, r=document) => r.querySelector(s);
   const qa = (s, r=document) => Array.from(r.querySelectorAll(s));
-  const fmtMonto = (v) => Number(v ?? 0).toFixed(2);
+  const fmtMonto = (v) => Number(v ?? 0).toLocaleString('es-GT',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  function getApiBase(){
+    try{
+      if (window.API?.baseUrl) return String(window.API.baseUrl).trim();
+      if (window.API_BASE)      return String(window.API_BASE).trim();
+      const meta = document.querySelector('meta[name="api-base"]');
+      return meta?.getAttribute('content')?.trim() || '';
+    }catch(_){ return ''; }
+  }
+  // ✅ Endpoint ABSOLUTO al backend
+  const API_PAGOS = (getApiBase().replace(/\/+$/,'') || '').concat('/api/compras/pagos');
 
   // ===== Estado de filtros (soporta ?compraId= en URL) =====
   let COMPRA_ID = null;
@@ -30,22 +35,29 @@
   function renderTabla(rows) {
     $tblBody.innerHTML = '';
     if (!rows.length) {
-      $tblBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">Sin registros</td></tr>`;
+      $tblBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">Sin registros</td></tr>`;
       return;
     }
     for (const r of rows) {
+      // Soporte a camelCase/snake_case del back
+      const id         = r.id;
+      const compraId   = r.compra_id ?? r.compraId ?? '-';
+      const formaPago  = (r.forma_pago ?? r.formaPago ?? '').toString().toUpperCase();
+      const monto      = r.monto ?? r.monto_total ?? 0;
+      const referencia = r.referencia ?? '';
+
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td class="text-muted">#${r.id}</td>
-        <td>${r.compra_id ?? '-'}</td>
-        <td><span class="badge bg-primary-subtle text-primary badge-forma">${(r.forma_pago||'').toUpperCase()}</span></td>
-        <td class="text-end">Q ${fmtMonto(r.monto)}</td>
-        <td>${r.referencia ?? ''}</td>
+        <td class="text-muted">#${id}</td>
+        <td>${compraId}</td>
+        <td><span class="badge bg-primary-subtle text-primary badge-forma">${formaPago}</span></td>
+        <td class="text-end">Q ${fmtMonto(monto)}</td>
+        <td>${referencia}</td>
         <td class="text-end">
-          <button class="btn btn-sm btn-outline-secondary me-2 btn-edit" data-id="${r.id}">
+          <button class="btn btn-sm btn-outline-secondary me-2 btn-edit" data-id="${id}">
             <i class="bi bi-pencil"></i> Editar
           </button>
-          <button class="btn btn-sm btn-outline-danger btn-del" data-id="${r.id}">
+          <button class="btn btn-sm btn-outline-danger btn-del" data-id="${id}">
             <i class="bi bi-trash"></i> Eliminar
           </button>
         </td>`;
@@ -56,19 +68,32 @@
     qa('.btn-del').forEach(b => b.addEventListener('click', onEliminarClick));
   }
 
+  // ===== HTTP helpers (usan buildHeaders/handleResponse de common.js si existen) =====
+  async function httpGet(urlObj){
+    const res = await fetch(urlObj.toString(), { headers: (typeof buildHeaders==='function' ? buildHeaders() : {'Accept':'application/json'}) });
+    return (typeof handleResponse==='function') ? handleResponse(res) : res.json();
+  }
+  async function httpSend(method, url, json){
+    const headers = (typeof buildHeaders==='function' ? buildHeaders({'Content-Type':'application/json'}) : {'Accept':'application/json','Content-Type':'application/json'});
+    const res = await fetch(url, { method, headers, body: json ? JSON.stringify(json) : null });
+    return (typeof handleResponse==='function') ? handleResponse(res) : res.json();
+  }
+
   // ===== Lógica de datos =====
   async function cargar() {
     const texto = $filtroTexto.value.trim() || null;
     const compraId = ($filtroCompraId.value || COMPRA_ID || '').toString().trim() || null;
-    const qs = [];
-    if (compraId) qs.push(`compraId=${encodeURIComponent(compraId)}`);
-    if (texto) qs.push(`texto=${encodeURIComponent(texto)}`);
-    const url = `/api/compras/pagos${qs.length ? '?' + qs.join('&') : ''}`;
+
+    const url = new URL(API_PAGOS);
+    if (compraId) url.searchParams.set('compraId', compraId);
+    if (texto)    url.searchParams.set('texto', texto);
+
     try {
-      const data = await API.request(url, { method: 'GET' });
-      renderTabla(data || []);
+      const data = await httpGet(url);
+      renderTabla(Array.isArray(data) ? data : []);
     } catch (e) {
-      API.toast(`Error al listar pagos: ${e.message}`, 'danger');
+      (window.API?.toast || window.ntToast || console.error)(`Error al listar pagos: ${e.message}`, 'danger');
+      renderTabla([]);
     }
   }
 
@@ -83,10 +108,10 @@
 
   function abrirEditar(row) {
     $form.reset();
-    $id.value = row.id;
-    $compraId.value = row.compra_id;
-    $formaPago.value = row.forma_pago;
-    $monto.value = row.monto;
+    $id.value         = row.id;
+    $compraId.value   = row.compra_id ?? row.compraId ?? '';
+    $formaPago.value  = (row.forma_pago ?? row.formaPago ?? '').toString().toLowerCase();
+    $monto.value      = row.monto ?? row.monto_total ?? 0;
     $referencia.value = row.referencia || '';
     $btnGuardar.dataset.mode = 'edit';
     q('#modalPagoLabel').textContent = `Editar pago #${row.id}`;
@@ -98,7 +123,7 @@
       id,
       compra_id: Number(tr.children[1].textContent.trim()) || null,
       forma_pago: tr.querySelector('.badge-forma').textContent.trim().toLowerCase(),
-      monto: tr.children[3].textContent.replace(/[^\d.]/g,''),
+      monto: Number((tr.children[3].textContent || '').replace(/[^\d.]/g,'')),
       referencia: tr.children[4].textContent.trim() || null
     };
   }
@@ -113,70 +138,73 @@
     const id = Number(ev.currentTarget.dataset.id);
     if (!confirm(`¿Eliminar el pago #${id}?`)) return;
     try {
-      await API.request(`/api/compras/pagos/${id}`, { method: 'DELETE' });
-      API.toast('Pago eliminado.', 'success');
+      await httpSend('DELETE', `${API_PAGOS}/${id}`);
+      (window.API?.toast || window.ntToast || console.log)('Pago eliminado.', 'success');
       cargar();
     } catch (e) {
-      API.toast(`Error eliminando: ${e.message}`, 'danger');
+      (window.API?.toast || window.ntToast || console.error)(`Error eliminando: ${e.message}`, 'danger');
     }
   }
 
   async function onSubmit(ev) {
     ev.preventDefault();
     const mode = $btnGuardar.dataset.mode;
+
+    // 🚩 Payload en snake_case (coincide con tu JS/JSP actual)
     const payloadCreate = {
-      compra_id: Number($compraId.value),
+      compra_id:  Number($compraId.value),
       forma_pago: $formaPago.value.trim(),
-      monto: Number($monto.value),
+      monto:      Number($monto.value),
       referencia: $referencia.value.trim() || null
     };
     const payloadEdit = {
       forma_pago: $formaPago.value.trim(),
-      monto: Number($monto.value),
+      monto:      Number($monto.value),
       referencia: $referencia.value.trim() || null
     };
 
     try {
       if (mode === 'create') {
-        await API.request('/api/compras/pagos', { method: 'POST', json: payloadCreate });
-        API.toast('Pago creado.', 'success');
+        await httpSend('POST', API_PAGOS, payloadCreate);
+        (window.API?.toast || window.ntToast || console.log)('Pago creado.', 'success');
       } else {
         const id = Number($id.value);
-        await API.request(`/api/compras/pagos/${id}`, { method: 'PUT', json: payloadEdit });
-        API.toast('Pago actualizado.', 'success');
+        await httpSend('PUT', `${API_PAGOS}/${id}`, payloadEdit);
+        (window.API?.toast || window.ntToast || console.log)('Pago actualizado.', 'success');
       }
       bsModal.hide();
       cargar();
     } catch (e) {
-      API.toast(`Error guardando: ${e.message}`, 'danger');
+      (window.API?.toast || window.ntToast || console.error)(`Error guardando: ${e.message}`, 'danger');
     }
   }
 
-  // ===== Init (espera DOM listo) =====
+  // ===== Init =====
   window.addEventListener('DOMContentLoaded', () => {
-    // Refs
-    $tblBody = q('#pagos-tbody');
-    $filtroTexto = q('#filtro-texto');
-    $filtroCompraId = q('#filtro-compra-id');
-    $btnBuscar = q('#btn-buscar');
-    $btnNuevo  = q('#btn-nuevo');
+    console.log('[compras_pagos] API_PAGOS =', API_PAGOS);
 
-    modalEl = q('#modalPago');
-    bsModal = new bootstrap.Modal(modalEl);
-    $form = q('#form-pago');
-    $id = q('#pago-id');
-    $compraId = q('#compra_id');
+    // Refs
+    $tblBody       = q('#pagos-tbody');
+    $filtroTexto   = q('#filtro-texto');
+    $filtroCompraId= q('#filtro-compra-id');
+    $btnBuscar     = q('#btn-buscar');
+    $btnNuevo      = q('#btn-nuevo');
+
+    modalEl    = q('#modalPago');
+    bsModal    = new bootstrap.Modal(modalEl);
+    $form      = q('#form-pago');
+    $id        = q('#pago-id');
+    $compraId  = q('#compra_id');
     $formaPago = q('#forma_pago');
-    $monto = q('#monto');
-    $referencia = q('#referencia');
-    $btnGuardar = q('#btn-guardar');
+    $monto     = q('#monto');
+    $referencia= q('#referencia');
+    $btnGuardar= q('#btn-guardar');
 
     // Eventos
     $btnBuscar.addEventListener('click', cargar);
     $btnNuevo.addEventListener('click', abrirCrear);
     $form.addEventListener('submit', onSubmit);
 
-    // Filtro por querystring
     if (COMPRA_ID) $filtroCompraId.value = String(COMPRA_ID);
 
     // Carga inicial

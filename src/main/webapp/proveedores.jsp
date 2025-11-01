@@ -3,11 +3,9 @@
     Created on : 9 oct 2025, 20:15:20
     Author     : DELL
 
-    Notas técnicas:
-    - Este JSP solo arma la estructura visual (Bootstrap 5) y expone
-      parámetros de configuración para el JS (vía <meta> y una variable global).
-    - El nombre del empleado (registrado_por) se resuelve en el JS consultando
-      /api/proveedores/_empleados y mapeando id -> nombre.
+    Notas:
+    - Página acoplada al tema oscuro (base.css) y al look del ADMIN Dashboard.
+    - Se removió el navbar con menú de módulos y se dejó un header minimal con botón "Regresar".
 --%>
 
 <%@page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
@@ -16,40 +14,49 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>NextTech • Proveedores</title>
+  <title>Nextech • Proveedores</title>
 
-  <%-- 
-    Meta usada por proveedores.js para resolver el backend sin tocar el código.
-    Ajusta el content si tu backend corre con context-path (p.ej. http://localhost:8080/nexttech-backend)
-  --%>
+  <!-- Backend base para proveedores.js -->
   <meta name="api-base" content="http://localhost:8080" />
 
   <!-- Bootstrap + Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
-  <!-- Estilos: comunes + página (usa querystring para cache-busting en dev) -->
+  <!-- Tema y estilos -->
+  <link rel="stylesheet" href="assets/css/app.css?v=7">
   <link rel="stylesheet" href="assets/css/base.css?v=7">
-  <link rel="stylesheet" href="assets/css/proveedores.css?v=7">
+  <link rel="stylesheet" href="assets/css/proveedores.css?v=7"/>
+
+  <!-- Ajustes locales (coherentes con dashboard) -->
+  <style>
+    /* Botón Regresar siempre presente y discreto */
+    .nt-back {
+      display: inline-flex; align-items: center; gap:.5rem;
+      border:1px solid var(--nt-border); background: transparent; color: var(--nt-primary);
+    }
+    .nt-back:hover{ background: var(--nt-surface-2); color: var(--nt-primary); }
+
+    /* Realce suave en cards, igual que dashboard */
+    .nt-card { transition: transform .1s ease, border-color .12s ease, box-shadow .12s ease; }
+    .nt-card:hover { transform: translateY(-1px); border-color: var(--nt-accent); box-shadow: 0 10px 24px rgba(0,0,0,.35); }
+  </style>
 </head>
 <body class="nt-bg">
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg nt-navbar shadow-sm">
-    <div class="container">
-      <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="./">
-        <i class="bi bi-boxes"></i> NextTech
+
+  <!-- Header minimal (como en admin), SIN menú de módulos -->
+  <header class="navbar nt-navbar">
+    <div class="container d-flex align-items-center justify-content-between">
+      <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="Dashboard.jsp" title="Ir al dashboard">
+        <i class="bi bi-boxes"></i> Nextech - Proveedores
       </a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div id="navMain" class="collapse navbar-collapse">
-        <ul class="navbar-nav ms-auto">
-          <li class="nav-item"><a class="nav-link" href="Dashboard.jsp"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
-          <li class="nav-item"><a class="nav-link active" href="proveedores.jsp"><i class="bi bi-truck"></i> Proveedores</a></li>
-        </ul>
+      <div class="d-flex align-items-center gap-2">
+        <button type="button" class="btn btn-sm nt-back" onclick="goBack()" title="Regresar">
+          <i class="bi bi-arrow-left"></i> Regresar
+        </button>
       </div>
     </div>
-  </nav>
+  </header>
 
   <!-- Contenido -->
   <main class="py-4">
@@ -59,7 +66,11 @@
           <h1 class="h3 nt-title mb-1"><i class="bi bi-truck"></i> Proveedores</h1>
           <p class="mb-0 nt-subtitle">Administra tus proveedores de compras y CxP.</p>
         </div>
-        <div><button id="btnOpenCreate" class="btn nt-btn-accent"><i class="bi bi-plus-circle"></i> Nuevo</button></div>
+        <div>
+          <button id="btnOpenCreate" class="btn nt-btn-accent">
+            <i class="bi bi-plus-circle"></i> Nuevo
+          </button>
+        </div>
       </div>
 
       <!-- Filtros -->
@@ -73,11 +84,13 @@
             <input id="chkSoloActivos" class="form-check-input" type="checkbox" checked>
             <label for="chkSoloActivos" class="form-check-label">Solo activos</label>
           </div>
-          <button id="btnBuscar" class="btn btn-outline-dark ms-md-auto"><i class="bi bi-arrow-repeat"></i> Buscar</button>
+          <button id="btnBuscar" class="btn btn-outline-dark ms-md-auto">
+            <i class="bi bi-arrow-repeat"></i> Buscar
+          </button>
         </div>
       </div>
 
-      <!-- Tabla (orden EXACTO del JSON) -->
+      <!-- Tabla -->
       <div class="card nt-card shadow-sm">
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0">
@@ -92,13 +105,11 @@
                 <th>Contacto principal</th>
                 <th>Días crédito</th>
                 <th>Activo</th>
-                <th>Registrado por <%-- aquí se mostrará el NOMBRE (no el id) --%></th>
+                <th>Registrado por</th>
                 <th class="text-end">Acciones</th>
               </tr>
             </thead>
-            <tbody id="tblProveedores">
-              <%-- filas por JS --%>
-            </tbody>
+            <tbody id="tblProveedores"><!-- filas por JS --></tbody>
           </table>
         </div>
         <div class="card-footer d-flex justify-content-between align-items-center">
@@ -161,7 +172,6 @@
             </div>
             <div class="col-md-6">
               <label class="form-label">Registrado por (Empleado) *</label>
-              <%-- Combo cargado por JS desde /api/proveedores/_empleados --%>
               <select id="prov_registrado_por" class="form-select" required>
                 <option value="">Seleccione un empleado...</option>
               </select>
@@ -177,7 +187,9 @@
         </div>
         <div class="modal-footer">
           <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button id="btnSave" type="submit" class="btn nt-btn-accent"><i class="bi bi-check2-circle"></i> Guardar</button>
+          <button id="btnSave" type="submit" class="btn nt-btn-accent">
+            <i class="bi bi-check2-circle"></i> Guardar
+          </button>
         </div>
       </form>
     </div>
@@ -214,7 +226,9 @@
         </div>
         <div class="modal-footer">
           <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button id="btnConfirmDelete" class="btn btn-danger"><i class="bi bi-trash"></i> Eliminar</button>
+          <button id="btnConfirmDelete" class="btn btn-danger">
+            <i class="bi bi-trash"></i> Eliminar
+          </button>
         </div>
       </div>
     </div>
@@ -227,13 +241,12 @@
 
   <!-- JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-  <%-- 
-    Exponemos una variable global opcional para override del API desde este JSP,
-    si necesitas cambiar rápidamente de entorno sin tocar el JS:
-    <script>window.NT_API_BASE = 'http://localhost:8080';</script>
-  --%>
-
+  <script>
+    function goBack(){
+      if (history.length > 1) history.back();
+      else location.href = 'Dashboard.jsp';
+    }
+  </script>
   <script src="assets/js/common.js?v=99"></script>
   <script src="assets/js/proveedores.js?v=7"></script>
 </body>

@@ -1,13 +1,4 @@
 /*
-Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
-Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/CascadeStyleSheet.css to edit this template
-*/
-/* 
-    Created on : 9 oct 2025, 20:45:20
-    Author     : DELL
-*/
-/*
-  /*
   base.css — Tema oscuro (fuente de verdad de colores)
   Paleta:
   Background #16161a | Headline #ffffff | Paragraph #94a1b2
@@ -45,10 +36,11 @@ a{ color: #b6baff; }
 a:hover{ color: #d5d7ff; }
 
 /* Anular variantes “claras” de Bootstrap que puedan colarse */
-.bg-white,.bg-light,.navbar-light,.table-light,.card.bg-white,.card.bg-light{
+.bg-white,.bg-light,.table-light,.card.bg-white,.card.bg-light{
   background-color: var(--nt-surface) !important; 
   color: var(--nt-text) !important;
 }
+/* No tocamos .navbar-light para evitar conflictos con tu propio header */
 .text-dark{ color: var(--nt-primary) !important; }
 .btn-light{
   background: var(--nt-surface-2) !important; 
@@ -59,17 +51,15 @@ a:hover{ color: #d5d7ff; }
 /* ===================== Componentes NextTech ===================== */
 .nt-bg{ background: var(--nt-bg); color: var(--nt-text); }
 
-/* Navbar */
-.nt-navbar,.navbar{
+/* Navbar (SOLO aplica si usas la clase .nt-navbar en tu HTML) */
+.nt-navbar{
   background: var(--nt-surface) !important; 
   border-bottom:1px solid var(--nt-border);
 }
 .nt-navbar .navbar-brand,
-.nt-navbar .nav-link,
-.navbar .nav-link{ color: var(--nt-text); }
+.nt-navbar .nav-link{ color: var(--nt-text); }
 .nt-navbar .nav-link.active,
-.nt-navbar .nav-link:hover,
-.navbar .nav-link:hover{ color: var(--nt-primary); }
+.nt-navbar .nav-link:hover{ color: var(--nt-primary); }
 
 /* Títulos */
 .nt-title{ color: var(--nt-primary); }
@@ -158,6 +148,12 @@ a:hover{ color: #d5d7ff; }
 .badge.bg-success{   background:var(--nt-success) !important; color:#08130c; }
 .badge.bg-danger{    background:var(--nt-danger) !important; }
 .badge.bg-info{      background:var(--nt-info) !important; }
+/* Útil para accesos rápidos, consistente con el acento */
+.badge.bg-outline{
+  background: transparent;
+  color: var(--nt-accent);
+  border: 1px solid var(--nt-accent);
+}
 
 /* ===================== Toasts ===================== */
 .toast{

@@ -1,7 +1,31 @@
 // assets/js/cxp.js
 // UI para CxP: documentos, pagos y aplicaciones.
-
 (function () {
+  // ====== BASE: lee <meta name="api-base"> y fuerza el puerto correcto ======
+  const META_BASE = document.querySelector('meta[name="api-base"]')?.content?.trim();
+  const API_BASE  = (window.API?.baseUrl?.trim?.() || META_BASE || 'http://localhost:8080').replace(/\/+$/,'');
+  const toast = (msg, type='info') => (window.API?.toast ? window.API.toast(msg, type) : alert(msg));
+
+  // Wrapper HTTP que IGNORA cualquier redirección de common.js a 8082
+  async function http(path, opts = {}) {
+    const url = `${API_BASE}${path}`;
+    const res = await fetch(url, {
+      method: opts.method || 'GET',
+      headers: Object.assign(
+        { 'Accept': 'application/json' },
+        opts.json ? { 'Content-Type': 'application/json' } : {}
+      ),
+      body: opts.json ? JSON.stringify(opts.json) : undefined
+    });
+    const text = await res.text();
+    let data = null; try { data = text ? JSON.parse(text) : null; } catch {}
+    if (!res.ok) {
+      const msg = (data && (data.message || data.error || data.detail)) || `HTTP ${res.status}`;
+      throw new Error(msg);
+    }
+    return data;
+  }
+
   const q = (s, r=document) => r.querySelector(s);
   const qa = (s, r=document) => Array.from(r.querySelectorAll(s));
 
@@ -31,10 +55,11 @@
     if (prov) qs.push(`proveedorId=${encodeURIComponent(prov)}`);
     if (txt)  qs.push(`texto=${encodeURIComponent(txt)}`);
     try {
-      const rows = await API.request(`/api/cxp/documentos${qs.length?`?${qs.join('&')}`:''}`);
-      renderDocs(rows || []);
+      const rows = await http(`/api/cxp/documentos${qs.length?`?${qs.join('&')}`:''}`);
+      renderDocs(Array.isArray(rows) ? rows : []);
     } catch (e) {
-      API.toast(`Error listando documentos: ${e.message}`, 'danger');
+      toast(`Error listando documentos: ${e.message}`, 'danger');
+      $docTbody.innerHTML = `<tr><td colspan="10" class="text-center text-danger">Error al cargar</td></tr>`;
     }
   }
 
@@ -47,15 +72,15 @@
         <td>${r.proveedor_id}</td>
         <td>${r.origen_tipo}-${r.origen_id}</td>
         <td>${r.numero_documento}</td>
-        <td>${r.fecha_emision}</td>
+        <td>${r.fecha_emision ?? ''}</td>
         <td>${r.fecha_vencimiento ?? ''}</td>
-        <td>${r.moneda}</td>
-        <td class="text-end">Q ${Number(r.monto_total).toFixed(2)}</td>
-        <td class="text-end">Q ${Number(r.saldo_pendiente).toFixed(2)}</td>
-        <td>
-          <div class="d-flex justify-content-end gap-2">
-            <button class="btn btn-sm btn-outline-secondary btn-doc-edit" data-id="${r.id}"><i class="bi bi-pencil"></i></button>
-            <button class="btn btn-sm btn-outline-danger btn-doc-anular" data-id="${r.id}"><i class="bi bi-x-circle"></i></button>
+        <td>${r.moneda ?? ''}</td>
+        <td class="text-end">Q ${Number(r.monto_total||0).toFixed(2)}</td>
+        <td class="text-end">Q ${Number(r.saldo_pendiente||0).toFixed(2)}</td>
+        <td class="text-end">
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-secondary btn-doc-edit" data-id="${r.id}"><i class="bi bi-pencil"></i></button>
+            <button class="btn btn-outline-danger btn-doc-anular" data-id="${r.id}"><i class="bi bi-x-circle"></i></button>
           </div>
         </td>`;
       $docTbody.appendChild(tr);
@@ -68,7 +93,6 @@
     $docForm.reset();
     $docId.value = '';
     q('#modalDocLabel').textContent = 'Nuevo documento CxP';
-    // campos editables completos al crear
     $proveedor_id.disabled = false; $origen_tipo.disabled = false; $origen_id.disabled = false;
     $docModal.show();
   }
@@ -80,12 +104,11 @@
     $origen_tipo.value = row.origen_tipo;
     $origen_id.value = row.origen_id;
     $numero_documento.value = row.numero_documento;
-    $fecha_emision.value = row.fecha_emision;
+    $fecha_emision.value = row.fecha_emision || '';
     $fecha_vencimiento.value = row.fecha_vencimiento || '';
-    $moneda.value = row.moneda;
-    $monto_total.value = row.monto_total;
+    $moneda.value = row.moneda || 'GTQ';
+    $monto_total.value = row.monto_total || 0;
     q('#modalDocLabel').textContent = `Editar documento #${row.id}`;
-    // proveedor/origen no se editan
     $proveedor_id.disabled = true; $origen_tipo.disabled = true; $origen_id.disabled = true;
     $docModal.show();
   }
@@ -98,34 +121,30 @@
       origen_tipo: tr.children[2].textContent.split('-')[0],
       origen_id: Number(tr.children[2].textContent.split('-')[1]),
       numero_documento: tr.children[3].textContent,
-      fecha_emision: tr.children[4].textContent,
+      fecha_emision: tr.children[4].textContent || null,
       fecha_vencimiento: tr.children[5].textContent || null,
       moneda: tr.children[6].textContent,
       monto_total: tr.children[7].textContent.replace(/[^\d.]/g,'')
     };
   }
 
-  async function onDocEditar(ev){
-    const row = extraerDocDeFila(ev.currentTarget);
-    abrirDocEditar(row);
-  }
+  function onDocEditar(ev){ abrirDocEditar(extraerDocDeFila(ev.currentTarget)); }
 
   async function onDocAnular(ev){
     const id = Number(ev.currentTarget.dataset.id);
     if (!confirm(`¿Anular documento #${id}?`)) return;
     try {
-      await API.request(`/api/cxp/documentos/${id}/anular`, { method: 'DELETE' });
-      API.toast('Documento anulado.', 'success');
+      await http(`/api/cxp/documentos/${id}/anular`, { method: 'DELETE' });
+      toast('Documento anulado.', 'success');
       docListar();
-    } catch(e){ API.toast(`Error: ${e.message}`, 'danger'); }
+    } catch(e){ toast(`Error: ${e.message}`, 'danger'); }
   }
 
   async function onDocSubmit(ev) {
     ev.preventDefault();
     const id = $docId.value ? Number($docId.value) : null;
-    const isEdit = !!id;
     try {
-      if (!isEdit) {
+      if (!id) {
         const payload = {
           proveedor_id: Number($proveedor_id.value),
           origen_tipo: $origen_tipo.value,
@@ -136,22 +155,22 @@
           moneda: $moneda.value,
           monto_total: Number($monto_total.value)
         };
-        await API.request('/api/cxp/documentos', { method: 'POST', json: payload });
-        API.toast('Documento creado.', 'success');
+        await http('/api/cxp/documentos', { method: 'POST', json: payload });
+        toast('Documento creado.', 'success');
       } else {
         const payload = {
           numero_documento: $numero_documento.value.trim(),
-          fecha_emision: $fecha_emision.value,
+          fecha_emision: $fecha_emision.value || null,
           fecha_vencimiento: $fecha_vencimiento.value || null,
           moneda: $moneda.value,
           monto_total: Number($monto_total.value)
         };
-        await API.request(`/api/cxp/documentos/${id}`, { method: 'PUT', json: payload });
-        API.toast('Documento actualizado.', 'success');
+        await http(`/api/cxp/documentos/${id}`, { method: 'PUT', json: payload });
+        toast('Documento actualizado.', 'success');
       }
       $docModal.hide();
       docListar();
-    } catch(e){ API.toast(`Error guardando: ${e.message}`, 'danger'); }
+    } catch(e){ toast(`Error guardando: ${e.message}`, 'danger'); }
   }
 
   // ---------- PAGOS ----------
@@ -163,7 +182,7 @@
 
   const $pagModal = new bootstrap.Modal('#modalPagoCxp');
   const $pagForm  = q('#form-pago-cxp');
-  const $pago_id  = q('#pago_id'); // hidden para editar
+  const $pago_id  = q('#pago_id');
   const $_proveedor_id = q('#p_proveedor_id');
   const $fecha_pago = q('#fecha_pago');
   const $forma_pago = q('#p_forma_pago');
@@ -177,9 +196,12 @@
     if (prov) qs.push(`proveedorId=${encodeURIComponent(prov)}`);
     if (txt) qs.push(`texto=${encodeURIComponent(txt)}`);
     try {
-      const rows = await API.request(`/api/cxp/pagos${qs.length?`?${qs.join('&')}`:''}`);
-      renderPagos(rows||[]);
-    } catch(e){ API.toast(`Error listando pagos: ${e.message}`, 'danger'); }
+      const rows = await http(`/api/cxp/pagos${qs.length?`?${qs.join('&')}`:''}`);
+      renderPagos(Array.isArray(rows) ? rows : []);
+    } catch(e){
+      toast(`Error listando pagos: ${e.message}`, 'danger');
+      $pagTbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger">Error al cargar</td></tr>`;
+    }
   }
 
   function renderPagos(rows) {
@@ -189,18 +211,21 @@
       tr.innerHTML = `
         <td class="text-muted">#${r.id}</td>
         <td>${r.proveedor_id}</td>
-        <td>${r.fecha_pago}</td>
-        <td>${r.forma_pago}</td>
-        <td class="text-end">Q ${Number(r.monto_total).toFixed(2)}</td>
+        <td>${r.fecha_pago ?? ''}</td>
+        <td>${r.forma_pago ?? ''}</td>
+        <td class="text-end">Q ${Number(r.monto_total||0).toFixed(2)}</td>
         <td>${r.observaciones ?? ''}</td>
         <td class="text-end">
-          <div class="btn-group">
-            <button class="btn btn-sm btn-outline-secondary btn-pag-edit" data-id="${r.id}"><i class="bi bi-pencil"></i></button>
-            <button class="btn btn-sm btn-outline-danger btn-pag-del" data-id="${r.id}"><i class="bi bi-trash"></i></button>
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-secondary btn-pag-edit" data-id="${r.id}"><i class="bi bi-pencil"></i></button>
+            <button class="btn btn-outline-danger btn-pag-del" data-id="${r.id}"><i class="bi bi-trash"></i></button>
           </div>
         </td>
         <td class="text-end">
-          <a class="btn btn-sm btn-outline-primary" href="#aplicaciones" data-pago="${r.id}" onclick="document.getElementById('apl-pago-id').value='${r.id}';document.getElementById('tab-aplicaciones').click();"><i class="bi bi-arrow-right-circle"></i> Aplicar</a>
+          <a class="btn btn-sm btn-outline-primary" href="#aplicaciones"
+             onclick="document.getElementById('apl-pago-id').value='${r.id}';document.getElementById('tab-aplicaciones').click();">
+             <i class="bi bi-arrow-right-circle"></i> Aplicar
+          </a>
         </td>`;
       $pagTbody.appendChild(tr);
     }
@@ -224,7 +249,7 @@
     $forma_pago.value = tr.children[3].textContent.trim();
     $_monto_total.value = tr.children[4].textContent.replace(/[^\d.]/g,'');
     $observaciones.value = tr.children[5].textContent.trim();
-    $_proveedor_id.disabled = true; // no editamos proveedor en update
+    $_proveedor_id.disabled = true;
     $pagModal.show();
   }
 
@@ -232,10 +257,10 @@
     const id = Number(ev.currentTarget.dataset.id);
     if (!confirm(`¿Eliminar pago #${id}?`)) return;
     try {
-      await API.request(`/api/cxp/pagos/${id}`, { method: 'DELETE' });
-      API.toast('Pago eliminado.', 'success');
+      await http(`/api/cxp/pagos/${id}`, { method: 'DELETE' });
+      toast('Pago eliminado.', 'success');
       pagListar();
-    } catch(e){ API.toast(`Error: ${e.message}`, 'danger'); }
+    } catch(e){ toast(`Error: ${e.message}`, 'danger'); }
   }
 
   async function onPagSubmit(ev){
@@ -250,8 +275,8 @@
           monto_total: Number($_monto_total.value),
           observaciones: $observaciones.value || null
         };
-        await API.request('/api/cxp/pagos', { method: 'POST', json: payload });
-        API.toast('Pago creado.', 'success');
+        await http('/api/cxp/pagos', { method: 'POST', json: payload });
+        toast('Pago creado.', 'success');
       } else {
         const payload = {
           fecha_pago: $fecha_pago.value,
@@ -259,26 +284,26 @@
           monto_total: Number($_monto_total.value),
           observaciones: $observaciones.value || null
         };
-        await API.request(`/api/cxp/pagos/${id}`, { method: 'PUT', json: payload });
-        API.toast('Pago actualizado.', 'success');
+        await http(`/api/cxp/pagos/${id}`, { method: 'PUT', json: payload });
+        toast('Pago actualizado.', 'success');
       }
       $pagModal.hide();
       pagListar();
-    } catch(e){ API.toast(`Error guardando: ${e.message}`, 'danger'); }
+    } catch(e){ toast(`Error guardando: ${e.message}`, 'danger'); }
   }
 
   // ---------- APLICACIONES ----------
   const $aplPagoId = q('#apl-pago-id');
   const $aplList   = q('#apl-tbody');
   const $aplForm   = q('#form-apl');
-  const $aplItems  = q('#apl-items'); // textarea simple: documento_id;monto por línea
+  const $aplItems  = q('#apl-items');
   const $aplCargar = q('#apl-cargar');
 
   async function aplListar(){
     const pagoId = Number($aplPagoId.value);
     if (!pagoId) { $aplList.innerHTML = `<tr><td colspan="5" class="text-center text-muted">Seleccione un pago</td></tr>`; return; }
     try {
-      const rows = await API.request(`/api/cxp/pagos/${pagoId}/aplicaciones`);
+      const rows = await http(`/api/cxp/pagos/${pagoId}/aplicaciones`);
       $aplList.innerHTML = rows.length ? '' : `<tr><td colspan="5" class="text-center text-muted">Sin aplicaciones</td></tr>`;
       for (const r of rows) {
         const tr = document.createElement('tr');
@@ -286,18 +311,14 @@
           <td class="text-muted">#${r.id}</td>
           <td>${r.pago_id}</td>
           <td>${r.documento_id}</td>
-          <td class="text-end">Q ${Number(r.monto_aplicado).toFixed(2)}</td>
+          <td class="text-end">Q ${Number(r.monto_aplicado||0).toFixed(2)}</td>
           <td>${r.fecha_aplicacion ?? ''}</td>`;
         $aplList.appendChild(tr);
       }
-    } catch(e){ API.toast(`Error listando aplicaciones: ${e.message}`, 'danger'); }
+    } catch(e){ toast(`Error listando aplicaciones: ${e.message}`, 'danger'); }
   }
 
   function parseItems(txt){
-    // Formato: una línea por item -> documento_id ; monto
-    // ej:
-    // 3001; 950.00
-    // 3002; 250
     const items = [];
     txt.split(/\r?\n/).forEach(line=>{
       const t = line.trim(); if (!t) return;
@@ -315,13 +336,13 @@
     ev.preventDefault();
     const pagoId = Number($aplPagoId.value);
     const items = parseItems($aplItems.value);
-    if (!pagoId) return API.toast('Seleccione un pago', 'warning');
-    if (!items.length) return API.toast('No hay items válidos', 'warning');
+    if (!pagoId) return toast('Seleccione un pago', 'warning');
+    if (!items.length) return toast('No hay items válidos', 'warning');
     try {
-      await API.request(`/api/cxp/pagos/${pagoId}/aplicaciones`, { method:'POST', json:{ items }});
-      API.toast('Aplicaciones creadas.', 'success');
+      await http(`/api/cxp/pagos/${pagoId}/aplicaciones`, { method:'POST', json:{ items }});
+      toast('Aplicaciones creadas.', 'success');
       aplListar();
-    } catch(e){ API.toast(`Error aplicando: ${e.message}`, 'danger'); }
+    } catch(e){ toast(`Error aplicando: ${e.message}`, 'danger'); }
   }
 
   // eventos
@@ -337,5 +358,6 @@
   $aplForm.addEventListener('submit', onAplSubmit);
 
   // init
-  docListar(); pagListar(); // pestañas inician con datos
+  docListar();
+  pagListar();
 })();

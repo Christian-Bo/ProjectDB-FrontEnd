@@ -1,133 +1,147 @@
-<%--
-  Document   : dashboard_operaciones
-  Author     : Christian
---%>
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" isELIgnored="true" %>
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>OPERACIONES Dashboard • Nextech</title>
-
-  <!-- API base opcional (puedes quitar si no lo usas) -->
-  <meta name="api-base" content="http://localhost:8080"/>
+  <title>OPERACIONES Dashboard • NextTech</title>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/base.css">
   <link rel="stylesheet" href="assets/css/app.css">
-  <!-- auth.guard debe exponer Auth.ensure / Auth.role / Auth.clear / Auth.load -->
-  <script src="assets/js/auth.guard.js"></script>
-  <!-- MUY RECOMENDADO: common.js con el parche de Authorization Bearer -->
-  <script src="assets/js/common.js?v=99"></script>
-</head>
-<body class="nt-bg">
-<script>
-  // Solo OPERACIONES (ADMIN también pasa por el interceptor y aquí)
-  Auth.ensure(['OPERACIONES']);
-</script>
 
-<!-- Header compartido -->
-<header class="navbar navbar-expand-lg nt-header">
-  <div class="container-fluid">
-    <a class="navbar-brand fw-bold" href="Dashboard.jsp">Nextech</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="nav">
-      <ul class="navbar-nav me-auto mb-2 mb-lg-0" id="menu-items"></ul>
-      <div class="d-flex align-items-center gap-3">
-        <span id="user-role" class="badge bg-secondary">OPERACIONES</span>
-        <button class="btn btn-outline-light btn-sm" onclick="logout()">Salir</button>
-      </div>
+  <script src="assets/js/auth.guard.js"></script>
+  <style>
+    .nt-card{transition:transform .12s,border-color .12s,box-shadow .12s}
+    .nt-card:hover{transform:translateY(-2px);border-color:var(--nt-accent);box-shadow:0 10px 24px rgba(0,0,0,.35)}
+    .badge.bg-outline{background:transparent;color:var(--nt-accent);border:1px solid var(--nt-accent)}
+  </style>
+</head>
+<body class="nt-bg min-vh-100 d-flex flex-column">
+<script>Auth.ensure(['OPERACIONES']);</script>
+
+<header class="navbar nt-navbar">
+  <div class="container d-flex align-items-center justify-content-between">
+    <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="Dashboard.jsp">
+      <i class="bi bi-gear-wide-connected"></i> NextTech — Operaciones
+    </a>
+    <div class="d-flex align-items-center gap-2">
+      <span id="user-role" class="badge bg-secondary">OPERACIONES</span>
+      <button class="btn btn-outline-light btn-sm" onclick="logout()"><i class="bi bi-box-arrow-right me-1"></i> Salir</button>
     </div>
   </div>
 </header>
 
-<main class="container py-4">
+<main class="container py-4 flex-grow-1">
   <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-    <h1 class="h3 mb-0">OPERACIONES • Dashboard</h1>
-    <small class="text-body-secondary">Accesos rápidos a tus módulos operativos.</small>
+    <h1 class="h3 mb-0 nt-title">OPERACIONES • Dashboard</h1>
+    <small class="text-body-secondary">Accesos a módulos operativos.</small>
   </div>
 
-  <div class="row g-3" id="cards"></div>
+  <div class="row g-3">
+    <!-- Inventario y movimientos -->
+    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+      <a class="card nt-card text-decoration-none h-100" href="inventario.jsp">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-2"><i class="bi bi-archive fs-3 me-2"></i><h5 class="card-title mb-0 nt-title">Inventario</h5></div>
+          <p class="card-text text-body-secondary small">Stock, kardex y alertas.</p>
+          <span class="badge bg-outline">Acceso</span>
+        </div>
+      </a>
+    </div>
+    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+      <a class="card nt-card text-decoration-none h-100" href="ajustes.jsp">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-2"><i class="bi bi-sliders fs-3 me-2"></i><h5 class="card-title mb-0 nt-title">Ajustes</h5></div>
+          <p class="card-text text-body-secondary small">Correcciones de inventario.</p>
+          <span class="badge bg-outline">Acceso</span>
+        </div>
+      </a>
+    </div>
+    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+      <a class="card nt-card text-decoration-none h-100" href="transferencias.jsp">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-2"><i class="bi bi-arrow-left-right fs-3 me-2"></i><h5 class="card-title mb-0 nt-title">Transferencias</h5></div>
+          <p class="card-text text-body-secondary small">Movimientos entre bodegas.</p>
+          <span class="badge bg-outline">Acceso</span>
+        </div>
+      </a>
+    </div>
+
+    <!-- Compras/Ventas/Devoluciones/Proveedores -->
+    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+      <a class="card nt-card text-decoration-none h-100" href="compras.jsp">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-2"><i class="bi bi-bag-check fs-3 me-2"></i><h5 class="card-title mb-0 nt-title">Compras</h5></div>
+          <p class="card-text text-body-secondary small">Órdenes y recepción.</p>
+          <span class="badge bg-outline">Acceso</span>
+        </div>
+      </a>
+    </div>
+    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+      <a class="card nt-card text-decoration-none h-100" href="ventas.jsp">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-2"><i class="bi bi-cash-coin fs-3 me-2"></i><h5 class="card-title mb-0 nt-title">Ventas</h5></div>
+          <p class="card-text text-body-secondary small">Facturación y seguimiento.</p>
+          <span class="badge bg-outline">Acceso</span>
+        </div>
+      </a>
+    </div>
+    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+      <a class="card nt-card text-decoration-none h-100" href="devoluciones.jsp">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-2"><i class="bi bi-arrow-counterclockwise fs-3 me-2"></i><h5 class="card-title mb-0 nt-title">Devoluciones</h5></div>
+          <p class="card-text text-body-secondary small">Ingresos por devolución.</p>
+          <span class="badge bg-outline">Acceso</span>
+        </div>
+      </a>
+    </div>
+    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+      <a class="card nt-card text-decoration-none h-100" href="proveedores.jsp">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-2"><i class="bi bi-truck fs-3 me-2"></i><h5 class="card-title mb-0 nt-title">Proveedores</h5></div>
+          <p class="card-text text-body-secondary small">ABM de proveedores.</p>
+          <span class="badge bg-outline">Acceso</span>
+        </div>
+      </a>
+    </div>
+
+    <!-- Catálogos de producto -->
+    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+      <a class="card nt-card text-decoration-none h-100" href="bodegas.jsp">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-2"><i class="bi bi-buildings fs-3 me-2"></i><h5 class="card-title mb-0 nt-title">Bodegas</h5></div>
+          <p class="card-text text-body-secondary small">Gestión de almacenes.</p>
+          <span class="badge bg-outline">Acceso</span>
+        </div>
+      </a>
+    </div>
+    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+      <a class="card nt-card text-decoration-none h-100" href="categorias.jsp">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-2"><i class="bi bi-diagram-3 fs-3 me-2"></i><h5 class="card-title mb-0 nt-title">Categorías</h5></div>
+          <p class="card-text text-body-secondary small">Clasificación de productos.</p>
+          <span class="badge bg-outline">Acceso</span>
+        </div>
+      </a>
+    </div>
+    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+      <a class="card nt-card text-decoration-none h-100" href="marcas.jsp">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-2"><i class="bi bi-tags fs-3 me-2"></i><h5 class="card-title mb-0 nt-title">Marcas</h5></div>
+          <p class="card-text text-body-secondary small">ABM de marcas.</p>
+          <span class="badge bg-outline">Acceso</span>
+        </div>
+      </a>
+    </div>
+  </div>
 </main>
 
 <script>
-  // ===== MÓDULOS visibles para OPERACIONES =====
-  // (ADMIN también los verá; Finanzas/RRHH NO van aquí)
-  const MODULES = [
-    { key:'compras',        name:'Compras',              href:'compras.jsp',         icon:'bi-bag-check' },
-    { key:'compras_pagos',  name:'Pagos de Compras',     href:'compras_pagos.jsp',   icon:'bi-receipt' }, // si lo usa Operaciones
-    { key:'proveedores',    name:'Proveedores',          href:'proveedores.jsp',     icon:'bi-truck' },
-    { key:'productos',      name:'Productos',            href:'productos.jsp',       icon:'bi-box-seam' },
-    { key:'inventario',     name:'Inventario',           href:'inventario.jsp',      icon:'bi-archive' },
-    { key:'ventas',         name:'Ventas',               href:'ventas.jsp',          icon:'bi-cash-coin' },
-    { key:'catalogos',      name:'Catálogos',            href:'catalogos.jsp',       icon:'bi-collection' }
-  ];
-
-  // ===== Navbar según rol actual =====
-  (function buildNavbar(){
-    const r = (Auth.role() || '').toUpperCase();
-    document.getElementById('user-role').textContent = r || 'OPERACIONES';
-    const menu = document.getElementById('menu-items');
-    // Menú básico: solo lo propio de Operaciones. (Admin tiene otros dashboards)
-    const items = MODULES.map(m =>
-      `<li class="nav-item"><a class="nav-link" href="${m.href}">
-         <i class="bi ${m.icon} me-1"></i>${m.name}
-       </a></li>`
-    ).join('');
-    menu.innerHTML = items;
-  })();
-
-  // ===== Tarjetas de accesos =====
-  (function buildCards(){
-    const cont = document.getElementById('cards');
-    cont.innerHTML = MODULES.map(m => `
-      <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
-        <a href="${m.href}" class="text-decoration-none">
-          <div class="card nt-card h-100">
-            <div class="card-body d-flex flex-column">
-              <div class="d-flex align-items-center mb-2">
-                <i class="bi ${m.icon} fs-3 me-2"></i>
-                <h5 class="card-title mb-0">${m.name}</h5>
-              </div>
-              <p class="card-text text-body-secondary small flex-grow-1">
-                ${descFor(m.key)}
-              </p>
-              <div class="mt-2">
-                <span class="badge bg-outline">Acceso</span>
-              </div>
-            </div>
-          </div>
-        </a>
-      </div>
-    `).join('');
-  })();
-
-  // Descripciones cortas por módulo
-  function descFor(key){
-    switch(key){
-      case 'compras':        return 'Crea y administra órdenes de compra.';
-      case 'compras_pagos':  return 'Registra pagos y aplicaciones de compras.';
-      case 'proveedores':    return 'ABM de proveedores y datos de contacto.';
-      case 'productos':      return 'Catálogo de productos y atributos.';
-      case 'inventario':     return 'Movimientos y existencias por almacén.';
-      case 'ventas':         return 'Registro y seguimiento de ventas.';
-      case 'catalogos':      return 'Catálogos compartidos (códigos, categorías).';
-      default:               return 'Módulo operativo del sistema.';
-    }
-  }
-
-  function logout(){
-    // Limpia sesión (según cómo guardas)
-    try { Auth.clear?.(); } catch {}
-    try { localStorage.removeItem('nt.session'); } catch {}
-    try { localStorage.removeItem('auth_token'); localStorage.removeItem('sessionToken'); } catch {}
-    location.href = 'index.jsp';
-  }
+  (function(){try{var r=(Auth.role&&Auth.role())?String(Auth.role()).toUpperCase():'OPERACIONES';document.getElementById('user-role').textContent=r;}catch(e){}})();
+  function logout(){try{Auth.clear&&Auth.clear();localStorage.removeItem('nt.session');}catch(e){} location.href='index.jsp';}
 </script>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

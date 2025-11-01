@@ -1,6 +1,7 @@
 /* ==========================================================
  * common.api.js — helpers + parche de fetch con Bearer
  * Seguro frente a doble declaración de API (no usa `const API`)
+ * + Fallback inteligente de rutas (ctxPath y /api)
  * ========================================================== */
 
 /* ---------------- API BASE ---------------- */
@@ -11,6 +12,95 @@
   window.API_BASE = fromMeta || fromLS || '';
   console.log('[common] API_BASE =', window.API_BASE || '(relativo)');
 })();
+
+/* ============= NUEVO: helpers de contexto + fallbacks ============= */
+function __ctxPath(){
+  try{
+    const seg = location.pathname.split('/').filter(Boolean);
+    return seg.length > 0 ? ('/' + seg[0]) : '';
+  }catch{ return ''; }
+}
+
+// Devuelve variantes de URL para reintentos cuando hay 404/500
+function __buildFallbackUrls(absUrlStr){
+  const urls = [];
+  try{
+    const u = new URL(absUrlStr, window.location.origin);
+    const baseOrigin = u.origin;
+    const path = u.pathname;      // ej: /api/inventario/alertas
+    const search = u.search || '';
+    const ctx = __ctxPath();      // ej: /frontend
+
+    const push = (x) => { if (x && !urls.includes(x)) urls.push(x); };
+
+    // 1) Original primero
+    push(u.toString());
+
+    // 2) Con context path
+    if (ctx && !path.startsWith(ctx)) push(baseOrigin + ctx + path + search);
+
+    // 3) Asegurar que exista /api
+    if (!/\/api(\/|$)/i.test(path)) {
+      push(baseOrigin + '/api' + (path.startsWith('/') ? path : '/' + path) + search);
+      if (ctx) push(baseOrigin + ctx + '/api' + path + search);
+    } else {
+      // 4) Quitar /api (por si el back lo expone sin /api)
+      push(baseOrigin + path.replace('/api','') + search);
+      if (ctx && !path.startsWith(ctx)) push(baseOrigin + ctx + path + search);
+      if (ctx) push(baseOrigin + ctx + path.replace('/api','') + search);
+    }
+
+    // 5) Si hay API_BASE absoluto diferente al origin, pruébalo
+    const apiBase = (window.API_BASE || '').replace(/\/+$/,'');
+    if (apiBase && !absUrlStr.startsWith(apiBase)) {
+      push(apiBase + path + search);
+      if (!/\/api(\/|$)/i.test(path)) push(apiBase + '/api' + path + search);
+      if (ctx) {
+        push(apiBase + ctx + path + search);
+        if (!/\/api(\/|$)/i.test(path)) push(apiBase + ctx + '/api' + path + search);
+      }
+    }
+  }catch(e){
+    urls.push(absUrlStr);
+  }
+  return urls;
+}
+
+// Reintenta secuencialmente en variantes cuando 404/500
+async function __fetchWithFallback(originalFetch, absUrlStr, init){
+  const candidates = __buildFallbackUrls(absUrlStr);
+  let lastError = null;
+
+  for (const url of candidates){
+    try{
+      const res = await originalFetch(url, init);
+      if (res.ok) return res;
+
+      // Para 404 o 5xx probamos siguiente
+      if (res.status === 404 || (res.status >= 500 && res.status <= 599)) {
+        try {
+          const txt = await res.clone().text();
+          // Si Tomcat devuelve HTML de "No encontrado", seguimos intentando
+          if (/No encontrado|No static resource|Estado HTTP 404|HTTP Status 404/i.test(txt)) {
+            lastError = new Error(txt || `HTTP ${res.status}`);
+            continue;
+          }
+        } catch {}
+        lastError = new Error(`HTTP ${res.status}`);
+        continue;
+      }
+
+      // Si es otro error (400/401/403, etc.) devolvemos ese directamente
+      return res;
+    }catch(err){
+      lastError = err;
+      continue;
+    }
+  }
+  // Nada funcionó
+  if (lastError) throw lastError;
+  throw new Error('No se pudo resolver el endpoint');
+}
 
 /* ---------------- SESIÓN / TOKEN (varias fuentes) ---------------- */
 function loadSession() {
@@ -196,7 +286,17 @@ function setValue(id, value) {
       console.log('[common] Calling', urlStr, 'Authorization:', hdrs.get('Authorization'));
     }
 
-    return originalFetch(input, init);
+    // =================== NUEVO: fallback automático ===================
+    // Intento 1: URL tal cual (absoluta)
+    // Si falla con 404/5xx, reintenta variantes con ctx y /api
+    try {
+      const abs = __absUrl(urlStr);
+      return __fetchWithFallback(originalFetch, abs, init);
+    } catch (e) {
+      // Si algo salió mal en la construcción, intenta el fetch original
+      return originalFetch(input, init);
+    }
+    // ==================================================================
   };
 })();
 
@@ -293,3 +393,71 @@ window.NT.http = {
     return u.toString();
   }
 };
+
+/* =========================================================
+ * Compat helpers para Dashboard (NO rompe nada existente)
+ * Añadidos al final de common.js
+ * ========================================================= */
+(function compatForDashboard(){
+  // Devuelve la base de la API respetando: API.baseUrl -> API_BASE -> <meta api-base> -> LS
+  if (typeof window.getApiBase !== 'function') {
+    window.getApiBase = function () {
+      try {
+        if (window.API && window.API.baseUrl) return String(window.API.baseUrl).trim();
+        if (window.API_BASE) return String(window.API_BASE).trim();
+        const meta = document.querySelector('meta[name="api-base"]');
+        if (meta && meta.getAttribute('content')) return meta.getAttribute('content').trim();
+        const fromLS = localStorage.getItem('api_base');
+        return (fromLS || '').trim();
+      } catch { return ''; }
+    };
+  }
+
+  // GET sencillo que usa buildHeaders + handleResponse y acepta params opcionales
+  if (typeof window.ntGet !== 'function') {
+    window.ntGet = async function (pathOrUrl, params = null) {
+      // Construir URL absoluta
+      let urlStr = pathOrUrl;
+      const isAbs = /^https?:\/\//i.test(String(pathOrUrl));
+      if (!isAbs) {
+        const base = (window.getApiBase && window.getApiBase()) || '';
+        if (base) {
+          const baseTrim = base.replace(/\/+$/,'');
+          const pathTrim = String(pathOrUrl).replace(/^\/+/,'');
+          urlStr = baseTrim + '/' + pathTrim;
+        } else {
+          urlStr = __absUrl(String(pathOrUrl));
+        }
+      }
+
+      // Adjuntar query params si vienen
+      if (params && typeof params === 'object') {
+        const u = new URL(urlStr, window.location.origin);
+        Object.entries(params).forEach(([k,v])=>{
+          if (v !== undefined && v !== null && v !== '') u.searchParams.append(k, v);
+        });
+        urlStr = u.toString();
+      }
+
+      // Usa el mismo fallback del parche global
+      const res = await __fetchWithFallback(fetch, urlStr, { headers: buildHeaders() });
+      return handleResponse(res);
+    };
+  }
+
+  // (Opcional) atajo POST por si algún módulo lo espera
+  if (typeof window.ntPost !== 'function') {
+    window.ntPost = async function (pathOrUrl, body) {
+      const base = (window.getApiBase && window.getApiBase()) || '';
+      const url = /^https?:\/\//i.test(pathOrUrl)
+        ? pathOrUrl
+        : (base ? base.replace(/\/+$/,'') + '/' + String(pathOrUrl).replace(/^\/+/,'') : __absUrl(pathOrUrl));
+      const res = await __fetchWithFallback(fetch, url, {
+        method:'POST',
+        headers: buildHeaders({'Content-Type':'application/json'}),
+        body: JSON.stringify(body ?? {})
+      });
+      return handleResponse(res);
+    };
+  }
+})();

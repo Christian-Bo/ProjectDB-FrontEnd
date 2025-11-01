@@ -1,54 +1,161 @@
-<%-- 
-    Document   : devoluciones
-    Created on : 15/10/2025, 20:26:59
-    Author     : user
---%>
-
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
-<html lang="es" data-bs-theme="dark">
+<html lang="es">
 <head>
   <meta charset="UTF-8">
   <title>Devoluciones | NextTech</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Apunta al backend correcto -->
+  <meta name="api-base" content="http://localhost:8080"/>
+
+  <!-- Bootstrap + Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/app.css?v=dark-purple-5">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <!-- Tema NextTech -->
+  <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/base.css?v=13">
+  <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/app.css?v=13">
+
+  <style>
+    /* ===== Estilo consistente con otras pantallas ===== */
+    body.nt-bg { background: var(--nt-bg); color: var(--nt-fg); }
+
+    .nt-navbar { background: var(--nt-surface-1); border-bottom: 1px solid var(--nt-border); }
+
+    .nt-title{ color: var(--nt-fg-strong); }
+    .nt-subtitle{ color: var(--nt-fg-muted); }
+
+    .nt-card{
+      background: var(--nt-surface-1);
+      border: 1px solid var(--nt-border);
+      border-radius: 1rem;
+      transition: .12s;
+    }
+    .nt-card:hover{
+      transform: translateY(-1px);
+      border-color: var(--nt-accent);
+      box-shadow: 0 10px 24px rgba(0,0,0,.25);
+    }
+
+    .nt-table-head{ background: var(--nt-surface-2); color: var(--nt-fg); }
+
+    .nt-btn-accent{ background: var(--nt-accent); color:#fff; border:none; }
+    .nt-btn-accent:hover{ filter: brightness(.95); }
+
+    .nt-back{
+      display:inline-flex; align-items:center; gap:.5rem;
+      border:1px solid var(--nt-border);
+      background:transparent; color:var(--nt-primary);
+    }
+    .nt-back:hover{ background:var(--nt-surface-2); }
+
+    /* Inputs oscuros */
+    .form-control.nt-input, .form-select.nt-input{
+      background: var(--nt-surface-2); color: var(--nt-fg); border-color: var(--nt-border);
+    }
+    .form-control.nt-input:focus, .form-select.nt-input:focus{
+      border-color: var(--nt-accent);
+      box-shadow: 0 0 0 .2rem rgba(0, 102, 255, .15);
+    }
+
+    /* Modales NO transparentes */
+    .modal-content{ background: var(--nt-surface-1); border:1px solid var(--nt-border); border-radius:1rem; box-shadow:0 24px 48px rgba(0,0,0,.45); }
+    .modal-header{ background: var(--nt-surface-2); border-bottom:1px solid var(--nt-border); }
+    .modal-backdrop.show{ opacity:.6 !important; }
+  </style>
+
+  <script src="${pageContext.request.contextPath}/assets/js/auth.guard.js"></script>
+  <script>
+    // Inyecta API.baseUrl desde la meta si aún no está definido (no borra nada, solo agrega)
+    (function syncApiBase(){
+      try{
+        window.API = window.API || {};
+        if (!API.baseUrl || !API.baseUrl.trim()){
+          const meta = document.querySelector('meta[name="api-base"]');
+          const base = (meta?.getAttribute('content') || '').trim();
+          if (base) API.baseUrl = base;
+        }
+        console.log('[devoluciones.jsp] API.baseUrl =', API.baseUrl || '(vacío)');
+      }catch(_){}
+    })();
+
+    // Botón Regresar (igual a otras vistas) — SIN botón “Salir”
+    function parseAuthUser(){
+      try{
+        if (window.Auth?.user) return window.Auth.user;
+        const raw = localStorage.getItem('auth_user');
+        return raw ? JSON.parse(raw) : null;
+      }catch(_){ return null; }
+    }
+    function homeForRole(role){
+      const HOME = { ADMIN:'Dashboard.jsp', OPERADOR:'dashboard_operador.jsp', FINANZAS:'dashboard_finanzas.jsp', AUDITOR:'dashboard_auditor.jsp', RRHH:'rrhh-dashboard.jsp' };
+      return HOME[(role||'').toUpperCase()] || 'Dashboard.jsp';
+    }
+    function goBack(){
+      if (history.length > 1){ history.back(); return; }
+      const user = parseAuthUser();
+      location.href = homeForRole(user?.role || user?.rol);
+    }
+  </script>
 </head>
-<body>
+<body class="nt-bg min-vh-100 d-flex flex-column">
+
+<!-- Topbar simple (SIN “Salir”) -->
+<header class="navbar nt-navbar">
+  <div class="container d-flex align-items-center justify-content-between">
+    <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="Dashboard.jsp" title="Ir al dashboard">
+      <i class="bi bi-arrow-left-right"></i> NextTech — Devoluciones
+    </a>
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-sm nt-back" onclick="goBack()">
+        <i class="bi bi-arrow-left"></i> Regresar
+      </button>
+    </div>
+  </div>
+</header>
+
 <div class="container py-4">
   <div class="d-flex align-items-center justify-content-between mb-3">
-    <h2 class="m-0">Devoluciones</h2>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNuevaDev">+ Nueva devolución</button>
+    <div>
+      <h2 class="h4 nt-title mb-1"><i class="bi bi-arrow-counterclockwise me-2"></i> Devoluciones</h2>
+      <div class="nt-subtitle">Búsqueda, registro y anulación de devoluciones.</div>
+    </div>
+    <button class="btn nt-btn-accent" data-bs-toggle="modal" data-bs-target="#modalNuevaDev">
+      <i class="bi bi-plus-circle"></i> Nueva devolución
+    </button>
   </div>
 
-  <div class="card mb-3">
+  <!-- Filtros -->
+  <div class="card nt-card mb-3">
     <div class="card-body">
       <form id="filtros" onsubmit="buscar(event)" class="row g-3">
         <div class="col-md-3">
           <label class="form-label">Desde</label>
-          <input type="date" name="desde" class="form-control"/>
+          <input type="date" name="desde" class="form-control nt-input"/>
         </div>
         <div class="col-md-3">
           <label class="form-label">Hasta</label>
-          <input type="date" name="hasta" class="form-control"/>
+          <input type="date" name="hasta" class="form-control nt-input"/>
         </div>
         <div class="col-md-3">
           <label class="form-label">Cliente ID</label>
-          <input type="number" min="1" name="clienteId" class="form-control" placeholder="Ej. 1"/>
+          <input type="number" min="1" name="clienteId" class="form-control nt-input" placeholder="Ej. 1"/>
         </div>
         <div class="col-md-3">
           <label class="form-label">Venta ID</label>
-          <input type="number" min="1" name="ventaId" class="form-control" placeholder="Ej. 14"/>
+          <input type="number" min="1" name="ventaId" class="form-control nt-input" placeholder="Ej. 14"/>
         </div>
         <div class="col-12 d-flex gap-2 justify-content-end">
-          <button class="btn btn-primary" type="submit">Buscar</button>
-          <button class="btn btn-outline-secondary" type="button" onclick="limpiar()">Limpiar</button>
+          <button class="btn nt-btn-accent" type="submit"><i class="bi bi-search"></i> Buscar</button>
+          <button class="btn btn-outline-secondary" type="button" onclick="limpiar()"><i class="bi bi-eraser"></i> Limpiar</button>
         </div>
       </form>
     </div>
   </div>
 
+  <!-- Paginación -->
   <div class="d-flex justify-content-between align-items-center mb-2">
-    <div class="d-flex align-items-center gap-2 pager">
+    <div class="d-flex align-items-center gap-2">
       <button class="btn btn-outline-secondary btn-sm" onclick="cambiarPagina(-1)">&laquo; Anterior</button>
       <div> Página <span id="pActual">1</span> </div>
       <button class="btn btn-outline-secondary btn-sm" onclick="cambiarPagina(1)">Siguiente &raquo;</button>
@@ -56,10 +163,11 @@
     <small class="text-muted">Mostrando 10 por página</small>
   </div>
 
-  <div class="card">
+  <!-- Tabla -->
+  <div class="card nt-card">
     <div class="table-responsive">
-      <table class="table table-striped table-hover align-middle mb-0" id="tabla">
-        <thead>
+      <table class="table table-hover align-middle mb-0" id="tabla">
+        <thead class="nt-table-head">
         <tr>
           <th>ID</th>
           <th>Número</th>
@@ -76,20 +184,20 @@
     </div>
     <div id="tablaEmpty" class="p-3 text-muted d-none">Sin resultados para los filtros actuales.</div>
   </div>
+</div>
 
-  <!-- Toasts -->
-  <div class="position-fixed bottom-0 end-0 p-3" style="z-index:1080;">
-    <div id="toastOk" class="toast align-items-center text-bg-success border-0" role="alert">
-      <div class="d-flex">
-        <div class="toast-body" id="okMsg">Acción completada.</div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-      </div>
+<!-- Toasts -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:1080;">
+  <div id="toastOk" class="toast align-items-center text-bg-success border-0" role="alert">
+    <div class="d-flex">
+      <div class="toast-body" id="okMsg">Acción completada.</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
     </div>
-    <div id="toastErr" class="toast align-items-center text-bg-danger border-0 mt-2" role="alert">
-      <div class="d-flex">
-        <div class="toast-body" id="errMsg">Ocurrió un error.</div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-      </div>
+  </div>
+  <div id="toastErr" class="toast align-items-center text-bg-danger border-0 mt-2" role="alert">
+    <div class="d-flex">
+      <div class="toast-body" id="errMsg">Ocurrió un error.</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
     </div>
   </div>
 </div>
@@ -100,7 +208,7 @@
     <div class="modal-content">
       <form id="formDev" onsubmit="guardarDevolucion(event)">
         <div class="modal-header">
-          <h5 class="modal-title">Registrar nueva devolución</h5>
+          <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i> Registrar nueva devolución</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <div class="modal-body">
@@ -108,18 +216,18 @@
             <div class="col-md-4">
               <label class="form-label">Venta ID *</label>
               <div class="input-group">
-                <input type="number" min="1" class="form-control" id="devVentaId" required placeholder="Ej. 14">
-                <button class="btn btn-outline-primary" type="button" onclick="cargarVentaParaDevolucion()">Cargar</button>
+                <input type="number" min="1" class="form-control nt-input" id="devVentaId" required placeholder="Ej. 14">
+                <button class="btn btn-outline-primary" type="button" onclick="cargarVentaParaDevolucion()"><i class="bi bi-arrow-repeat"></i> Cargar</button>
               </div>
               <div class="form-text">Ingresa el ID de la venta y pulsa “Cargar”.</div>
             </div>
             <div class="col-md-4">
               <label class="form-label">Aprobada por (usuario) *</label>
-              <input type="number" min="1" class="form-control" id="devAprobadaPor" value="1" required>
+              <input type="number" min="1" class="form-control nt-input" id="devAprobadaPor" value="1" required>
             </div>
             <div class="col-md-4">
               <label class="form-label">Observaciones (opcional)</label>
-              <input type="text" class="form-control" id="devObs" placeholder="Motivo general">
+              <input type="text" class="form-control nt-input" id="devObs" placeholder="Motivo general">
             </div>
           </div>
 
@@ -127,8 +235,8 @@
 
           <h6 class="mb-2">Items a devolver</h6>
           <div class="table-responsive">
-            <table class="table table-sm table-striped align-middle" id="tablaDevItems">
-              <thead>
+            <table class="table table-sm align-middle" id="tablaDevItems">
+              <thead class="nt-table-head">
               <tr>
                 <th>ID Detalle Venta</th>
                 <th>Producto</th>
@@ -146,7 +254,7 @@
         </div>
         <div class="modal-footer">
           <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
-          <button class="btn btn-primary" type="submit">Guardar devolución</button>
+          <button class="btn nt-btn-accent" type="submit"><i class="bi bi-check2-circle"></i> Guardar devolución</button>
         </div>
       </form>
     </div>
@@ -158,7 +266,7 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Confirmar anulación</h5>
+        <h5 class="modal-title"><i class="bi bi-exclamation-octagon me-2"></i> Confirmar anulación</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
       <div class="modal-body">
@@ -167,26 +275,38 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button class="btn btn-danger" onclick="confirmarAnular()">Sí, anular</button>
+        <button class="btn btn-danger" onclick="confirmarAnular()"><i class="bi bi-x-circle"></i> Sí, anular</button>
       </div>
     </div>
   </div>
 </div>
 
+<!-- JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-// ==== Config ====
-const API_DEV = 'http://localhost:8080/api/devoluciones';
-const ctx     = '${pageContext.request.contextPath}';
+<!-- Mantengo tu helper (NO elimino nada). Solo lo uso. -->
+<script src="assets/js/common.api.js?v=99"></script>
 
-// ==== Utils ====
+<script>
+// ====== SOLO AGREGADOS: base y helpers (sin borrar tu lógica) ======
+const META_BASE = document.querySelector('meta[name="api-base"]')?.content?.trim();
+if (!window.API?.baseUrl && META_BASE) { window.API = window.API || {}; API.baseUrl = META_BASE; }
+
+// ==== Config ====
+// Usar meta/base unificada para evitar hardcode de puertos y prevenir 500 por URL incorrecta
+const API_BASE = (window.API?.baseUrl?.trim?.() || META_BASE || '').replace(/\/+$/,'') || 'http://localhost:8080';
+const API_DEV  = API_BASE + '/api/devoluciones';
+const ctx      = '${pageContext.request.contextPath}';
+
+// ==== Utils (tus mismas funciones; no borro nada) ====
 function money(n){
   if(n==null || isNaN(n)) return '';
   try{ return new Intl.NumberFormat('es-GT',{style:'currency',currency:'GTQ'}).format(Number(n)); }
   catch(e){ return 'Q ' + Number(n).toFixed(2); }
 }
-async function fetchJson(url){
-  const res = await fetch(url);
+async function fetchJson(url, opts){
+  // Dejo tu fetch tal cual, pero aseguro que apunte al host correcto si vino relativo
+  if (url.startsWith('/')) url = API_BASE + url;
+  const res = await fetch(url, opts);
   let body = null; try{ body = await res.json(); }catch(e){}
   if(!res.ok){
     const msg = (body && (body.detail || body.error || body.message)) || ('HTTP ' + res.status);
@@ -222,6 +342,7 @@ async function cargar(params){
     if(params.clienteId) qs.set('clienteId', params.clienteId);
     if(params.ventaId)   qs.set('ventaId', params.ventaId);
 
+    // Usamos API_DEV unificado (evita 404/500 por base errónea)
     var data = await fetchJson(API_DEV + '?' + qs.toString());
     render(toArr(data));
     var pEl = document.getElementById('pActual'); if(pEl) pEl.textContent = (page+1);
@@ -259,8 +380,8 @@ function render(rows){
       + '<td>' + est + '</td>'
       + '<td class="text-end">'
       +   '<div class="btn-group btn-group-sm">'
-      +     '<a class="btn btn-outline-secondary" href="' + ctx + '/devolucion_detalle.jsp?id=' + id + '">Ver</a>'
-      +     '<button class="btn btn-outline-danger" onclick="abrirAnular(' + id + ', \'' + numAttr + '\')">Anular</button>'
+      +     '<a class="btn btn-outline-secondary" href="' + ctx + '/devolucion_detalle.jsp?id=' + id + '"><i class="bi bi-eye"></i> Ver</a>'
+      +     '<button class="btn btn-outline-danger" onclick="abrirAnular(' + id + ', \'' + numAttr + '\')"><i class="bi bi-x-circle"></i> Anular</button>'
       +   '</div>'
       + '</td>';
     tb.appendChild(tr);
@@ -328,4 +449,3 @@ window.addEventListener('DOMContentLoaded', function(){
 
 </body>
 </html>
-

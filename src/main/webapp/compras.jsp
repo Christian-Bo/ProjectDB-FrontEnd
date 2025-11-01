@@ -2,6 +2,7 @@
     Document   : compras
     Created on : 10 oct 2025, 0:49:18
     Author     : DELL
+
 --%>
 
 <%@ page contentType="text/html; charset=UTF-8" language="java" %>
@@ -10,7 +11,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>NextTech — Compras</title>
+  <title>Nextech — Compras</title>
 
   <!-- URL base del backend -->
   <meta name="api-base" content="http://localhost:8080">
@@ -19,12 +20,22 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 
-  <!-- Estilos -->
-  <link rel="stylesheet" href="assets/css/app.css?v=15">
-  <link rel="stylesheet" href="assets/css/base.css?v=15">
-  <link rel="stylesheet" href="assets/css/compras.css?v=15">
+  <!-- Tema y estilos -->
+  <link rel="stylesheet" href="assets/css/app.css?v=16">
+  <link rel="stylesheet" href="assets/css/base.css?v=16">
+  <link rel="stylesheet" href="assets/css/compras.css?v=16">
+
+  <!-- Guard de autenticación (si lo usas en otros módulos) -->
+  <script src="assets/js/auth.guard.js"></script>
 
   <style>
+    /* Botón Regresar: mismo look en todo el sistema */
+    .nt-back {
+      display:inline-flex; align-items:center; gap:.5rem;
+      border:1px solid var(--nt-border); background: transparent; color: var(--nt-primary);
+    }
+    .nt-back:hover{ background: var(--nt-surface-2); color: var(--nt-primary); }
+
     /* Tarjetas del selector de modo */
     .modo-card{
       border:1px solid var(--nt-border);
@@ -47,37 +58,40 @@
     .modo-card p{ margin: .25rem 0 0; color: var(--nt-text); }
 
     /* Maestro–detalle */
-    .det-mini { font-size:.8rem; color: var(--nt-text-2); }
+    .det-mini { font-size:.8rem; color: var(--nt-text); }
     .det-meta { display:flex; gap:.5rem; flex-wrap:wrap; }
     .det-meta .form-control-plaintext { padding:0; min-height:auto; }
 
-    /* Compatibilidad: dejamos el input de ID que usa tu JS, pero oculto visualmente */
-    .legacy-producto-id{ 
-      display:none !important; /* lo mantenemos en el DOM para que tu JS actual pueda leerlo si lo necesita */
-    }
+    /* Mantener input de ID (JS legacy) pero oculto visualmente */
+    .legacy-producto-id{ display:none !important; }
   </style>
 </head>
 <body class="nt-bg">
+<script>
+  // (Opcional) Restringe acceso si quieres que solo roles permitidos entren
+  // Auth.ensure(['ADMIN']); // descomenta si aplica
+</script>
 
-<!-- Navbar -->
-<nav class="navbar navbar-expand-lg nt-navbar">
-  <div class="container">
-    <a class="navbar-brand d-flex align-items-center gap-2" href="index.jsp">
-      <i class="bi bi-bag-plus"></i> NextTech — Compras
+<!-- Header minimal, sin menú de módulos -->
+<header class="navbar nt-navbar">
+  <div class="container d-flex align-items-center justify-content-between">
+    <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="Dashboard.jsp" title="Ir al dashboard">
+      <i class="bi bi-bag-plus"></i> Nextech — Compras
     </a>
-    <div class="ms-auto d-flex gap-2">
-      <a class="btn btn-outline-light btn-sm" href="index.jsp"><i class="bi bi-house-door"></i> Inicio</a>
-      <a class="btn btn-outline-light btn-sm" href="proveedores.jsp"><i class="bi bi-truck"></i> Proveedores</a>
+    <div class="d-flex align-items-center gap-2">
+      <button type="button" class="btn btn-sm nt-back" onclick="goBack()" title="Regresar">
+        <i class="bi bi-arrow-left"></i> Regresar
+      </button>
     </div>
   </div>
-</nav>
+</header>
 
 <main class="container my-4">
   <!-- Título + acciones -->
   <div class="d-flex align-items-center justify-content-between mb-3 comp-actions">
-    <h1 class="comp-hero-title h3 mb-0"><i class="bi bi-cart2 me-2"></i>Compras</h1>
+    <h1 class="comp-hero-title h3 mb-0 nt-title"><i class="bi bi-cart2 me-2"></i>Compras</h1>
     <div class="d-flex gap-2">
-      <button id="btnNuevaCompra" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Nueva compra</button>
+      <button id="btnNuevaCompra" class="btn nt-btn-accent"><i class="bi bi-plus-circle"></i> Nueva compra</button>
       <button id="btnRefrescar" class="btn btn-outline-secondary"><i class="bi bi-arrow-clockwise"></i> Refrescar</button>
     </div>
   </div>
@@ -118,7 +132,7 @@
         <input type="text" id="fTexto" class="form-control" placeholder="N° compra / factura / observaciones...">
       </div>
       <div class="col-md-1 d-grid">
-        <button id="btnBuscar" class="btn btn-primary"><i class="bi bi-search"></i> Buscar</button>
+        <button id="btnBuscar" class="btn nt-btn-accent"><i class="bi bi-search"></i> Buscar</button>
       </div>
     </div>
   </div>
@@ -126,7 +140,7 @@
   <!-- Tabla -->
   <div class="table-responsive">
     <table class="table table-hover align-middle mb-0" id="tblCompras">
-      <thead>
+      <thead class="nt-table-head">
         <tr>
           <th>#</th>
           <th>N° Compra</th>
@@ -410,19 +424,14 @@
   </div>
 </div>
 
-<!-- ===================== PLANTILLAS DE FILA (solo estructura visual) ===================== -->
-
-<!-- NUEVA compra: cada fila tiene SELECT (visible) + INPUT de ID oculto (compat) -->
+<!-- Plantillas de fila -->
 <template id="tplFilaDetalleNuevo">
   <tr>
     <td>
-      <!-- Visible: nombre de producto -->
       <select class="form-select form-select-sm prod-select" aria-label="Producto">
         <option value="">— Seleccione —</option>
       </select>
-      <!-- Compatibilidad con JS actual: mantiene el input de ID -->
       <input type="number" class="form-control form-control-sm legacy-producto-id inp-productoId" placeholder="ID">
-      <!-- Metadatos para autollenado posterior -->
       <div class="det-meta mt-1">
         <span class="form-control-plaintext det-mini"><i class="bi bi-upc-scan"></i> <span class="meta-codigo">—</span></span>
         <span class="form-control-plaintext det-mini"><i class="bi bi-rulers"></i> <span class="meta-unidad">—</span></span>
@@ -438,7 +447,6 @@
   </tr>
 </template>
 
-<!-- AGREGAR líneas: misma estructura -->
 <template id="tplFilaDetalleAgregar">
   <tr>
     <td>
@@ -468,7 +476,36 @@
 
 <!-- JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="assets/js/common.js?v=15"></script>
-<script src="assets/js/compras.js?v=15"></script>
+<script src="assets/js/common.js?v=16"></script>
+<script src="assets/js/compras.js?v=16"></script>
+
+<script>
+  // Botón Regresar inteligente por rol
+  function parseAuthUser(){
+    try{
+      if (window.Auth?.user) return window.Auth.user;
+      const raw = localStorage.getItem('auth_user');
+      return raw ? JSON.parse(raw) : null;
+    }catch(_){ return null; }
+  }
+
+  function homeForRole(role){
+    // Ajusta aquí los dashboards de cada rol
+    const HOME_BY_ROLE = {
+      'ADMIN': 'Dashboard.jsp',
+      'OPERADOR': 'dashboard_operador.jsp',
+      'RRHH': 'rrhh-dashboard.jsp'
+      // agrega más roles si aplica
+    };
+    return HOME_BY_ROLE[role?.toUpperCase?.()] || 'Dashboard.jsp';
+  }
+
+  function goBack(){
+    if (history.length > 1) { history.back(); return; }
+    const user = parseAuthUser();
+    const home = homeForRole(user?.role || user?.rol);
+    location.href = home;
+  }
+</script>
 </body>
 </html>

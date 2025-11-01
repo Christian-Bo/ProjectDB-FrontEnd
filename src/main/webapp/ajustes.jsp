@@ -6,47 +6,115 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>NextTech • Ajustes de Inventario</title>
 
+  <!-- Base del backend -->
   <meta name="api-base" content="http://localhost:8080" />
 
   <!-- Bootstrap + Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
-  <!-- Estilos comunes -->
+  <!-- Estilos NextTech -->
   <link rel="stylesheet" href="assets/css/base.css">
   <link rel="stylesheet" href="assets/css/app.css">
+
+  <style>
+    /* Layout base */
+    html, body { height: 100%; }
+    body.nt-bg { min-height: 100vh; display: flex; flex-direction: column; }
+    main.flex-grow-1 { flex: 1 1 auto; display: flex; flex-direction: column; }
+
+    /* Topbar unificada (igual al resto del sistema) */
+    .nt-navbar{
+      background: var(--nt-surface-1);
+      border-bottom: 1px solid var(--nt-border);
+    }
+    .nt-navbar .navbar-brand{ color: var(--nt-fg-strong); }
+    .nt-navbar .container-fluid{
+      display:flex; align-items:center; justify-content:space-between;
+      min-height: 56px;
+    }
+
+    /* Botón Regresar estándar */
+    .nt-back{
+      display:inline-flex; align-items:center; gap:.5rem;
+      border:1px solid var(--nt-border);
+      background: transparent; color: var(--nt-primary);
+    }
+    .nt-back:hover{ background: var(--nt-surface-2); color: var(--nt-primary); }
+
+    /* Tarjetas/Tabla */
+    .nt-card{
+      background: var(--nt-surface-1);
+      border:1px solid var(--nt-border);
+      border-radius: 1rem;
+    }
+    .nt-table-head{ background: var(--nt-surface-2); color: var(--nt-fg); }
+
+    /* Separaciones suaves dentro de cards */
+    .nt-card .row,
+    .nt-card .btn-toolbar,
+    .nt-card .card-header { margin-bottom: .75rem; }
+    .nt-card .table { margin-top: .5rem; }
+    .nt-card .card-footer, .nt-card .pagination { margin-top: .75rem; }
+  </style>
+
+  <script src="assets/js/auth.guard.js"></script>
+  <script>
+    // Helpers de navegación (como en las demás pantallas)
+    function parseAuthUser(){
+      try{
+        if (window.Auth?.user) return window.Auth.user;
+        const raw = localStorage.getItem('auth_user');
+        return raw ? JSON.parse(raw) : null;
+      }catch(_){ return null; }
+    }
+    function homeForRole(role){
+      const map = {
+        'ADMIN':'dashboard_admin.jsp',
+        'FINANZAS':'dashboard_finanzas.jsp',
+        'AUDITOR':'dashboard_auditor.jsp',
+        'RRHH':'dashboard_rrhh.jsp',
+        'OPERACIONES':'dashboard_operaciones.jsp',
+        'OPERADOR':'dashboard_operaciones.jsp'
+      };
+      return map[(role||'').toUpperCase()] || 'Dashboard.jsp';
+    }
+    function goBack(){
+      if (history.length > 1) { history.back(); return; }
+      const user = parseAuthUser();
+      location.href = homeForRole(user?.role || user?.rol);
+    }
+  </script>
 </head>
 <body class="nt-bg">
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg nt-navbar shadow-sm">
+
+  <!-- Topbar: marca a la izquierda y REGRESAR a la derecha (sin chip ni botón Salir) -->
+  <header class="navbar nt-navbar">
     <div class="container-fluid">
-      <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="./">
-        <i class="bi bi-boxes"></i> NextTech
+      <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="Dashboard.jsp" title="Ir al dashboard">
+        <i class="bi bi-sliders"></i> NextTech — Ajustes de Inventario
       </a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div id="navMain" class="collapse navbar-collapse">
-        <ul class="navbar-nav ms-auto">
-          <li class="nav-item"><a class="nav-link" href="Dashboard.jsp"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
-          <li class="nav-item"><a class="nav-link" href="bodegas.jsp"><i class="bi bi-building"></i> Bodegas</a></li>
-          <li class="nav-item"><a class="nav-link" href="inventario.jsp"><i class="bi bi-box-seam"></i> Inventario</a></li>
-          <li class="nav-item"><a class="nav-link" href="transferencias.jsp"><i class="bi bi-arrow-left-right"></i> Transferencias</a></li>
-          <li class="nav-item"><a class="nav-link active" href="ajustes.jsp"><i class="bi bi-sliders"></i> Ajustes</a></li>
-        </ul>
+      <div class="d-flex align-items-center gap-2">
+        <button type="button" class="btn btn-sm nt-back" onclick="goBack()" title="Regresar">
+          <i class="bi bi-arrow-left"></i> Regresar
+        </button>
       </div>
     </div>
-  </nav>
+  </header>
 
   <!-- Contenido -->
-  <main class="py-4">
+  <main class="py-4 flex-grow-1">
     <div class="container-fluid">
       <div class="d-flex align-items-center justify-content-between mb-3">
         <div>
           <h1 class="h3 nt-title mb-1"><i class="bi bi-sliders"></i> Ajustes de Inventario</h1>
           <p class="mb-0 nt-subtitle">Correcciones y ajustes de cantidades en inventario.</p>
         </div>
-        <div><button id="btnNuevoAjuste" class="btn nt-btn-accent"><i class="bi bi-plus-circle"></i> Nuevo Ajuste</button></div>
+        <div>
+          <button id="btnNuevoAjuste" class="btn nt-btn-accent">
+            <i class="bi bi-plus-circle"></i> Nuevo Ajuste
+          </button>
+        </div>
       </div>
 
       <!-- Filtros -->
@@ -76,7 +144,9 @@
             <input id="filtroFechaHasta" type="date" class="form-control"/>
           </div>
           <div class="align-self-end">
-            <button id="btnBuscar" class="btn btn-primary"><i class="bi bi-search"></i> Buscar</button>
+            <button id="btnBuscar" class="btn btn-primary">
+              <i class="bi bi-search"></i> Buscar
+            </button>
           </div>
         </div>
       </div>
@@ -98,7 +168,11 @@
               </tr>
             </thead>
             <tbody id="tblAjustes">
-              <tr><td colspan="8" class="text-center py-4"><div class="spinner-border text-primary"></div></td></tr>
+              <tr>
+                <td colspan="8" class="text-center py-4">
+                  <div class="spinner-border text-primary" role="status"></div>
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -249,7 +323,9 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="submit" class="btn nt-btn-accent"><i class="bi bi-check2-circle"></i> Crear Ajuste</button>
+          <button type="submit" class="btn nt-btn-accent">
+            <i class="bi bi-check2-circle"></i> Crear Ajuste
+          </button>
         </div>
       </form>
     </div>

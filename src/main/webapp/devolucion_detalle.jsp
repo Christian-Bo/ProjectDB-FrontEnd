@@ -1,15 +1,12 @@
-<%-- 
-    Document   : devolucion_detalle
-    Created on : 15/10/2025, 20:27:51
-    Author     : rodri
---%>
-
 <%@page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" isELIgnored="false"%>
 <!DOCTYPE html>
 <html lang="es" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8">
   <title>Detalle de devolución | NextTech</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="api-base" content="http://localhost:8080"/>
+
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/app.css?v=dark-purple-5">
 </head>
@@ -26,7 +23,7 @@
 
   <div class="card">
     <div class="table-responsive">
-      <table class="table table-striped table-hover align-middle mb-0">
+      <table class="table table-striped table-hover align-middle mb-0" id="tabla">
         <thead>
           <tr>
             <th>ID Detalle</th>
@@ -58,7 +55,7 @@ function money(n){
 }
 function val(x){ return (x===undefined || x===null) ? '' : String(x); }
 
-/* === Renders (sin template literals para no chocar con EL) === */
+/* === Renders === */
 function renderHeader(h){
   var html  = '';
   html += '<div class="row g-2">';
@@ -69,7 +66,7 @@ function renderHeader(h){
   html += '</div>';
 
   html += '<div class="row g-2 mt-2">';
-  html +=   '<div class="col-md-2"><b>Total:</b> <span class="badge ok">' + money(h.total_devolucion||h.totalDevolucion) + '</span></div>';
+  html +=   '<div class="col-md-2"><b>Total:</b> <span class="badge bg-success-subtle text-success-emphasis">' + money(h.total_devolucion||h.totalDevolucion) + '</span></div>';
   html +=   '<div class="col-md-2"><b>Estado:</b> ' + val(h.estado) + '</div>';
   html +=   '<div class="col-md-8"><b>Obs.:</b> ' + val(h.observaciones||h.obs) + '</div>';
   html += '</div>';
@@ -78,13 +75,14 @@ function renderHeader(h){
 }
 
 function renderDetalle(items){
-  var tbody = document.querySelector('#tabla tbody');
+  var tbody = document.getElementById('tbody');
   tbody.innerHTML = '';
   (items||[]).forEach(function(d){
     var tr = document.createElement('tr');
     tr.innerHTML =
         '<td>' + val(d.detalle_id||d.id) + '</td>'
-      + '<td>' + val(d.producto_id||d.productoId) + '</td>'
+      + '<td>' + val(d.detalle_venta_id||d.detalleVentaId||d.producto_id||d.productoId) + '</td>'
+      + '<td>' + val(d.producto_nombre||d.productoNombre||d.producto_id||d.productoId) + '</td>'
       + '<td>' + val(d.cantidad) + '</td>';
     tbody.appendChild(tr);
   });
@@ -105,7 +103,7 @@ async function cargar(){
   }catch(err){
     var cab = document.getElementById('cabecera');
     cab.innerHTML = '<div class="alert alert-danger">Error: ' + (err.message||'desconocido') + '</div>';
-    document.querySelector('#tabla tbody').innerHTML = '';
+    document.getElementById('tbody').innerHTML = '';
   }
 }
 
@@ -114,4 +112,3 @@ window.addEventListener('DOMContentLoaded', cargar);
 
 </body>
 </html>
-

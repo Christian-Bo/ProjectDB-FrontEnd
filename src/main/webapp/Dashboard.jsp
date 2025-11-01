@@ -30,34 +30,25 @@
   <!-- Estilos del módulo Dashboard (ligeros, no sobrescriben tu paleta) -->
   <link rel="stylesheet" href="assets/css/Dashboard.css?v=9">
 </head>
-<body class="nt-bg">
+<body class="nt-bg min-vh-100 d-flex flex-column">
 
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg nt-navbar shadow-sm">
-    <div class="container">
-      <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="./">
+  <!-- Navbar mínima con botón Regresar -->
+  <nav class="navbar nt-navbar shadow-sm">
+    <div class="container d-flex align-items-center justify-content-between">
+      <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="Dashboard.jsp" title="Inicio">
         <i class="bi bi-boxes"></i> NextTech
       </a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
-        <span class="navbar-toggler-icon"></span>
+      <button type="button" class="btn btn-outline-light btn-sm" onclick="goBack()" title="Regresar">
+        <i class="bi bi-arrow-left me-1"></i> Regresar
       </button>
-      <div id="navMain" class="collapse navbar-collapse">
-        <ul class="navbar-nav ms-auto">
-          <li class="nav-item"><a class="nav-link active" href="./"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
-          <li class="nav-item"><a class="nav-link" href="proveedores.jsp"><i class="bi bi-truck"></i> Proveedores</a></li>
-          <li class="nav-item"><a class="nav-link" href="compras.jsp"><i class="bi bi-cart4"></i> Compras</a></li>
-          <li class="nav-item"><a class="nav-link" href="compras_pagos.jsp"><i class="bi bi-cash-coin"></i> Pagos Compra</a></li>
-          <li class="nav-item"><a class="nav-link" href="cxp.jsp"><i class="bi bi-receipt"></i> CxP</a></li>
-        </ul>
-      </div>
     </div>
   </nav>
 
   <!-- Contenido -->
-  <main class="py-4">
+  <main class="py-4 flex-grow-1">
     <div class="container">
 
-      <!-- Título + acciones -->
+      <!-- Título + acciones (dejé solo Actualizar + accesos rápidos que ya tenías) -->
       <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
         <div>
           <h1 class="h3 nt-title mb-1"><i class="bi bi-speedometer2"></i> Dashboard</h1>
@@ -103,7 +94,7 @@
           </div>
         </div>
 
-        <!-- Saldo CxP pendiente (suma de saldo_pendiente en documentos estado=P) -->
+        <!-- Saldo CxP pendiente -->
         <div class="col-12 col-sm-6 col-lg-3">
           <div class="card nt-card h-100 shadow-sm">
             <div class="card-body d-flex align-items-center gap-3">
@@ -116,7 +107,7 @@
           </div>
         </div>
 
-        <!-- Pagos CxP del mes (total Q) -->
+        <!-- Pagos CxP del mes -->
         <div class="col-12 col-sm-6 col-lg-3">
           <div class="card nt-card h-100 shadow-sm">
             <div class="card-body d-flex align-items-center gap-3">
@@ -223,9 +214,19 @@
   </div>
 
   <!-- JS -->
+  <script>
+    function goBack(){
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        // si no hay historial, vete al portal principal
+        window.location.href = 'Dashboard.jsp';
+      }
+    }
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-  <script src="assets/js/common.js?v=9"></script>
-  <script src="assets/js/Dashboard.js?v=9"></script>
+  <script src="assets/js/common.js?v=10"></script>
+  <script src="assets/js/Dashboard.js?v=10"></script>
 </body>
 </html>
