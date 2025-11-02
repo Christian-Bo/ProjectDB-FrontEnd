@@ -2,7 +2,6 @@
     Document   : cxp
     Created on : 10 oct 2025, 22:05:23
     Author     : DELL
-
 --%>
 <%@page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <!doctype html>
@@ -21,41 +20,63 @@
   <!-- Tema NextTech -->
   <link rel="stylesheet" href="assets/css/base.css?v=13">
   <link rel="stylesheet" href="assets/css/app.css?v=13">
-  <link rel="stylesheet" href="assets/css/cxp.css?v=12">
+  <link rel="stylesheet" href="assets/css/cxp.css?v=15"><!-- v15 -->
 
-  <style>
-    body.nt-bg { background: var(--nt-bg); color: var(--nt-fg); }
-    .nt-title{ color: var(--nt-fg-strong); }
-    .nt-subtitle{ color: var(--nt-fg-muted); }
+<style>
+  body.nt-bg { background: var(--nt-bg); color: var(--nt-text); }
+  .nt-title{ color: var(--nt-primary); }
+  .nt-subtitle{ color: var(--nt-text); opacity:.9; }
 
-    .nt-back{ display:inline-flex; align-items:center; gap:.5rem; border:1px solid var(--nt-border); background:transparent; color:var(--nt-primary); }
-    .nt-back:hover{ background:var(--nt-surface-2); }
+  .nt-back{
+    display:inline-flex; align-items:center; gap:.5rem;
+    border:1px solid var(--nt-border);
+    background:transparent; color: var(--nt-primary);
+  }
+  .nt-back:hover{ background: var(--nt-surface-2); }
 
-    .nt-card{ background: var(--nt-surface-1); border:1px solid var(--nt-border); border-radius:1rem; transition:.12s; }
-    .nt-card:hover{ transform: translateY(-1px); border-color: var(--nt-accent); box-shadow: 0 10px 24px rgba(0,0,0,.35); }
+  .nt-card{
+    background: var(--nt-surface);
+    border:1px solid var(--nt-border);
+    border-radius:1rem; transition:.12s;
+  }
+  .nt-card:hover{
+    transform: translateY(-1px);
+    border-color: var(--nt-accent);
+    box-shadow: 0 10px 24px rgba(0,0,0,.35);
+  }
 
-    .nt-table-head{ background: var(--nt-surface-2); color: var(--nt-fg); }
-    .nt-btn-accent{ background: var(--nt-accent); color:#fff; border:none; }
-    .nt-btn-accent:hover{ filter: brightness(.95); }
+  .nt-table-head{ background: var(--nt-surface-2); color: var(--nt-primary); }
+  .nt-btn-accent{ background: var(--nt-accent); color:#fff; border:none; }
+  .nt-btn-accent:hover{ filter: brightness(.95); }
 
-    /* Inputs oscuros como Transferencias */
-    .form-control.nt-input, .form-select.nt-input{
-      background: var(--nt-surface-2); color: var(--nt-fg); border-color: var(--nt-border);
-    }
-    .form-control.nt-input:focus, .form-select.nt-input:focus{
-      border-color: var(--nt-accent);
-      box-shadow: 0 0 0 .2rem rgba(0,102,255,.15);
-    }
+  .form-control.nt-input, .form-select.nt-input{
+    background: var(--nt-surface-2);
+    color: var(--nt-text);
+    border-color: var(--nt-border);
+  }
+  .form-control.nt-input:focus, .form-select.nt-input:focus{
+    border-color: var(--nt-accent);
+    box-shadow: 0 0 0 .2rem rgba(0,102,255,.15);
+  }
 
-    /* Modal del tema */
-    .modal-content{ background: var(--nt-surface-1); border:1px solid var(--nt-border); border-radius:1rem; }
-    .modal-header{ background: var(--nt-surface-2); border-bottom:1px solid var(--nt-border); }
-    .modal-backdrop.show{ opacity:.6 !important; }
-  </style>
+  .modal-content{
+    background: var(--nt-surface) !important;
+    color: var(--nt-text);
+    border:1px solid var(--nt-border);
+    border-radius:1rem;
+  }
+  .modal-header{
+    background: var(--nt-surface-2);
+    border-bottom:1px solid var(--nt-border);
+    color: var(--nt-primary);
+  }
+  .modal-footer{ border-top:1px solid var(--nt-border); }
+  .modal-backdrop.show{ opacity:.6 !important; }
+</style>
 </head>
 <body class="nt-bg min-vh-100 d-flex flex-column">
 
-  <!-- Header minimal SIN botón de Salir -->
+  <!-- Header -->
   <header class="navbar nt-navbar">
     <div class="container d-flex align-items-center justify-content-between">
       <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="Dashboard.jsp" title="Ir al dashboard">
@@ -113,8 +134,10 @@
             <div class="card-body">
               <div class="row g-3 align-items-end">
                 <div class="col-md-3">
-                  <label class="form-label">proveedor_id</label>
-                  <input id="doc-proveedor" class="form-control nt-input" type="number" placeholder="ej. 10">
+                  <label class="form-label">Proveedor</label>
+                  <select id="doc-proveedor" class="form-select nt-input">
+                    <option value="">— Todos —</option>
+                  </select>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">Texto</label>
@@ -153,8 +176,10 @@
             <div class="card-body">
               <div class="row g-3 align-items-end">
                 <div class="col-md-3">
-                  <label class="form-label">proveedor_id</label>
-                  <input id="pag-proveedor" class="form-control nt-input" type="number" placeholder="ej. 10">
+                  <label class="form-label">Proveedor</label>
+                  <select id="pag-proveedor" class="form-select nt-input">
+                    <option value="">— Todos —</option>
+                  </select>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">Texto</label>
@@ -191,12 +216,15 @@
           <div class="card nt-card shadow-sm mb-3 rounded-xxl">
             <div class="card-body">
               <div class="row g-3 align-items-end">
-                <div class="col-md-3">
-                  <label class="form-label">pago_id</label>
-                  <input id="apl-pago-id" class="form-control nt-input" type="number" placeholder="ID del pago">
-                </div>
-                <div class="col-md-3">
-                  <button id="apl-cargar" class="btn btn-outline-secondary mt-4"><i class="bi bi-arrow-repeat"></i> Cargar</button>
+                <div class="col-md-6">
+                  <label class="form-label">Pago</label>
+                  <div class="d-flex gap-2">
+                    <select id="apl-pago-id" class="form-select nt-input">
+                      <option value="">— Seleccione un pago —</option>
+                    </select>
+                    <button id="apl-cargar" class="btn btn-outline-secondary"><i class="bi bi-arrow-repeat"></i></button>
+                  </div>
+                  <small class="text-muted">Tip: filtra pagos en la pestaña “Pagos” y vuelve aquí.</small>
                 </div>
               </div>
             </div>
@@ -205,12 +233,20 @@
           <div class="row g-3">
             <div class="col-lg-6">
               <div class="card nt-card shadow-sm rounded-xxl h-100">
-                <div class="card-header fw-semibold"><i class="bi bi-list-check"></i> Aplicaciones existentes</div>
+                <div class="card-header fw-semibold">
+                  <i class="bi bi-list-check"></i> Aplicaciones existentes
+                </div>
                 <div class="card-body p-0">
                   <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
                       <thead class="nt-table-head">
-                        <tr><th>#</th><th>pago_id</th><th>documento_id</th><th class="text-end">monto_aplicado</th><th>fecha</th></tr>
+                        <tr>
+                          <th>#</th>
+                          <th>Documento</th>
+                          <th>Pago</th>
+                          <th class="text-end">Monto aplicado</th>
+                          <th>Fecha</th>
+                        </tr>
                       </thead>
                       <tbody id="apl-tbody"></tbody>
                     </table>
@@ -218,11 +254,35 @@
                 </div>
               </div>
             </div>
-            <div class="col-lg-6">
-              <form id="form-apl" class="card nt-card shadow-sm rounded-xxl h-100">
+
+            <div class="col-lg-6 d-flex flex-column gap-3">
+              <!-- NUEVO: selector rápido de documentos -->
+              <div class="card nt-card shadow-sm rounded-xxl">
+                <div class="card-header fw-semibold"><i class="bi bi-bag-check"></i> Seleccionar documentos del proveedor</div>
+                <div class="card-body p-0">
+                  <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                      <thead class="nt-table-head">
+                        <tr>
+                          <th>Documento</th>
+                          <th>Origen</th>
+                          <th class="text-end">Saldo</th>
+                          <th class="text-end" style="width:160px">Aplicar</th>
+                          <th class="text-end">+</th>
+                        </tr>
+                      </thead>
+                      <tbody id="apl-docs-rapidos-tbody">
+                        <tr><td colspan="5" class="text-center text-muted">Seleccione un pago para cargar documentos…</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <form id="form-apl" class="card nt-card shadow-sm rounded-xxl">
                 <div class="card-header fw-semibold"><i class="bi bi-plus-circle"></i> Nueva aplicación (lote)</div>
                 <div class="card-body">
-                  <p class="text-muted small mb-2">Formato: <code>documento_id; monto</code> (una línea por item)</p>
+                  <p class="text-muted small mb-2">Formato: <code>documento_id; monto</code> (una línea por ítem)</p>
                   <textarea id="apl-items" class="form-control nt-input" rows="8" placeholder="3001; 950.00&#10;3002; 250.00"></textarea>
                 </div>
                 <div class="card-footer text-end">
@@ -230,6 +290,7 @@
                 </div>
               </form>
             </div>
+
           </div>
 
         </div>
@@ -249,14 +310,51 @@
         <div class="modal-body">
           <input type="hidden" id="doc-id">
           <div class="row g-3">
-            <div class="col-md-3"><label class="form-label">proveedor_id</label><input id="proveedor_id" type="number" class="form-control nt-input" required></div>
-            <div class="col-md-3"><label class="form-label">origen_tipo</label><select id="origen_tipo" class="form-select nt-input" required><option value="">—</option><option value="C">C (Compra)</option><option value="F">F (Manual)</option></select></div>
-            <div class="col-md-3"><label class="form-label">origen_id</label><input id="origen_id" type="number" class="form-control nt-input" required></div>
-            <div class="col-md-3"><label class="form-label">numero_documento</label><input id="numero_documento" class="form-control nt-input" required></div>
-            <div class="col-md-4"><label class="form-label">fecha_emision</label><input id="fecha_emision" type="date" class="form-control nt-input" required></div>
-            <div class="col-md-4"><label class="form-label">fecha_vencimiento</label><input id="fecha_vencimiento" type="date" class="form-control nt-input"></div>
-            <div class="col-md-2"><label class="form-label">moneda</label><input id="moneda" class="form-control nt-input" value="GTQ" required></div>
-            <div class="col-md-2"><label class="form-label">monto_total</label><input id="monto_total" type="number" step="0.01" min="0" class="form-control nt-input" required></div>
+            <div class="col-md-4">
+              <label class="form-label">Proveedor</label>
+              <select id="proveedor_id" class="form-select nt-input" required>
+                <option value="">— Seleccione —</option>
+              </select>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label">Origen</label>
+              <div class="input-group">
+                <select id="origen_tipo" class="form-select nt-input" required style="max-width:140px">
+                  <option value="">—</option>
+                  <option value="C">Compra</option>
+                  <option value="F">Manual</option>
+                </select>
+
+                <!-- Select dependiente -->
+                <select id="origen_id_sel" class="form-select nt-input" title="ID origen" style="display:none"></select>
+
+                <!-- Fallback manual -->
+                <input id="origen_id" type="number" class="form-control nt-input" placeholder="ID origen" required>
+              </div>
+              <small id="origen_nombre_hint" class="text-muted d-block mt-1"></small>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label">numero_documento</label>
+              <input id="numero_documento" class="form-control nt-input" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">fecha_emision</label>
+              <input id="fecha_emision" type="date" class="form-control nt-input" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">fecha_vencimiento</label>
+              <input id="fecha_vencimiento" type="date" class="form-control nt-input">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">moneda</label>
+              <input id="moneda" class="form-control nt-input" value="GTQ" required>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">monto_total</label>
+              <input id="monto_total" type="number" step="0.01" min="0" class="form-control nt-input" required>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -278,11 +376,33 @@
         <div class="modal-body">
           <input type="hidden" id="pago_id">
           <div class="row g-3">
-            <div class="col-md-3"><label class="form-label">proveedor_id</label><input id="p_proveedor_id" type="number" class="form-control nt-input" required></div>
-            <div class="col-md-3"><label class="form-label">fecha_pago</label><input id="fecha_pago" type="date" class="form-control nt-input" required></div>
-            <div class="col-md-3"><label class="form-label">forma_pago</label><select id="p_forma_pago" class="form-select nt-input" required><option value="">—</option><option value="transferencia">Transferencia</option><option value="efectivo">Efectivo</option><option value="cheque">Cheque</option></select></div>
-            <div class="col-md-3"><label class="form-label">monto_total</label><input id="p_monto_total" type="number" step="0.01" min="0" class="form-control nt-input" required></div>
-            <div class="col-12"><label class="form-label">observaciones</label><input id="observaciones" class="form-control nt-input" placeholder="Opcional"></div>
+            <div class="col-md-4">
+              <label class="form-label">Proveedor</label>
+              <select id="p_proveedor_id" class="form-select nt-input" required>
+                <option value="">— Seleccione —</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">fecha_pago</label>
+              <input id="fecha_pago" type="date" class="form-control nt-input" required>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">forma_pago</label>
+              <select id="p_forma_pago" class="form-select nt-input" required>
+                <option value="">—</option>
+                <option value="transferencia">Transferencia</option>
+                <option value="efectivo">Efectivo</option>
+                <option value="cheque">Cheque</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">monto_total</label>
+              <input id="p_monto_total" type="number" step="0.01" min="0" class="form-control nt-input" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label">observaciones</label>
+              <input id="observaciones" class="form-control nt-input" placeholder="Opcional">
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -301,10 +421,9 @@
   <!-- JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="assets/js/common.js?v=11"></script>
-  <script src="assets/js/cxp.js?v=12"></script>
+  <script src="assets/js/cxp.js?v=15"></script><!-- v15 -->
 
   <script>
-    // Botón REGRESAR (igual que Transferencias)
     function parseAuthUser(){
       try{ if (window.Auth?.user) return window.Auth.user; const raw = localStorage.getItem('auth_user'); return raw ? JSON.parse(raw) : null; }catch(_){ return null; }
     }
