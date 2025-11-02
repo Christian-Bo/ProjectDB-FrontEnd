@@ -34,7 +34,7 @@
       min-height: 56px;
     }
 
-    /* Botón Regresar (estándar del proyecto) */
+    /* Botón Regresar */
     .nt-back{
       display:inline-flex; align-items:center; gap:.5rem;
       border:1px solid var(--nt-border);
@@ -42,7 +42,7 @@
     }
     .nt-back:hover{ background: var(--nt-surface-2); color: var(--nt-primary); }
 
-    /* Tabs estilo NextTech (pills planas) */
+    /* Tabs */
     .nt-pills .nav-link{
       border:1px solid var(--nt-border);
       background:var(--nt-surface-1);
@@ -61,7 +61,7 @@
       background: var(--nt-surface-1);
       border:1px solid var(--nt-border);
       border-radius: 1rem;
-      padding: .75rem;           /* un poco de aire interno */
+      padding: .75rem;
     }
     .nt-table-head{ background: var(--nt-surface-2); color: var(--nt-fg); }
 
@@ -72,24 +72,19 @@
     .nt-kpi h2{ color: var(--nt-primary); margin: 0; }
     .nt-kpi p { margin: 0; color: var(--nt-fg); opacity: .85; }
 
-    /* ========= NUEVO: separaciones suaves ========= */
-    /* Cuando hay controles/filtros arriba y una tabla abajo dentro de la misma card */
+    /* Separaciones suaves */
     .nt-card .btn-toolbar,
     .nt-card .nt-toolbar,
     .nt-card .row,
     .nt-card .card-header { margin-bottom: .75rem; }
 
-    /* Si viene la tabla inmediatamente, darle aire */
     .nt-card .table { margin-top: .75rem; }
-
-    /* Paginadores/footers también con aire arriba */
     .nt-card .pagination,
     .nt-card .card-footer { margin-top: .75rem; }
 
-    /* Un poco más de separación bajo las tabs */
     #rrhhTabs { margin-bottom: 1rem; }
   </style>
-
+  
   <script src="assets/js/auth.guard.js"></script>
   <script>
     // Protección de acceso (RRHH o ADMIN)
@@ -97,7 +92,7 @@
       Auth?.ensure?.(['RRHH','ADMIN']);
     });
 
-    // Helpers de navegación (mismo patrón del proyecto)
+    // Helpers de navegación
     function parseAuthUser(){
       try{
         if (window.Auth?.user) return window.Auth.user;
@@ -125,7 +120,7 @@
 </head>
 <body class="nt-bg">
 
-  <!-- Topbar: marca a la izquierda, REGRESAR a la derecha -->
+  <!-- Topbar -->
   <header class="navbar nt-navbar">
     <div class="container-fluid">
       <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="Dashboard.jsp" title="Ir al dashboard">
@@ -143,7 +138,7 @@
   <main class="py-4 flex-grow-1">
     <div class="container-fluid">
 
-      <!-- Tabs (pills moradas) -->
+      <!-- Tabs -->
       <ul class="nav nt-pills mb-3" id="rrhhTabs" role="tablist">
         <li class="nav-item" role="presentation">
           <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-empleados" type="button" role="tab">
@@ -218,12 +213,204 @@
     <div id="toastStack" class="toast-container"></div>
   </div>
 
-  <!-- JS bundle al final -->
+  <!-- JS bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
   <!-- Inyector Authorization / API y utilidades -->
   <script src="assets/js/common.api.js?v=99"></script>
   <script src="assets/js/common_recursos.js?v=2"></script>
+
+  <!-- ===== UI Bonita: toasts + confirm (sin tocar tus módulos) ===== -->
+  <script>
+  (function () {
+    /* ---------- TOASTS (usa base.css) ---------- */
+    var ICON = { success:'check-circle', error:'x-octagon', warn:'exclamation-triangle', warning:'exclamation-triangle', info:'info-circle' };
+    var BORDER_VAR = { success:'var(--nt-success)', error:'var(--nt-danger)', warn:'var(--nt-warning)', warning:'var(--nt-warning)', info:'var(--nt-info)' };
+
+    function getToastStack(){
+      var s = document.getElementById('toastStack');
+      if (s) return s;
+      var wrap = document.createElement('div');
+      wrap.className = 'position-fixed top-0 end-0 p-3';
+      wrap.style.zIndex = 1080;
+      s = document.createElement('div');
+      s.id = 'toastStack';
+      s.className = 'toast-container';
+      wrap.appendChild(s);
+      document.body.appendChild(wrap);
+      return s;
+    }
+
+    function toast(title, bodyOrType, type, delay){
+      var klass = 'info';
+      var body  = bodyOrType;
+      if ((bodyOrType === 'success' || bodyOrType === 'error' || bodyOrType === 'warn' || bodyOrType === 'warning' || bodyOrType === 'info') && (type === undefined || type === null)) {
+        klass = bodyOrType; body = '';
+      } else {
+        klass = (['success','error','warn','warning','info'].indexOf(type||'')>=0)?(type||'info'):'info';
+      }
+      var stack = getToastStack();
+      if (typeof bootstrap === 'undefined') { alert((title?title+': ':'')+(body||'')); return; }
+      var el = document.createElement('div');
+      el.className = 'toast nt-toast nt-toast-' + klass + ' text-white';
+      el.setAttribute('role','alert'); el.setAttribute('aria-live','assertive'); el.setAttribute('aria-atomic','true');
+      el.style.borderLeft = '4px solid ' + (BORDER_VAR[klass] || BORDER_VAR.info);
+      el.style.boxShadow = 'var(--nt-shadow)';
+      var now = (new Date()).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+      var icon = ICON[klass] || ICON.info;
+      el.innerHTML =
+        '<div class="toast-header text-white border-0" style="background: transparent;">' +
+          '<i class="bi bi-' + icon + '"></i>' +
+          '<strong class="me-auto" style="margin-left:.35rem;">' + (title || 'Mensaje') + '</strong>' +
+          '<small class="text-muted">' + now + '</small>' +
+          '<button type="button" class="btn-close btn-close-white ms-2 mb-1" data-bs-dismiss="toast" aria-label="Close"></button>' +
+        '</div>' +
+        '<div class="toast-body" style="color:var(--nt-text);">' + (body || '') + '</div>';
+      stack.appendChild(el);
+      var t = new bootstrap.Toast(el, { delay: (typeof delay==='number'?delay:3500), autohide:true });
+      el.addEventListener('hidden.bs.toast', function(){ el.remove(); });
+      t.show();
+    }
+
+    // API pública: mantiene compatibilidad con tus showToast existentes
+    window.NT = window.NT || {};
+    window.NT.showToast = toast;
+    window.showToast = toast;
+    (function patchAlert(){
+      var old = window.alert;
+      window.alert = function(msg){ try{ toast('Aviso', String(msg), 'info'); }catch(e){ old(msg);} };
+    })();
+
+    /* ---------- Confirm bonito (reemplaza confirm() feo) ---------- */
+    function ensureConfirmModal(){
+      var el = document.getElementById('ntConfirm');
+      if (el) return el;
+      el = document.createElement('div');
+      el.className = 'modal fade';
+      el.id = 'ntConfirm';
+      el.tabIndex = -1;
+      el.setAttribute('aria-hidden','true');
+      el.innerHTML =
+        '<div class="modal-dialog modal-dialog-centered">'+
+          '<div class="modal-content" style="border-radius:1rem; overflow:hidden;">'+
+            '<div class="modal-header">'+
+              '<h5 class="modal-title" id="ntConfirmTitle">Confirmar</h5>'+
+              '<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>'+
+            '</div>'+
+            '<div class="modal-body" id="ntConfirmBody">¿Seguro?</div>'+
+            '<div class="modal-footer">'+
+              '<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" id="ntConfirmCancel">Cancelar</button>'+
+              '<button type="button" class="btn btn-danger" id="ntConfirmOk">Aceptar</button>'+
+            '</div>'+
+          '</div>'+
+        '</div>';
+      document.body.appendChild(el);
+      return el;
+    }
+
+    function confirmNice(opts, cb){
+      if (typeof bootstrap === 'undefined') { cb(window.confirm(opts && opts.body ? opts.body : '¿Seguro?')); return; }
+      var el = ensureConfirmModal();
+      el.querySelector('#ntConfirmTitle').textContent = (opts && opts.title) ? opts.title : 'Confirmar';
+      el.querySelector('#ntConfirmBody').textContent  = (opts && opts.body)  ? opts.body  : '¿Seguro?';
+      var okBtn = el.querySelector('#ntConfirmOk');
+      var cancelBtn = el.querySelector('#ntConfirmCancel');
+      okBtn.className = 'btn ' + ((opts && opts.variant) ? ('btn-' + opts.variant) : 'btn-danger');
+      okBtn.textContent = (opts && opts.confirmText) ? opts.confirmText : 'Aceptar';
+      cancelBtn.textContent = (opts && opts.cancelText) ? opts.cancelText : 'Cancelar';
+
+      var modal = bootstrap.Modal.getOrCreateInstance(el);
+      var done = false;
+      function cleanup(){
+        okBtn.onclick = null;
+        cancelBtn.onclick = null;
+        el.removeEventListener('hidden.bs.modal', onHide);
+      }
+      function onHide(){ if (!done){ cleanup(); cb(false); } }
+      okBtn.onclick = function(){ done=true; cleanup(); modal.hide(); cb(true); };
+      cancelBtn.onclick = function(){ done=true; cleanup(); modal.hide(); cb(false); };
+      el.addEventListener('hidden.bs.modal', onHide, {once:true});
+      modal.show();
+    }
+
+    /* --- Intercepto clicks de eliminar y hago la operación + toast ---
+       Esto conserva la UX anterior: seguirás viendo mensajes como
+       "Empleado eliminado", "Puesto actualizado", etc. */
+    // Empleados: data-del-emp
+    document.addEventListener('click', function(e){
+      var btn = e.target.closest('[data-del-emp]');
+      if (!btn) return;
+      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+      var id = btn.getAttribute('data-del-emp');
+      confirmNice({ title:'Eliminar empleado', body:'Esta acción no se puede deshacer. ¿Deseas continuar?', confirmText:'Sí, eliminar', variant:'danger' }, function(ok){
+        if (!ok) return;
+        NT.http(NT.baseUrl + '/api/rrhh/empleados/' + id, { method:'DELETE' }).then(function(){
+          NT.showToast('Empleados','Empleado eliminado','success');
+          try{ RRHH_Empleados && RRHH_Empleados.loadEmpleados && RRHH_Empleados.loadEmpleados(); }catch(_){}
+          try{ NT.loadDashboardKPIs && NT.loadDashboardKPIs(); }catch(_){}
+        }).catch(function(err){
+          NT.showToast('Empleados', String(err && err.message ? err.message : err), 'error');
+        });
+      });
+    }, true);
+
+    // Departamentos: data-del-depto
+    document.addEventListener('click', function(e){
+      var btn = e.target.closest('[data-del-depto]');
+      if (!btn) return;
+      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+      var id = btn.getAttribute('data-del-depto');
+      confirmNice({ title:'Eliminar departamento', body:'¿Seguro que deseas eliminar este departamento?', confirmText:'Sí, eliminar', variant:'danger' }, function(ok){
+        if (!ok) return;
+        NT.http(NT.baseUrl + '/api/rrhh/departamentos/' + id, { method:'DELETE' }).then(function(){
+          NT.showToast('Departamentos','Departamento eliminado','success');
+          try{ RRHH_Departamentos && RRHH_Departamentos.renderDepartamentos && RRHH_Departamentos.renderDepartamentos(); }catch(_){}
+          try{ NT.loadDashboardKPIs && NT.loadDashboardKPIs(); }catch(_){}
+        }).catch(function(err){
+          NT.showToast('Departamentos', String(err && err.message ? err.message : err), 'error');
+        });
+      });
+    }, true);
+
+    // Puestos: data-del-puesto
+    document.addEventListener('click', function(e){
+      var btn = e.target.closest('[data-del-puesto]');
+      if (!btn) return;
+      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+      var id = btn.getAttribute('data-del-puesto');
+      confirmNice({ title:'Eliminar puesto', body:'¿Seguro que deseas eliminar este puesto?', confirmText:'Sí, eliminar', variant:'danger' }, function(ok){
+        if (!ok) return;
+        NT.http(NT.baseUrl + '/api/rrhh/puestos/' + id, { method:'DELETE' }).then(function(){
+          NT.showToast('Puestos','Puesto eliminado','success');
+          try{ RRHH_Puestos && RRHH_Puestos.renderPuestos && RRHH_Puestos.renderPuestos(); }catch(_){}
+          try{ NT.loadDashboardKPIs && NT.loadDashboardKPIs(); }catch(_){}
+        }).catch(function(err){
+          NT.showToast('Puestos', String(err && err.message ? err.message : err), 'error');
+        });
+      });
+    }, true);
+
+    // Usuarios: inactivar (data-act="del")
+    document.addEventListener('click', function(e){
+      var btn = e.target.closest('button[data-act="del"][data-id]');
+      if (!btn) return;
+      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+      var id = btn.getAttribute('data-id');
+      confirmNice({ title:'Inactivar usuario #' + id, body:'El usuario no podrá iniciar sesión hasta que lo actives.', confirmText:'Sí, inactivar', variant:'warning' }, function(ok){
+        if (!ok) return;
+        NT.http(NT.baseUrl + '/api/seg/usuarios/' + id + '/estado', { method:'PATCH', body: JSON.stringify({ estado:'I' }) }).then(function(){
+          NT.showToast('Usuarios','Usuario #' + id + ' inactivado','success');
+          // El módulo de usuarios no expone recarga → refrescamos la vista
+          setTimeout(function(){ try{ location.reload(); }catch(_){ } }, 300);
+        }).catch(function(err){
+          NT.showToast('Usuarios', String(err && err.message ? err.message : err), 'error');
+        });
+      });
+    }, true);
+
+  })();
+  </script>
+  <!-- ===== /UI Bonita ===== -->
 
   <!-- Módulos (los tuyos) -->
   <script src="assets/js/empleados.js"></script>
