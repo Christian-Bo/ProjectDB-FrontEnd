@@ -81,8 +81,7 @@
     }
   </script>
 </head>
-<body class="nt-bg">
-
+<body class="nt-bg min-vh-100 d-flex flex-column">
   <!-- Topbar minimal -->
   <div class="nt-topbar py-2">
     <div class="container-fluid d-flex align-items-center justify-content-between">

@@ -1,16 +1,17 @@
 <%-- 
-    Document   : ventas
-    Created on : 9/10/2025
-    Author     : user
+  Document   : ventas (unificado: listado + detalle + pagos)
+  Created on : 02/11/2025
+  Author     : NextTech (unificado por Assistant)
 --%>
-<%@page contentType="text/html" pageEncoding="UTF-8"%>
+<%@page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" isELIgnored="false"%>
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <title>Ventas | NextTech</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Base del backend (ajusta si usas context-path) -->
+  <!-- Base del backend -->
   <meta name="api-base" content="http://localhost:8080">
 
   <!-- Bootstrap + Icons -->
@@ -18,11 +19,11 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
   <!-- Paleta / tema del proyecto -->
-  <link rel="stylesheet" href="assets/css/base.css?v=13">
-  <link rel="stylesheet" href="assets/css/app.css?v=13">
+  <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/base.css?v=13">
+  <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/app.css?v=13">
 
   <style>
-    /* Integración visual con resto del sistema */
+    /* ====== Tema unificado para las 3 vistas ====== */
     body.nt-bg { background: var(--nt-bg); color: var(--nt-fg); }
     .nt-navbar { background: var(--nt-surface-1); border-bottom: 1px solid var(--nt-border); }
     .nt-title { color: var(--nt-fg-strong); }
@@ -36,16 +37,12 @@
     .nt-back:hover { background:var(--nt-surface-2); }
     .pager .btn { border-color: var(--nt-border); }
 
-    /* ==================== MODALES: backdrop y look ==================== */
-    /* Backdrop más opaco y con blur */
+    /* Modales unificados */
     .modal-backdrop {
-      --bs-backdrop-bg: #0b0d14;      /* tono del velo */
-      --bs-backdrop-opacity: .78;     /* opacidad (0–1) */
-      backdrop-filter: blur(2px);     /* opcional: desenfoque */
+      --bs-backdrop-bg: #0b0d14;
+      --bs-backdrop-opacity: .78;
+      backdrop-filter: blur(2px);
     }
-    .modal-backdrop.show { opacity: var(--bs-backdrop-opacity); }
-
-    /* Contenido de modales con fondo sólido y sin halo */
     .nt-modal .modal-content{
       background-color: var(--nt-surface-1, #12131a);
       color: var(--nt-foreground, #e7e9ee);
@@ -53,44 +50,84 @@
       border-radius: 1rem;
       box-shadow: 0 24px 64px rgba(0,0,0,.6);
     }
-    .nt-modal:focus,
-    .nt-modal .modal-dialog:focus,
-    .nt-modal .modal-content:focus{
-      outline: none !important;
-      box-shadow: none !important;
-    }
-    .nt-modal .modal-header,
-    .nt-modal .modal-footer{
-      border-color: var(--nt-border, rgba(255,255,255,.12));
-      background: transparent;
-    }
-    .nt-modal .form-control,
-    .nt-modal .form-select{
+    .nt-modal .modal-header, .nt-modal .modal-footer{ border-color: var(--nt-border, rgba(255,255,255,.12)); }
+    .nt-modal .form-control, .nt-modal .form-select{
       background: var(--nt-surface-2, #1b1d2a);
       color: var(--nt-foreground, #e7e9ee);
       border-color: var(--nt-border, rgba(255,255,255,.12));
     }
-    .nt-modal .form-control:focus,
-    .nt-modal .form-select:focus{
+    .nt-modal .form-control:focus, .nt-modal .form-select:focus{
       border-color: var(--nt-accent, #7a5af8);
       box-shadow: 0 0 0 .2rem rgba(122,90,248,.25);
     }
-    .nt-modal .table thead th{
-      background: var(--nt-surface-2, #1b1d2a);
-      color: var(--nt-foreground, #e7e9ee);
-      border-bottom-color: var(--nt-border, rgba(255,255,255,.12));
+    .nt-modal .form-control.is-invalid, .nt-modal .form-select.is-invalid{
+      border-color:#dc3545!important; box-shadow:0 0 0 .2rem rgba(220,53,69,.25)!important;
     }
-    /* ================================================================= */
-  </style>
-</head>
 
+    /* Navegación de pestañas (hash) */
+    .nt-tabs .nav-link { color: var(--nt-fg-muted); border:1px solid var(--nt-border); }
+    .nt-tabs .nav-link.active { color: var(--nt-fg); background: var(--nt-surface-2); border-color: var(--nt-accent); }
+
+    /* Util */
+    .d-none-important{ display:none !important; }
+     .nt-edit-modal { border-radius: 1rem; }
+  .nt-edit-option {
+    border: 1px solid var(--bs-border-color);
+    background: linear-gradient(180deg, var(--bs-body-bg), rgba(0,0,0,0.01));
+    border-radius: 0.85rem;
+    padding: 0.9rem 1rem;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 0.9rem;
+    transition: all .18s ease;
+    color: #fff;
+  }
+  .nt-edit-option:active { transform: translateY(0); }
+
+  .nt-edit-option__icon {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: grid; place-items: center;
+    background: var(--bs-primary-bg-subtle, rgba(13,110,253,.08));
+    color: var(--bs-primary);
+    font-size: 1.25rem;
+    flex-shrink: 0;
+  }
+  .nt-edit-option__body { min-width: 0; }
+  .nt-edit-option__title {
+    font-weight: 600;
+    line-height: 1.2;
+    margin-top: 2px;
+  }
+  .nt-edit-option__desc {
+    color: var(--bs-secondary-color);
+    font-size: .925rem;
+    color: #fff;
+  }
+  .nt-edit-option__chevron {
+    color: var(--bs-secondary-color);
+    font-size: 1.1rem;
+    opacity: .85;
+  }
+  /* Modo oscuro (si usas .dark o prefers-color-scheme) */
+  @media (prefers-color-scheme: dark) {
+    .nt-edit-option {
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+    }
+  }
+  </style>
+
+  <!-- utilidades comunes -->
+  <script src="${pageContext.request.contextPath}/assets/js/common.js?v=99"></script>
+</head>
 <body class="nt-bg min-vh-100 d-flex flex-column">
 
-  <!-- Header minimal + botón Regresar -->
+  <!-- Header -->
   <header class="navbar nt-navbar">
     <div class="container d-flex align-items-center justify-content-between">
-      <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="Dashboard.jsp" title="Ir al dashboard">
-        <i class="bi bi-receipt"></i> NextTech — Ventas
+      <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="${pageContext.request.contextPath}/Dashboard.jsp" title="Ir al dashboard">
+        <i class="bi bi-receipt"></i> NextTech — Ventas 
       </a>
       <div class="d-flex align-items-center gap-2">
         <button type="button" class="btn btn-sm nt-back" onclick="goBack()" title="Regresar">
@@ -100,21 +137,34 @@
     </div>
   </header>
 
-  <div class="container py-4">
+  <!-- Tabs de navegación SPA -->
+  <div class="container pt-3">
+    <ul class="nav nav-pills nt-tabs gap-2 mb-3" id="ntTabs">
+      <li class="nav-item"><a href="#lista"   class="nav-link" data-view="lista"><i class="bi bi-list-ul me-1"></i>Listado</a></li>
+      <li class="nav-item"><a href="#detalle" class="nav-link" data-view="detalle"><i class="bi bi-eye me-1"></i>Detalle</a></li>
+      <li class="nav-item"><a href="#pagos"   class="nav-link" data-view="pagos"><i class="bi bi-wallet2 me-1"></i>Pagos</a></li>
+    </ul>
+  </div>
 
+  <!-- ====== VISTA: LISTADO (ventas.jsp) ====== -->
+  <section id="view-lista" class="container py-3" data-view="lista">
     <div class="d-flex align-items-center justify-content-between mb-3">
       <div>
         <h2 class="m-0 nt-title"><i class="bi bi-receipt"></i> Ventas</h2>
         <div class="nt-subtitle">Listado, creación y edición</div>
       </div>
-      <button class="btn nt-btn-accent" data-bs-toggle="modal" data-bs-target="#modalNuevaVenta">
-        <i class="bi bi-plus-circle me-1"></i> Nueva venta
-      </button>
+      <div class="d-flex gap-2">
+        <a class="btn btn-outline-primary" href="#pagos"><i class="bi bi-wallet2 me-1"></i> Ver pagos de ventas</a>
+        <button class="btn nt-btn-accent" data-bs-toggle="modal" data-bs-target="#modalNuevaVenta">
+          <i class="bi bi-plus-circle me-1"></i> Nueva venta
+        </button>
+      </div>
     </div>
 
+    <!-- Filtros -->
     <div class="card nt-card mb-3">
       <div class="card-body">
-        <form id="filtros" onsubmit="buscar(event)" class="row g-3 align-items-end">
+        <form id="filtros" onsubmit="VLIST.buscar(event)" class="row g-3 align-items-end">
           <div class="col-md-3">
             <label class="form-label">Desde</label>
             <input type="date" name="desde" class="form-control"/>
@@ -124,8 +174,10 @@
             <input type="date" name="hasta" class="form-control"/>
           </div>
           <div class="col-md-3">
-            <label class="form-label">Cliente ID</label>
-            <input type="number" name="clienteId" min="1" placeholder="Ej. 1" class="form-control"/>
+            <label class="form-label">Cliente</label>
+            <select id="selClienteFiltro" name="clienteId" class="form-select">
+              <option value="">(Todos)</option>
+            </select>
           </div>
           <div class="col-md-3">
             <label class="form-label">Número venta</label>
@@ -139,22 +191,24 @@
             </div>
             <div class="d-flex gap-2 ms-auto">
               <button class="btn nt-btn-accent" type="submit"><i class="bi bi-search me-1"></i>Buscar</button>
-              <button class="btn btn-outline-secondary" type="button" onclick="limpiar()"><i class="bi bi-x-circle me-1"></i>Limpiar</button>
+              <button class="btn btn-outline-secondary" type="button" onclick="VLIST.limpiar()"><i class="bi bi-x-circle me-1"></i>Limpiar</button>
             </div>
           </div>
         </form>
       </div>
     </div>
 
+    <!-- Paginación -->
     <div class="d-flex justify-content-between align-items-center mb-2">
       <div class="d-flex align-items-center gap-2 pager">
-        <button class="btn btn-outline-secondary btn-sm" onclick="cambiarPagina(-1)">&laquo; Anterior</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="VLIST.cambiarPagina(-1)">&laquo; Anterior</button>
         <div> Página <span id="pActual">1</span> </div>
-        <button class="btn btn-outline-secondary btn-sm" onclick="cambiarPagina(1)">Siguiente &raquo;</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="VLIST.cambiarPagina(1)">Siguiente &raquo;</button>
       </div>
       <small class="text-muted">Mostrando 10 por página</small>
     </div>
 
+    <!-- Tabla -->
     <div class="card nt-card">
       <div class="table-responsive">
         <table id="tabla" class="table table-hover align-middle mb-0">
@@ -175,19 +229,158 @@
       </div>
       <div id="tablaEmpty" class="p-3 text-muted d-none">Sin resultados para los filtros actuales.</div>
     </div>
+  </section>
 
-  </div>
+  <!-- ====== VISTA: DETALLE (venta_detalle.jsp) ====== -->
+  <section id="view-detalle" class="container py-3 d-none" data-view="detalle">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <div>
+        <h2 class="m-0 nt-title"><i class="bi bi-eye"></i> Detalle de venta</h2>
+        <div class="nt-subtitle">Consulta de cabecera y líneas</div>
+      </div>
+      <a class="btn btn-outline-secondary" href="#lista"><i class="bi bi-list-ul me-1"></i> Ir al listado</a>
+    </div>
+
+    <!-- Cabecera -->
+    <div class="card nt-card mb-3">
+      <div class="card-body" id="cabecera">
+        <div class="text-muted">Cargando venta...</div>
+      </div>
+    </div>
+
+    <!-- Saldos / Acciones -->
+    <div class="card nt-card mb-3" id="boxSaldos" style="display:none;">
+      <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div class="d-flex flex-column">
+          <div class="small text-muted">Origen</div>
+          <div id="saldoOrigen" class="fw-semibold">—</div>
+        </div>
+        <div class="d-flex flex-column">
+          <div class="small text-muted">Total</div>
+          <div id="saldoTotal" class="badge bg-primary-subtle text-primary-emphasis fs-6">—</div>
+        </div>
+        <div class="d-flex flex-column">
+          <div class="small text-muted">Pagado</div>
+          <div id="saldoPagado" class="badge bg-success-subtle text-success-emphasis fs-6">—</div>
+        </div>
+        <div class="d-flex flex-column">
+          <div class="small text-muted">Saldo</div>
+          <div id="saldoRestante" class="badge bg-warning-subtle text-warning-emphasis fs-6">—</div>
+        </div>
+
+        <div class="ms-auto d-flex gap-2">
+          <button id="btnRegistrarPago" type="button" class="btn nt-btn-accent" style="display:none;" data-bs-toggle="modal" data-bs-target="#modalPago">
+            <i class="bi bi-cash-coin me-1"></i> Registrar pago
+          </button>
+          <a id="linkCxC" href="#" class="btn btn-outline-info" style="display:none;">Ver documento CxC</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detalle (líneas) -->
+    <div class="card nt-card">
+      <div class="table-responsive">
+        <table id="tablaDet" class="table table-hover align-middle mb-0">
+          <thead class="nt-table-head">
+            <tr>
+              <th>ID Detalle</th>
+              <th>Producto ID</th>
+              <th>Cantidad</th>
+              <th>Precio</th>
+              <th>Desc. línea</th>
+              <th>Subtotal</th>
+              <th>Lote</th>
+              <th>Vence</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div id="tablaDetEmpty" class="p-3 text-muted d-none">Esta venta no tiene líneas.</div>
+    </div>
+  </section>
+
+  <!-- ====== VISTA: PAGOS (ventas_pagos.jsp) ====== -->
+  <section id="view-pagos" class="container py-3 d-none" data-view="pagos">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <div>
+        <h2 class="m-0 nt-title"><i class="bi bi-wallet2"></i> Pagos de ventas</h2>
+        <div class="nt-subtitle">Consulta y anulación de pagos registrados</div>
+      </div>
+      <a class="btn btn-outline-secondary" href="#lista"><i class="bi bi-list-ul me-1"></i> Ir al listado de ventas</a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card nt-card mb-3">
+      <div class="card-body">
+        <form id="filtrosPagos" onsubmit="VPAGOS.buscar(event)" class="row g-3 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label">Cliente</label>
+            <select id="p_selCliente" name="clienteId" class="form-select">
+              <option value="">(Todos)</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Desde</label>
+            <input id="p_desde" name="desde" type="date" class="form-control">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Hasta</label>
+            <input id="p_hasta" name="hasta" type="date" class="form-control">
+          </div>
+
+          <div class="col-12 d-flex gap-2 justify-content-end">
+            <button class="btn nt-btn-accent" type="submit"><i class="bi bi-search me-1"></i>Buscar</button>
+            <button class="btn btn-outline-secondary" type="button" onclick="VPAGOS.limpiar()"><i class="bi bi-x-circle me-1"></i>Limpiar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Paginación -->
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-outline-secondary btn-sm" onclick="VPAGOS.cambiarPagina(-1)">&laquo; Anterior</button>
+        <div> Página <span id="pActualPagos">1</span> </div>
+        <button class="btn btn-outline-secondary btn-sm" onclick="VPAGOS.cambiarPagina(1)">Siguiente &raquo;</button>
+      </div>
+      <small class="text-muted">Mostrando 20 por página</small>
+    </div>
+
+    <!-- Tabla -->
+    <div class="card nt-card">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="nt-table-head">
+            <tr>
+              <th>ID Pago</th>
+              <th>Fecha Venta</th>
+              <th>Número Venta</th>
+              <th>Cliente</th>
+              <th>Forma</th>
+              <th class="text-end">Monto</th>
+              <th>Referencia</th>
+            </tr>
+          </thead>
+          <tbody id="tablaPagosBody">
+            <tr id="tablaPagosEmpty"><td colspan="7" class="text-center text-muted">Sin resultados</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== MODALES (reutilizados) ====== -->
 
   <!-- Modal Nueva Venta -->
   <div class="modal fade nt-modal" id="modalNuevaVenta" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
       <div class="modal-content nt-card">
-        <form id="formVenta" onsubmit="guardarVenta(event)">
+        <form id="formVenta" onsubmit="VLIST.guardarVenta(event)">
           <div class="modal-header">
             <h5 class="modal-title">Registrar nueva venta</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
           </div>
-
           <div class="modal-body">
             <div class="row g-3">
               <div class="col-md-4">
@@ -196,28 +389,24 @@
                   <option value="">Cargando...</option>
                 </select>
               </div>
-
               <div class="col-md-4">
                 <label class="form-label">Vendedor</label>
                 <select id="selVendedor" class="form-select" name="vendedorId">
                   <option value="">Cargando...</option>
                 </select>
               </div>
-
               <div class="col-md-4">
                 <label class="form-label">Cajero</label>
                 <select id="selCajero" class="form-select" name="cajeroId">
                   <option value="">Cargando...</option>
                 </select>
               </div>
-
               <div class="col-md-4">
                 <label class="form-label">Bodega Origen *</label>
                 <select id="selBodegaOrigen" class="form-select" name="bodegaOrigenId" required>
                   <option value="">Cargando...</option>
                 </select>
               </div>
-
               <div class="col-md-4">
                 <label class="form-label">Tipo de Pago *</label>
                 <select class="form-select" name="tipoPago" required>
@@ -225,14 +414,12 @@
                   <option value="R">Crédito</option>
                 </select>
               </div>
-
               <div class="col-md-4">
                 <label class="form-label">Serie *</label>
                 <select id="selSerie" class="form-select" name="serieId" required>
                   <option value="">Cargando...</option>
                 </select>
               </div>
-
               <div class="col-12">
                 <label class="form-label">Observaciones</label>
                 <input type="text" class="form-control" name="observaciones" placeholder="Venta mostrador">
@@ -240,12 +427,10 @@
             </div>
 
             <hr class="my-4">
-
             <div class="d-flex align-items-center justify-content-between mb-2">
               <h6 class="m-0">Items</h6>
-              <button type="button" class="btn btn-outline-primary btn-sm" onclick="agregarItem()">+ Agregar ítem</button>
+              <button type="button" class="btn btn-outline-primary btn-sm" onclick="VLIST.agregarItem()">+ Agregar ítem</button>
             </div>
-
             <div class="table-responsive">
               <table class="table table-sm table-striped align-middle" id="tablaItems">
                 <thead class="nt-table-head">
@@ -265,7 +450,6 @@
             </div>
             <div class="form-text">Agrega al menos 1 ítem. Campos con * son obligatorios.</div>
           </div>
-
           <div class="modal-footer">
             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
             <button type="submit" class="btn nt-btn-accent">Guardar venta</button>
@@ -275,31 +459,94 @@
     </div>
   </div>
 
-  <!-- Modal Selector de Edición -->
-  <div class="modal fade nt-modal" id="modalAccionesEdicion" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content nt-card">
-        <div class="modal-header">
-          <h5 class="modal-title">¿Qué deseas editar?</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+<!-- Modal Selector de Edición (Mejorado) -->
+<div class="modal fade nt-modal" id="modalAccionesEdicion" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-md">
+    <div class="modal-content nt-card nt-edit-modal shadow-lg border-0">
+      <div class="modal-header py-3 border-0">
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge rounded-pill bg-primary-subtle text-primary fw-semibold px-3 py-2">
+            <i class="bi bi-sliders2-vertical me-1"></i> Acciones
+          </span>
+          <h5 class="modal-title mb-0">¿Qué deseas editar?</h5>
         </div>
-        <div class="modal-body">
-          <input type="hidden" id="editTargetId">
-          <p class="mb-3">Selecciona el ámbito de edición para la venta <b id="editTargetNumero"></b>.</p>
-          <div class="d-grid gap-2">
-            <button class="btn nt-btn-accent" onclick="abrirEditarCabecera()">Cabecera</button>
-            <button class="btn btn-outline-primary" onclick="abrirEditarMaestroDetalle()">Editar maestro-detalle</button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+
+      <div class="modal-body pt-0">
+        <input type="hidden" id="editTargetId">
+        <p class="text-secondary small mb-4">
+          Selecciona el ámbito de edición para la venta <b id="editTargetNumero"></b>.
+        </p>
+
+        <!-- Opciones -->
+        <div class="row g-3">
+          <!-- Opción: Cabecera -->
+          <div class="col-12">
+            <button type="button"
+                    class="nt-edit-option w-100 text-start"
+                    onclick="VLIST.abrirEditarCabecera()"
+                    aria-label="Editar cabecera de la venta">
+              <div class="nt-edit-option__icon">
+                <i class="bi bi-pencil-square"></i>
+              </div>
+              <div class="nt-edit-option__body">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-primary-subtle text-primary">Cabecera</span>
+                  <span class="text-muted small">Cliente, tipo de pago, vendedor, observaciones</span>
+                </div>
+                <div class="nt-edit-option__title">Editar datos de cabecera</div>
+                <div class="nt-edit-option__desc">
+                  Modifica metadatos generales sin tocar los ítems de la venta.
+                </div>
+              </div>
+              <div class="nt-edit-option__chevron">
+                <i class="bi bi-chevron-right"></i>
+              </div>
+            </button>
+          </div>
+
+          <!-- Opción: Maestro-Detalle -->
+          <div class="col-12">
+            <button type="button"
+                    class="nt-edit-option w-100 text-start"
+                    onclick="VLIST.abrirEditarMaestroDetalle()"
+                    aria-label="Editar detalle de la venta">
+              <div class="nt-edit-option__icon --accent">
+                <i class="bi bi-diagram-3"></i>
+              </div>
+              <div class="nt-edit-option__body">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-success-subtle text-success">Maestro-detalle</span>
+                  <span class="text-muted small">Productos, cantidades, precios, lotes</span>
+                </div>
+                <div class="nt-edit-option__title">Editar ítems de la venta</div>
+                <div class="nt-edit-option__desc">
+                  Agrega, actualiza o elimina líneas. Controla stock y precios por bodega.
+                </div>
+              </div>
+              <div class="nt-edit-option__chevron">
+                <i class="bi bi-chevron-right"></i>
+              </div>
+            </button>
           </div>
         </div>
       </div>
+
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle me-1"></i> Cancelar
+        </button>
+      </div>
     </div>
   </div>
+</div>
 
   <!-- Modal Editar Venta (Cabecera) -->
   <div class="modal fade nt-modal" id="modalEditarVenta" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
       <div class="modal-content nt-card">
-        <form id="formEditarVenta" onsubmit="guardarEdicionVenta(event)">
+        <form id="formEditarVenta" onsubmit="VLIST.guardarEdicionVenta(event)">
           <div class="modal-header">
             <h5 class="modal-title">Editar cabecera <span id="editNumeroVenta" class="text-muted"></span></h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
@@ -315,7 +562,7 @@
               </div>
               <div class="col-md-6">
                 <label class="form-label">Tipo de pago *</label>
-                <select id="editTipoPago" class="form-select" required>
+                <select id="editTipoPago" class="form-select" required disabled>
                   <option value="C">Contado</option>
                   <option value="R">Crédito</option>
                 </select>
@@ -329,12 +576,6 @@
               <div class="col-md-6">
                 <label class="form-label">Cajero</label>
                 <select id="editCajero" class="form-select">
-                  <option value="">Cargando...</option>
-                </select>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">Bodega Origen</label>
-                <select id="editBodega" class="form-select">
                   <option value="">Cargando...</option>
                 </select>
               </div>
@@ -358,27 +599,23 @@
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
       <div class="modal-content nt-card">
         <div class="modal-header">
-          <h5 class="modal-title">
-            Editar detalle <span id="detNumeroVenta" class="text-muted"></span>
-          </h5>
+          <h5 class="modal-title">Editar detalle <span id="detNumeroVenta" class="text-muted"></span></h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
-
         <div class="modal-body">
           <input type="hidden" id="detVentaId">
           <div class="row g-3 mb-2">
             <div class="col-md-6">
               <label class="form-label">Bodega para movimientos *</label>
-              <select id="selBodegaDet" class="form-select" required>
+              <select id="selBodegaDet" class="form-select" required disabled>
                 <option value="">Cargando...</option>
               </select>
               <div class="form-text">Se usa para validar/afectar stock al guardar los cambios.</div>
             </div>
             <div class="col-md-6 d-flex align-items-end justify-content-end">
-              <button class="btn btn-outline-primary btn-sm" type="button" onclick="agregarItemDet()">+ Agregar línea</button>
+              <button class="btn btn-outline-primary btn-sm" type="button" onclick="VLIST.agregarItemDet()">+ Agregar línea</button>
             </div>
           </div>
-
           <div class="table-responsive">
             <table class="table table-sm table-striped align-middle" id="tablaEditarDetalle">
               <thead class="nt-table-head">
@@ -396,43 +633,59 @@
               <tbody></tbody>
             </table>
           </div>
-
           <div class="form-text">
             Las líneas existentes se marcan con acción <b>U</b> (Actualizar). Puedes cambiarlas a <b>D</b> (Eliminar).
             Las nuevas líneas se crean con acción <b>A</b> (Agregar).
           </div>
         </div>
-
         <div class="modal-footer">
           <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button class="btn nt-btn-accent" onclick="guardarEdicionDetalle()">Guardar cambios</button>
+          <button class="btn nt-btn-accent" onclick="VLIST.guardarEdicionDetalle()">Guardar cambios</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Modal Confirmar Eliminación -->
-  <div class="modal fade nt-modal" id="modalEliminar" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
+  <!-- Modal: Registrar pago (CONTADO) -->
+  <div class="modal fade nt-modal" id="modalPago" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content nt-card">
         <div class="modal-header">
-          <h5 class="modal-title">Confirmar eliminación</h5>
+          <h5 class="modal-title">Registrar pago de venta</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <div class="modal-body">
-          <input type="hidden" id="delVentaId">
-          <p>¿Seguro que deseas eliminar (lógico) la venta <b id="delNumeroVenta"></b>?</p>
-          <p class="text-muted mb-0">Puedes revertirlo desde backoffice si se requiere.</p>
+          <form id="formPago" autocomplete="off" novalidate>
+            <div class="mb-3">
+              <label class="form-label">Forma de pago</label>
+              <select id="fp_forma" class="form-select" required>
+                <option value="EFE">Efectivo (EFE)</option>
+                <option value="TAR">Tarjeta (TAR)</option>
+                <option value="TRF">Transferencia (TRF)</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Monto</label>
+              <input id="fp_monto" type="number" min="0.01" step="0.01" class="form-control" placeholder="0.00" required>
+              <div class="form-text" id="fp_hintSaldo">Saldo: —</div>
+              <div id="fp_monto_err" class="invalid-feedback">Monto inválido.</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Referencia (opcional)</label>
+              <input id="fp_ref" type="text" maxlength="200" class="form-control" placeholder="Caja / POS / Banco / Nota">
+            </div>
+          </form>
+          <div id="fp_alert" class="alert alert-danger d-none"></div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button class="btn btn-danger" onclick="confirmarEliminar()">Sí, eliminar</button>
+          <button id="btnPagar" type="button" class="btn nt-btn-accent">Registrar</button>
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Toast unificado (compatible con common.js) -->
+  <!-- Toasts -->
   <div class="position-fixed top-0 end-0 p-3" style="z-index:1080">
     <div id="appToast" class="toast align-items-center text-bg-primary border-0" role="alert" aria-live="assertive" aria-atomic="true">
       <div class="d-flex">
@@ -442,153 +695,218 @@
     </div>
   </div>
 
-  <!-- JS -->
+  <!-- Bootstrap -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-  <!-- Utilidades comunes -->
-  <script src="assets/js/common.js?v=99"></script>
-
-  <!-- Sincroniza API.baseUrl con <meta name="api-base"> -->
-  <script>
-    (function(){
-      try{
-        window.API = window.API || {};
-        if (!API.baseUrl || !API.baseUrl.trim()) {
-          const meta = document.querySelector('meta[name="api-base"]');
-          const base = (window.API_BASE || meta?.getAttribute('content') || '').trim();
-          if (base) API.baseUrl = base;
-        }
-        console.log('[ventas.jsp] API.baseUrl =', API.baseUrl || '(vacío)');
-      }catch(_){}
-    })();
-
-    // Botón REGRESAR por rol
-    function parseAuthUser(){
-      try{
-        if (window.Auth?.user) return window.Auth.user;
-        const raw = localStorage.getItem('auth_user');
-        return raw ? JSON.parse(raw) : null;
-      }catch(_){ return null; }
+  <!-- ====== JS unificado ====== -->
+<script>
+/* ====== Sync API.baseUrl desde <meta> ====== */
+(function(){
+  try{
+    window.API = window.API || {};
+    if (!API.baseUrl || !API.baseUrl.trim()) {
+      const meta = document.querySelector('meta[name="api-base"]');
+      const base = (window.API_BASE || meta?.getAttribute('content') || '').trim();
+      if (base) API.baseUrl = base;
     }
-    function homeForRole(role){
-      const HOME_BY_ROLE = {
-        'ADMIN': 'Dashboard.jsp',
-        'OPERADOR': 'dashboard_operador.jsp',
-        'RRHH': 'rrhh-dashboard.jsp'
-      };
-      return HOME_BY_ROLE[role?.toUpperCase?.()] || 'Dashboard.jsp';
-    }
-    function goBack(){
-      if (history.length > 1) { history.back(); return; }
-      const user = parseAuthUser();
-      const home = homeForRole(user?.role || user?.rol);
-      location.href = home;
-    }
-  </script>
+    console.log('[ventas.jsp:unificado] API.baseUrl =', API.baseUrl || '(vacío)');
+  }catch(_){}
+})();
 
-  <!-- LÓGICA DE PÁGINA -->
-  <script>
-  const API_VENTAS     = (window.API?.baseUrl || document.querySelector('meta[name="api-base"]')?.content || '').replace(/\/+$/,'') + '/api/ventas';
-  const API_VENTAS_CAT = (window.API?.baseUrl || document.querySelector('meta[name="api-base"]')?.content || '').replace(/\/+$/,'') + '/api/catalogos';
-  const USER_ID = 1;
-  const ctx     = '${pageContext.request.contextPath}';
-  const commonHeaders = {'X-User-Id': String(USER_ID)};
+// Helpers navegación/roles
+function parseAuthUser(){
+  try{
+    if (window.Auth?.user) return window.Auth.user;
+    const raw = localStorage.getItem('auth_user');
+    return raw ? JSON.parse(raw) : null;
+  }catch(_){ return null; }
+}
+function homeForRole(role){
+  const HOME_BY_ROLE = { 'ADMIN': 'Dashboard.jsp', 'OPERADOR': 'dashboard_operador.jsp', 'RRHH':'rrhh-dashboard.jsp' };
+  return HOME_BY_ROLE[role?.toUpperCase?.()] || 'Dashboard.jsp';
+}
+function goBack(){
+  if (history.length > 1) { history.back(); return; }
+  const user = parseAuthUser();
+  location.href = homeForRole(user?.role || user?.rol);
+}
 
-  async function tryFetchJson(url, options){
-    try{
-      const res = await fetch(url, options || {});
-      if(!res.ok) return { ok:false, status:res.status, data: await safeJson(res) };
-      return { ok:true, status:res.status, data: await safeJson(res) };
-    }catch(err){
-      console.error('fetch fail', url, err);
-      return { ok:false, status:0, data:{ error: err.message || 'network' } };
+// Config
+const API_ROOT      = (window.API?.baseUrl || document.querySelector('meta[name="api-base"]')?.content || '').replace(/\/+$/,'');
+const API_VENTAS    = API_ROOT + '/api/ventas';
+const API_CATALOGOS = API_ROOT + '/api/catalogos';
+const ctx           = '${pageContext.request.contextPath}';
+const USER_ID       = 1;
+const commonHeaders = {'X-User-Id': String(USER_ID)};
+
+// Utils
+function qsGet(name, h){ const url = new URL(location.href); const sp = h ? new URLSearchParams(h) : url.searchParams; return sp.get(name); }
+function money(n){ if(n==null || isNaN(n)) return ''; try{ return new Intl.NumberFormat('es-GT',{style:'currency',currency:'GTQ'}).format(Number(n)); } catch(e){ return 'Q ' + Number(n||0).toFixed(2); } }
+function txt(x){ return (x===undefined || x===null) ? '' : String(x); }
+async function tryFetchJson(url, options){
+  try{
+    const res = await fetch(url, options || {});
+    const t = await res.text();
+    let data=null; try{ data = t ? JSON.parse(t) : null; }catch(_){}
+    if(!res.ok) return { ok:false, status:res.status, data };
+    return { ok:true, status:res.status, data };
+  }catch(err){ return { ok:false, status:0, data:{ error: err.message || 'network' } }; }
+}
+async function fetchJson(url, opts){
+  const r = await tryFetchJson(url, opts);
+  if(!r.ok) throw new Error((r.data && (r.data.error||r.data.detail||r.data.message)) || ('HTTP '+r.status));
+  return r.data;
+}
+function asArray(x){ return Array.isArray(x)?x: (x && (x.items||x.content||x.data||x.results||x.records)) || []; }
+function setOk(msg){ document.getElementById('toastMsg').textContent = msg || 'OK'; bootstrap.Toast.getOrCreateInstance(document.getElementById('appToast'), {delay:2600}).show(); }
+function setErr(msg){ const m = typeof msg==='string'?msg:(msg && JSON.stringify(msg))||'Error interno'; const t=document.getElementById('appToast'); document.getElementById('toastMsg').textContent=m; t.className='toast align-items-center text-bg-danger border-0'; bootstrap.Toast.getOrCreateInstance(t,{delay:3200}).show(); }
+function estadoBadge(e){ if(e==='A') return '<span class="badge text-bg-danger">Anulada</span>'; if(e==='P') return '<span class="badge text-bg-success">Procesada</span>'; return '<span class="badge text-bg-secondary">Desconocido</span>'; }
+function mapTipoPago(c){ if(!c) return ''; return c==='C'?'Contado':(c==='R'?'Crédito':c); }
+
+// ========= SPA Router (hash) =========
+function selectTab(view){
+  document.querySelectorAll('#ntTabs .nav-link').forEach(a=>{
+    a.classList.toggle('active', a.dataset.view===view);
+  });
+}
+function showView(view){
+  document.querySelectorAll('[data-view]').forEach(el=>{
+    el.classList.toggle('d-none', el.dataset.view!==view);
+  });
+  selectTab(view);
+}
+function parseHash(){
+  const h = location.hash || '#lista';
+  const [route, query] = h.split('?');
+  const view = route.replace('#','') || 'lista';
+  return { view, route, query };
+}
+async function handleRoute(){
+  const { view, query } = parseHash();
+  showView(view);
+
+  if (view === 'lista'){
+    await VLIST.initOnce();
+    await VLIST.cargar(VLIST.lastFilters);
+  }
+  if (view === 'detalle'){
+    await VDET.initOnce();
+    const sp = new URLSearchParams(query||'');
+    const id = sp.get('id');
+    if (id) await VDET.cargar(id);
+  }
+  if (view === 'pagos'){
+    await VPAGOS.initOnce();
+    const sp = new URLSearchParams(query||'');
+    const cid = sp.get('clienteId') || '';
+    if (cid) {
+      const sel = document.getElementById('p_selCliente');
+      if (sel && [...sel.options].some(o=>o.value===cid)) sel.value = cid;
+      VPAGOS.lastFilters.clienteId = cid;
     }
+    await VPAGOS.cargar(VPAGOS.lastFilters);
   }
-  async function safeJson(res){ try{ return await res.json(); }catch{ return {}; } }
-  async function fetchJsonOrNull(url){
-    const r = await tryFetchJson(url, { headers: commonHeaders });
-    return r.ok ? r.data : null;
-  }
-  function asArray(payload){
-    if (Array.isArray(payload)) return payload;
-    if (!payload || typeof payload !== 'object') return [];
-    return payload.content || payload.items || payload.data || payload.results || payload.records || [];
-  }
-  function formatMoney(n){ if(n==null) return ''; return new Intl.NumberFormat('es-GT',{style:'currency',currency:'GTQ'}).format(n); }
-  function setOk(msg){ document.getElementById('toastMsg').textContent = msg || 'OK'; bootstrap.Toast.getOrCreateInstance(document.getElementById('appToast'), {delay:2600}).show(); }
-  function setErr(msg){ document.getElementById('toastMsg').textContent = (typeof msg==='string'?msg:(msg && JSON.stringify(msg))||'Error interno'); document.getElementById('appToast').className='toast align-items-center text-bg-danger border-0'; bootstrap.Toast.getOrCreateInstance(document.getElementById('appToast'), {delay:3200}).show(); }
-  function mapTipoPago(c){ if(!c) return ''; return c === 'C' ? 'Contado' : (c === 'R' ? 'Crédito' : c); }
-  function estadoBadge(e){
-    if(e === 'A') return '<span class="badge text-bg-danger">Anulada</span>';
-    if(e === 'P') return '<span class="badge text-bg-success">Procesada</span>';
-    return '<span class="badge text-bg-secondary">Desconocido</span>';
-  }
+}
+window.addEventListener('hashchange', handleRoute);
 
-  let page = 0;
-  const size = 10;
-  let lastFilters = {};
+// ========= VISTA LISTA =========
+const VLIST = (function(){
+  let _inited = false, _catalogosCargados = false;
+  let _clientes = [], _empleados = [], _bodegas = [], _series=[];
   let cacheVentas = {};
+  let page=0, size=10;
 
-  async function cargar(params = {}) {
+  const state = { lastFilters: { incluirAnuladas:false } };
+  function getLast(){ return state.lastFilters; }
+  function syncPublicFilters(){ if (window.VLIST) window.VLIST.lastFilters = state.lastFilters; }
+
+  function formatMoney(n){ return money(n); }
+  async function fetchJsonOrNull(url){ try{ return await fetchJson(url, { headers: commonHeaders }); }catch{ return null; } }
+  function fillSelect(sel, data, map, selected){
+    let html = sel && sel.id==='selClienteFiltro' ? '<option value="">(Todos)</option>' : '<option value="">Seleccione...</option>';
+    for (const it of data){ const o = map(it); html += '<option value="'+o.value+'"'+(String(selected)===String(o.value)?' selected':'')+'>'+o.text+'</option>'; }
+    if (sel) sel.innerHTML = html;
+  }
+
+  async function cargarClientesFiltro(){
+    let cli = await fetchJsonOrNull(API_CATALOGOS + '/clientes?limit=200');
+    const clientes = asArray(cli);
+    fillSelect(document.getElementById('selClienteFiltro'), clientes, c=>{
+      const nombre = c?.nombre ? String(c.nombre) : '';
+      const codigo = c?.codigo ? String(c.codigo) : '';
+      const txt = nombre ? ((codigo? (codigo+' - '):'') + nombre) : ('CLI-' + c.id);
+      return { value:c.id, text:txt };
+    }, '');
+  }
+
+  async function cargarCatalogos(){
+    if (_catalogosCargados) return;
+    let cli = await fetchJsonOrNull(API_CATALOGOS + '/clientes?limit=200');
+    let emp = await fetchJsonOrNull(API_CATALOGOS + '/empleados?limit=200');
+    let bod = await fetchJsonOrNull(API_CATALOGOS + '/bodegas?limit=200');
+    let ser = await fetchJsonOrNull(API_CATALOGOS + '/series');
+    _clientes=asArray(cli); _empleados=asArray(emp); _bodegas=asArray(bod); _series=asArray(ser);
+
+    fillSelect(document.getElementById('selCliente'), _clientes, c=>({ value:c.id, text: ((c.codigo||('CLI-'+c.id))+' - '+(c.nombre||'')) }));
+    fillSelect(document.getElementById('selVendedor'), _empleados, e=>({ value:e.id, text: ((e.codigo||('EMP-'+e.id))+' - '+(e.nombres||'')+' '+(e.apellidos||'')) }));
+    fillSelect(document.getElementById('selCajero'), _empleados, e=>({ value:e.id, text: ((e.codigo||('EMP-'+e.id))+' - '+(e.nombres||'')+' '+(e.apellidos||'')) }));
+    const selBod = document.getElementById('selBodegaOrigen');
+    fillSelect(selBod, _bodegas, b=>({ value:b.id, text:(b.nombre||('Bodega '+b.id)) }));
+    fillSelect(document.getElementById('selSerie'), _series, s=>({ value:s.id, text:(s.serie + (s.correlativo?(' ('+s.correlativo+')'):'') ) }));
+    if (selBod && [...selBod.options].some(o=>o.value==='1')) selBod.value='1';
+
+    await refrescarProductosDeTodasLasFilas();
+    if (!document.querySelector('#tablaItems tbody tr')) agregarItem();
+    _catalogosCargados = true;
+  }
+
+  function estadoBadgeHtml(e){ return estadoBadge(e); }
+  function mapTipoPagoTxt(c){ return mapTipoPago(c); }
+
+  async function cargar(params = {}){
     const qs = new URLSearchParams({ page, size });
     if (params.desde) qs.set('desde', params.desde);
     if (params.hasta) qs.set('hasta', params.hasta);
     if (params.clienteId) qs.set('clienteId', params.clienteId);
     if (params.numeroVenta) qs.set('numeroVenta', params.numeroVenta);
-    if (typeof params.incluirAnuladas !== 'undefined') {
-      qs.set('incluirAnuladas', params.incluirAnuladas ? '1' : '0');
-    }
+    if (typeof params.incluirAnuladas !== 'undefined') qs.set('incluirAnuladas', params.incluirAnuladas ? '1' : '0');
 
     const r = await tryFetchJson(API_VENTAS + '?' + qs.toString(), { headers: commonHeaders });
     const rows = r.ok ? asArray(r.data) : [];
     if(!r.ok){ setErr((r.data && (r.data.error||r.data.detail)) || 'No se pudo consultar ventas'); }
 
-    cacheVentas = {};
-    for (let i=0;i<rows.length;i++){ cacheVentas[rows[i].id] = rows[i]; }
+    cacheVentas = {}; for (const v of rows){ cacheVentas[v.id] = v; }
     render(rows);
     const p = document.getElementById('pActual'); if (p) p.textContent = (page+1);
   }
 
   function render(rows){
-    const tbody = document.querySelector('#tabla tbody');
-    const empty = document.getElementById('tablaEmpty');
+    const tbody = document.querySelector('#view-lista #tabla tbody');
+    const empty = document.querySelector('#view-lista #tablaEmpty');
     if (!tbody) return;
-
     tbody.innerHTML = '';
-    if (!rows.length){
-      if (empty) empty.classList.remove('d-none');
-      return;
-    }
+    if (!rows.length){ if (empty) empty.classList.remove('d-none'); return; }
     if (empty) empty.classList.add('d-none');
 
-    for (let i=0;i<rows.length;i++){
-      const v = rows[i];
-      const clienteTxt = (v && v.clienteNombre && String(v.clienteNombre).trim() !== '')
-                        ? v.clienteNombre : ('ID ' + (v && v.clienteId != null ? v.clienteId : ''));
-      const link   = ctx + '/venta_detalle.jsp?id=' + (v && v.id != null ? v.id : '');
-      const idTxt     = (v && v.id != null) ? v.id : '';
-      const numTxt    = (v && v.numeroVenta != null) ? v.numeroVenta : '';
-      const fechaTxt  = (v && v.fechaVenta != null) ? v.fechaVenta : '';
-      const totalVal  = (v && v.total != null) ? v.total : null;
-      const estadoTxt = (v && v.estado != null) ? v.estado : null;
-      const tipoTxt   = (v && v.tipoPago != null) ? v.tipoPago : null;
-
+    for (const v of rows){
+      const clienteTxt = (v?.clienteNombre && String(v.clienteNombre).trim()!=='') ? v.clienteNombre : ('ID ' + (v?.clienteId ?? ''));
+      const idTxt = v?.id ?? '';
       const tr = document.createElement('tr');
       tr.innerHTML =
-          '<td>' + idTxt + '</td>'
-        + '<td>' + numTxt + '</td>'
-        + '<td>' + fechaTxt + '</td>'
-        + '<td>' + clienteTxt + '</td>'
-        + '<td class="text-end">' + formatMoney(totalVal) + '</td>'
-        + '<td>' + estadoBadge(estadoTxt) + '</td>'
-        + '<td>' + mapTipoPago(tipoTxt) + '</td>'
-        + '<td class="text-end">'
-        +   '<div class="btn-group btn-group-sm" role="group">'
-        +     '<button class="btn btn-outline-primary" onclick="abrirSelectorEdicion('+idTxt+')"><i class="bi bi-pencil"></i></button>'
-        +     '<a class="btn btn-outline-secondary" href="'+link+'"><i class="bi bi-eye"></i></a>'
-        +     '<button class="btn btn-outline-danger" onclick="abrirEliminar('+idTxt+')"><i class="bi bi-trash"></i></button>'
-        +   '</div>'
-        + '</td>';
+        '<td>' + idTxt + '</td>'
+      + '<td><a href="#detalle?id=' + idTxt + '">' + txt(v?.numeroVenta) + '</a></td>'
+      + '<td>' + txt(v?.fechaVenta) + '</td>'
+      + '<td>' + clienteTxt + '</td>'
+      + '<td class="text-end">' + formatMoney(v?.total) + '</td>'
+      + '<td>' + estadoBadgeHtml(v?.estado) + '</td>'
+      + '<td>' + mapTipoPagoTxt(v?.tipoPago) + '</td>'
+      + '<td class="text-end">'
+      +   '<div class="btn-group btn-group-sm" role="group">'
+      +     '<button class="btn btn-outline-primary" onclick="VLIST.abrirSelectorEdicion('+idTxt+')"><i class="bi bi-pencil"></i></button>'
+      +     '<a class="btn btn-outline-secondary" href="#detalle?id='+idTxt+'"><i class="bi bi-eye"></i></a>'
+      +     '<button class="btn btn-outline-danger" onclick="VLIST.abrirEliminar('+idTxt+')"><i class="bi bi-trash"></i></button>'
+      +   '</div>'
+      + '</td>';
       tbody.appendChild(tr);
     }
   }
@@ -597,111 +915,49 @@
     e.preventDefault();
     const f = e.target;
     page = 0;
-    lastFilters = {
+    state.lastFilters = {
       desde: f.desde.value,
       hasta: f.hasta.value,
-      clienteId: f.clienteId.value,
+      clienteId: document.getElementById('selClienteFiltro').value,
       numeroVenta: f.numeroVenta.value,
       incluirAnuladas: document.getElementById('incluirAnuladas').checked
     };
-    cargar(lastFilters);
+    syncPublicFilters();
+    cargar(state.lastFilters);
   }
   function limpiar(){
     document.getElementById('filtros').reset();
-    const chk = document.getElementById('incluirAnuladas');
-    if (chk) chk.checked = false;
-    lastFilters = { incluirAnuladas:false };
+    const chk = document.getElementById('incluirAnuladas'); if (chk) chk.checked = false;
+    const sel = document.getElementById('selClienteFiltro'); if (sel) sel.value = '';
+    state.lastFilters = { incluirAnuladas:false };
     page = 0;
-    cargar(lastFilters);
+    syncPublicFilters();
+    cargar(state.lastFilters);
   }
-  function cambiarPagina(delta){ page = Math.max(0, page + delta); cargar(lastFilters); }
+  function cambiarPagina(delta){ page = Math.max(0, page + delta); cargar(state.lastFilters); }
 
-  let _catalogosCargados = false;
-  let _clientes = [], _empleados = [], _bodegas = [];
-
-  function fillSelect(sel, data, map, selected){
-    let html = '<option value="">Seleccione...</option>';
-    for (let i=0;i<data.length;i++){
-      const o = map(data[i]);
-      html += '<option value="'+o.value+'"'+ (String(selected)===String(o.value)?' selected':'') +'>'+o.text+'</option>';
-    }
-    sel.innerHTML = html;
-  }
-
-  async function cargarCatalogos(){
-    if (_catalogosCargados) return;
-
-    let cli = await fetchJsonOrNull(API_VENTAS_CAT + '/clientes?limit=200');
-    let emp = await fetchJsonOrNull(API_VENTAS_CAT + '/empleados?limit=200');
-    let bod = await fetchJsonOrNull(API_VENTAS_CAT + '/bodegas?limit=200');
-    let ser = await fetchJsonOrNull(API_VENTAS_CAT + '/series');
-
-    if (!cli) cli = await fetchJsonOrNull((window.API?.baseUrl||'http://localhost:8080') + '/api/catalogos/clientes?limit=200');
-    if (!emp) emp = await fetchJsonOrNull((window.API?.baseUrl||'http://localhost:8080') + '/api/catalogos/empleados?limit=200');
-    if (!bod) bod = await fetchJsonOrNull((window.API?.baseUrl||'http://localhost:8080') + '/api/catalogos/bodegas?limit=200');
-    if (!ser) ser = await fetchJsonOrNull((window.API?.baseUrl||'http://localhost:8080') + '/api/catalogos/series');
-
-    _clientes  = asArray(cli);
-    _empleados = asArray(emp);
-    _bodegas   = asArray(bod);
-    const series = asArray(ser);
-
-    fillSelect(document.getElementById('selCliente'), _clientes,
-      c => ({ value:c.id, text: ((c.codigo||('CLI-'+c.id)) + ' - ' + (c.nombre||'')) })
-    );
-    fillSelect(document.getElementById('selVendedor'), _empleados,
-      e => ({ value:e.id, text: ((e.codigo||('EMP-'+e.id)) + ' - ' + (e.nombres||'') + ' ' + (e.apellidos||'')) })
-    );
-    fillSelect(document.getElementById('selCajero'), _empleados,
-      e => ({ value:e.id, text: ((e.codigo||('EMP-'+e.id)) + ' - ' + (e.nombres||'') + ' ' + (e.apellidos||'')) })
-    );
-    const selBod = document.getElementById('selBodegaOrigen');
-    fillSelect(selBod, _bodegas, b => ({ value:b.id, text:(b.nombre || ('Bodega '+b.id)) }));
-    fillSelect(document.getElementById('selSerie'), series, s => ({ value:s.id, text:(s.serie + (s.correlativo ? ' ('+s.correlativo+')' : '')) }));
-
-    _catalogosCargados = true;
-
-    if ([...selBod.options].some(o => o.value === '1')) { selBod.value = '1'; }
-
-    await refrescarProductosDeTodasLasFilas();
-    if (!document.querySelector('#tablaItems tbody tr')) agregarItem();
-  }
-
+  // === Nueva venta / items ===
   async function cargarProductosParaBodega(selectEl, bodegaId, selectedId){
+    if (!selectEl) return;
     selectEl.disabled = true;
-
-    if (!bodegaId) {
-      selectEl.innerHTML = '<option value="">Seleccione bodega primero…</option>';
-      selectEl.disabled = false;
-      return;
-    }
-
+    if (!bodegaId) { selectEl.innerHTML = '<option value="">Seleccione bodega primero…</option>'; selectEl.disabled=false; return; }
     selectEl.innerHTML = '<option value="">Cargando...</option>';
 
-    let url1 = API_VENTAS_CAT + '/productos-stock?bodegaId=' + encodeURIComponent(bodegaId);
-    let r = await fetchJsonOrNull(url1);
-
-    if (!r) {
-      let url2 = (window.API?.baseUrl||'http://localhost:8080') + '/api/catalogos/productos-stock?bodegaId=' + encodeURIComponent(bodegaId);
-      r = await fetchJsonOrNull(url2);
-    }
-
-    const prods = asArray(r);
+    const url = API_CATALOGOS + '/productos-stock?bodegaId=' + encodeURIComponent(bodegaId);
+    let r = await tryFetchJson(url, { headers: commonHeaders });
+    if (!r.ok) { r = await tryFetchJson(url); }
+    const prods = asArray(r.data);
     let html = '<option value="">Seleccione...</option>';
-    for (let i=0;i<prods.length;i++){
-      const p = prods[i];
-      const precio = Number((p && p.precioVenta) != null ? p.precioVenta : 0);
-      const stock  = Number((p && p.stockDisponible) != null ? p.stockDisponible : 0);
-      const nombre = (p && p.nombre) ? p.nombre : ('Producto ' + (p && p.id != null ? p.id : ''));
-      const pid    = (p && p.id != null) ? p.id : '';
-      html += '<option value="' + pid + '" data-precio="' + precio + '" data-stock="' + stock + '"' +
-              (String(selectedId) === String(pid) ? ' selected' : '') + '>' +
-              nombre + '</option>';
+    for (const p of prods){
+      const precio = Number((p?.precioVenta) ?? 0);
+      const stock  = Number((p?.stockDisponible) ?? 0);
+      const nombre = p?.nombre ? p.nombre : ('Producto ' + (p?.id ?? ''));
+      const pid    = p?.id ?? '';
+      html += '<option value="'+pid+'" data-precio="'+precio+'" data-stock="'+stock+'"'+(String(selectedId)===String(pid)?' selected':'')+'>'+nombre+'</option>';
     }
     selectEl.innerHTML = html || '<option value="">(sin datos)</option>';
     selectEl.disabled = false;
   }
-
   async function refrescarProductosDeTodasLasFilas(){
     const bodId = document.getElementById('selBodegaOrigen').value || '';
     const selects = document.querySelectorAll('#tablaItems select[name="productoId"]');
@@ -711,35 +967,6 @@
       sel.dispatchEvent(new Event('change', { bubbles:true }));
     }
   }
-
-  function agregarItem(){
-    const tbody = document.querySelector('#tablaItems tbody');
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>
-        <select class="form-select form-select-sm" name="productoId" required>
-          <option value="">Seleccione bodega primero…</option>
-        </select>
-      </td>
-      <td class="text-center">
-        <span class="badge text-bg-secondary" data-stock="0">0</span>
-      </td>
-      <td><input type="number" step="1" min="1" class="form-control form-control-sm" name="cantidad" required></td>
-      <td><input type="number" step="0.01" min="0" class="form-control form-control-sm" name="precioUnitario" required></td>
-      <td><input type="number" step="0.01" min="0" class="form-control form-control-sm" name="descuento"></td>
-      <td><input type="text" class="form-control form-control-sm" name="lote" placeholder="S/N"></td>
-      <td><input type="date" class="form-control form-control-sm" name="fechaVencimiento"></td>
-      <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('tr').remove()">X</button></td>
-    `;
-    tbody.appendChild(tr);
-
-    const selProd = tr.querySelector('select[name="productoId"]');
-    const bodId   = document.getElementById('selBodegaOrigen').value || '';
-    if (bodId) { cargarProductosParaBodega(selProd, bodId, null); }
-
-    wireRowEvents(tr);
-  }
-
   function wireRowEvents(tr){
     const selProd = tr.querySelector('select[name="productoId"]');
     const precio  = tr.querySelector('input[name="precioUnitario"]');
@@ -749,32 +976,36 @@
     selProd.addEventListener('change', function(){
       const opt = selProd.selectedOptions[0];
       let st = 0, pr = 0;
-      if (opt){
-        st = Number(opt.getAttribute('data-stock') || 0);
-        pr = Number(opt.getAttribute('data-precio') || 0);
-      }
-      stockEl.textContent = String(st);
-      stockEl.setAttribute('data-stock', String(st));
-      cantInp.max = (st > 0 ? String(st) : '');
-      if (pr > 0) precio.value = pr;
-
-      cantInp.classList.remove('is-invalid');
-      cantInp.setCustomValidity('');
+      if (opt){ st = Number(opt.getAttribute('data-stock') || 0); pr = Number(opt.getAttribute('data-precio') || 0); }
+      stockEl.textContent = String(st); stockEl.setAttribute('data-stock', String(st));
+      cantInp.max = (st > 0 ? String(st) : ''); if (pr > 0) precio.value = pr;
+      cantInp.classList.remove('is-invalid'); cantInp.setCustomValidity('');
     });
-
     cantInp.addEventListener('input', function(){
       const st = Number(stockEl.getAttribute('data-stock') || 0);
       const q  = Number(cantInp.value || 0);
-      if (st > 0 && q > st) {
-        cantInp.classList.add('is-invalid');
-        cantInp.setCustomValidity('No hay stock suficiente');
-      } else {
-        cantInp.classList.remove('is-invalid');
-        cantInp.setCustomValidity('');
-      }
+      if (st > 0 && q > st) { cantInp.classList.add('is-invalid'); cantInp.setCustomValidity('No hay stock suficiente'); }
+      else { cantInp.classList.remove('is-invalid'); cantInp.setCustomValidity(''); }
     });
   }
-
+  function agregarItem(){
+    const tbody = document.querySelector('#tablaItems tbody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = ''
+      + '<td><select class="form-select form-select-sm" name="productoId" required><option value="">Seleccione bodega primero…</option></select></td>'
+      + '<td class="text-center"><span class="badge text-bg-secondary" data-stock="0">0</span></td>'
+      + '<td><input type="number" step="1" min="1" class="form-control form-control-sm" name="cantidad" required></td>'
+      + '<td><input type="number" step="0.01" min="0" class="form-control form-control-sm" name="precioUnitario" required readonly></td>'
+      + '<td><input type="number" step="0.01" min="0" class="form-control form-control-sm" name="descuento"></td>'
+      + '<td><input type="text" class="form-control form-control-sm" name="lote" placeholder="S/N"></td>'
+      + '<td><input type="date" class="form-control form-control-sm" name="fechaVencimiento"></td>'
+      + '<td><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest(\'tr\').remove()">X</button></td>';
+    tbody.appendChild(tr);
+    const selProd = tr.querySelector('select[name="productoId"]');
+    const bodId   = document.getElementById('selBodegaOrigen').value || '';
+    if (bodId) { cargarProductosParaBodega(selProd, bodId, null); }
+    wireRowEvents(tr);
+  }
   function leerItems(){
     const rows = Array.from(document.querySelectorAll('#tablaItems tbody tr'));
     return rows.map(function(r){
@@ -791,11 +1022,9 @@
       };
     }).filter(it => it.productoId && it.cantidad && it.precioUnitario);
   }
-
   async function guardarVenta(e){
     e.preventDefault();
     const f = e.target;
-
     const clienteId = Number(f.clienteId.value);
     const bodegaId  = Number(f.bodegaOrigenId.value);
     const serieId   = Number(document.getElementById('selSerie').value || '');
@@ -809,28 +1038,20 @@
 
     const payload = {
       usuarioId: USER_ID,
-      clienteId: clienteId,
+      clienteId,
       vendedorId: f.vendedorId.value ? Number(f.vendedorId.value) : null,
       cajeroId:   f.cajeroId.value   ? Number(f.cajeroId.value)   : null,
       bodegaOrigenId: bodegaId,
       tipoPago: f.tipoPago.value || 'C',
       observaciones: f.observaciones.value || null,
-      serieId: serieId,
+      serieId,
       items
     };
 
     const r = await tryFetchJson(API_VENTAS, {
-      method:'POST',
-      headers:{'Content-Type':'application/json', ...commonHeaders},
-      body: JSON.stringify(payload)
+      method:'POST', headers:{'Content-Type':'application/json', ...commonHeaders}, body: JSON.stringify(payload)
     });
-
-    if (!r.ok) {
-      const msg = (r.data && (r.data.error || r.data.message || r.data.detail)) || 'No se pudo registrar la venta';
-      setErr(msg);
-      console.error('POST /ventas fallo', r.data || {});
-      return;
-    }
+    if (!r.ok){ setErr((r.data && (r.data.error||r.data.message||r.data.detail)) || 'No se pudo registrar la venta'); return; }
 
     bootstrap.Modal.getInstance(document.getElementById('modalNuevaVenta')).hide();
     document.getElementById('formVenta').reset();
@@ -838,7 +1059,7 @@
     agregarItem();
     setOk('Venta registrada');
     page = 0;
-    cargar(lastFilters);
+    cargar(state.lastFilters);
   }
 
   function abrirSelectorEdicion(id){
@@ -851,8 +1072,8 @@
   function abrirEditarCabecera(){
     const id = Number(document.getElementById('editTargetId').value);
     const v  = cacheVentas[id];
-    if (!_catalogosCargados){ cargarCatalogos().then(()=> prepararModalEdicion(v)); }
-    else { prepararModalEdicion(v); }
+    const doPrep = () => prepararModalEdicion(v);
+    if (!_catalogosCargados){ cargarCatalogos().then(doPrep); } else doPrep();
     bootstrap.Modal.getInstance(document.getElementById('modalAccionesEdicion')).hide();
   }
   function abrirEditarMaestroDetalle(){
@@ -865,18 +1086,9 @@
     document.getElementById('editVentaId').value = v.id;
     document.getElementById('editNumeroVenta').textContent = v.numeroVenta ? ('#'+v.numeroVenta) : ('ID '+v.id);
 
-    fillSelect(document.getElementById('editCliente'), _clientes,
-      c => ({ value:c.id, text:((c.codigo || ('CLI-'+c.id)) + ' - ' + (c.nombre || c.razonSocial || '')) }),
-      String(v.clienteId)
-    );
-    fillSelect(document.getElementById('editVendedor'), _empleados,
-      e => ({ value:e.id, text:((e.codigo || ('EMP-'+e.id)) + ' - ' + (e.nombres || '') + ' ' + (e.apellidos || '')) }),
-      v.vendedorId!=null?String(v.vendedorId):''
-    );
-    fillSelect(document.getElementById('editCajero'), _empleados,
-      e => ({ value:e.id, text:((e.codigo || ('EMP-'+e.id)) + ' - ' + (e.nombres || '') + ' ' + (e.apellidos || '')) }),
-      v.cajeroId!=null?String(v.cajeroId):''
-    );
+    fillSelect(document.getElementById('editCliente'), _clientes, c=>({ value:c.id, text:((c.codigo||('CLI-'+c.id)) + ' - ' + (c.nombre||c.razonSocial||'')) }), String(v.clienteId));
+    fillSelect(document.getElementById('editVendedor'), _empleados, e=>({ value:e.id, text:((e.codigo||('EMP-'+e.id)) + ' - ' + (e.nombres||'') + ' ' + (e.apellidos||'')) }), v.vendedorId!=null?String(v.vendedorId):'');
+    fillSelect(document.getElementById('editCajero'), _empleados, e=>({ value:e.id, text:((e.codigo||('EMP-'+e.id)) + ' - ' + (e.nombres||'') + ' ' + (e.apellidos||'')) }), v.cajeroId!=null?String(v.cajeroId):'');
 
     document.getElementById('editTipoPago').value = (v.tipoPago || 'C');
     document.getElementById('editObs').value = (v.observaciones || '');
@@ -899,7 +1111,7 @@
     if (!r.ok){ setErr((r.data && (r.data.error||r.data.detail)) || 'No se pudo actualizar'); return; }
     bootstrap.Modal.getInstance(document.getElementById('modalEditarVenta')).hide();
     setOk('Venta actualizada');
-    cargar(lastFilters);
+    cargar(state.lastFilters);
   }
   function valueOrNull(v){ return (v==='' || v==null) ? null : Number(v); }
 
@@ -918,11 +1130,10 @@
     if(!r.ok){ setErr((r.data && (r.data.error||r.data.detail)) || 'No se pudo eliminar la venta'); return; }
     bootstrap.Modal.getInstance(document.getElementById('modalEliminar')).hide();
     setOk('Venta eliminada');
-    cargar(lastFilters);
+    cargar(state.lastFilters);
   }
 
   const DELETED_IDS = new Set();
-
   async function cargarDetalleVentaEnModal(ventaId){
     const r = await tryFetchJson(API_VENTAS + '/' + ventaId, { headers: commonHeaders });
     if(!r.ok){ setErr((r.data && (r.data.error||r.data.detail)) || 'No se pudo cargar la venta'); return; }
@@ -939,22 +1150,13 @@
     DELETED_IDS.clear();
     const tbody = document.querySelector('#tablaEditarDetalle tbody');
     tbody.innerHTML = '';
-
-    for (let i=0;i<items.length;i++){
-      const it = items[i];
+    for (const it of items){
       const tr = construirFilaDetalle({
-        detalleId: it.id,
-        productoId: it.productoId,
-        cantidad: it.cantidad,
-        precioUnitario: it.precioUnitario,
-        descuentoLinea: it.descuentoLinea,
-        lote: it.lote || '',
-        fechaVencimiento: it.fechaVencimiento || '',
-        isNueva: false
+        detalleId: it.id, productoId: it.productoId, cantidad: it.cantidad, precioUnitario: it.precioUnitario,
+        descuentoLinea: it.descuentoLinea, lote: it.lote || '', fechaVencimiento: it.fechaVencimiento || '', isNueva:false
       });
       tbody.appendChild(tr);
     }
-
     await refrescarProductosEnTablaDetalle();
     new bootstrap.Modal(document.getElementById('modalEditarDetalle')).show();
   }
@@ -965,44 +1167,19 @@
     tr.dataset.isNueva   = op && op.isNueva ? '1' : '0';
     if (op && op.productoId != null) tr.dataset.pid = String(op.productoId);
 
-    tr.innerHTML = `
-      <td>
-        <select class="form-select form-select-sm det-producto" required>
-          <option value="">Seleccione bodega primero…</option>
-        </select>
-      </td>
-      <td class="text-center"><span class="badge text-bg-secondary det-stock" data-stock="0">0</span></td>
-      <td><input type="number" class="form-control form-control-sm det-cantidad" min="1" step="1" required value="${op && op.cantidad != null ? op.cantidad : ''}"></td>
-      <td><input type="number" class="form-control form-control-sm det-precio" min="0" step="0.01" required value="${op && op.precioUnitario != null ? op.precioUnitario : ''}"></td>
-      <td><input type="number" class="form-control form-control-sm det-desc" min="0" step="0.01" value="${op && op.descuentoLinea != null ? op.descuentoLinea : ''}"></td>
-      <td><input type="text" class="form-control form-control-sm det-lote" placeholder="S/N" value="${op && op.lote ? op.lote : ''}"></td>
-      <td><input type="date" class="form-control form-control-sm det-vence" value="${op && op.fechaVencimiento ? op.fechaVencimiento : ''}"></td>
-      <td><button type="button" class="btn btn-sm btn-outline-danger det-del">X</button></td>
-    `;
+    tr.innerHTML =
+        '<td><select class="form-select form-select-sm det-producto" required><option value="">Seleccione bodega primero…</option></select></td>'
+      + '<td class="text-center"><span class="badge text-bg-secondary det-stock" data-stock="0">0</span></td>'
+      + '<td><input type="number" class="form-control form-control-sm det-cantidad" min="1" step="1" required value="' + (op && op.cantidad != null ? op.cantidad : '') + '"></td>'
+      + '<td><input type="number" class="form-control form-control-sm det-precio"   min="0" step="0.01" required value="' + (op && op.precioUnitario != null ? op.precioUnitario : '') + '"></td>'
+      + '<td><input type="number" class="form-control form-control-sm det-desc"     min="0" step="0.01" value="' + (op && op.descuentoLinea != null ? op.descuentoLinea : '') + '"></td>'
+      + '<td><input type="text"   class="form-control form-control-sm det-lote" placeholder="S/N" value="' + (op && op.lote ? op.lote : '') + '"></td>'
+      + '<td><input type="date"   class="form-control form-control-sm det-vence" value="' + (op && op.fechaVencimiento ? op.fechaVencimiento : '') + '"></td>'
+      + '<td><button type="button" class="btn btn-sm btn-outline-danger det-del">X</button></td>';
 
     wireRowEventsDet(tr);
     return tr;
   }
-
-  function agregarItemDet(){
-    const tbody = document.querySelector('#tablaEditarDetalle tbody');
-    const tr = construirFilaDetalle({ isNueva:true });
-    tbody.appendChild(tr);
-    refrescarProductosEnTablaDetalle();
-  }
-
-  async function refrescarProductosEnTablaDetalle(){
-    const bodId = document.getElementById('selBodegaDet').value || '';
-    const rows = document.querySelectorAll('#tablaEditarDetalle tbody tr');
-
-    for (const tr of rows){
-      const sel = tr.querySelector('.det-producto');
-      const keepId = tr.dataset.pid || sel.value || null;
-      await cargarProductosParaBodega(sel, bodId, keepId);
-      sel.dispatchEvent(new Event('change', { bubbles:true }));
-    }
-  }
-
   function wireRowEventsDet(tr){
     const selProd = tr.querySelector('.det-producto');
     const precio  = tr.querySelector('.det-precio');
@@ -1013,45 +1190,37 @@
     selProd.addEventListener('change', function(){
       const opt = selProd.selectedOptions[0];
       let st = 0, pr = 0;
-      if (opt){
-        st = Number(opt.getAttribute('data-stock') || 0);
-        pr = Number(opt.getAttribute('data-precio') || 0);
-      }
-      stockEl.textContent = String(st);
-      stockEl.setAttribute('data-stock', String(st));
-      cantInp.max = (st > 0 ? String(st) : '');
-      if (pr > 0) precio.value = pr;
-
-      cantInp.classList.remove('is-invalid');
-      cantInp.setCustomValidity('');
+      if (opt){ st = Number(opt.getAttribute('data-stock') || 0); pr = Number(opt.getAttribute('data-precio') || 0); }
+      stockEl.textContent = String(st); stockEl.setAttribute('data-stock', String(st));
+      cantInp.max = (st > 0 ? String(st) : ''); if (pr > 0) precio.value = pr;
+      cantInp.classList.remove('is-invalid'); cantInp.setCustomValidity('');
     });
-
     cantInp.addEventListener('input', function(){
       const st = Number(stockEl.getAttribute('data-stock') || 0);
       const q  = Number(cantInp.value || 0);
-      if (st > 0 && q > st) {
-        cantInp.classList.add('is-invalid');
-        cantInp.setCustomValidity('No hay stock suficiente');
-      } else {
-        cantInp.classList.remove('is-invalid');
-        cantInp.setCustomValidity('');
-      }
+      if (st > 0 && q > st) { cantInp.classList.add('is-invalid'); cantInp.setCustomValidity('No hay stock suficiente'); }
+      else { cantInp.classList.remove('is-invalid'); cantInp.setCustomValidity(''); }
     });
-
     btnDel.addEventListener('click', function(){
       const detId = tr.dataset.detalleId;
       const esNueva = tr.dataset.isNueva === '1';
-      if (detId && !esNueva) {
-        DELETED_IDS.add(Number(detId));
-      }
+      if (detId && !esNueva) { DELETED_IDS.add(Number(detId)); }
       tr.remove();
     });
   }
-
-  function construirPayloadDetalle(){
+  async function refrescarProductosEnTablaDetalle(){
+    const bodId = document.getElementById('selBodegaDet').value || '';
+    const rows = document.querySelectorAll('#tablaEditarDetalle tbody tr');
+    for (const tr of rows){
+      const sel = tr.querySelector('.det-producto');
+      const keepId = tr.dataset.pid || sel.value || null;
+      await cargarProductosParaBodega(sel, bodId, keepId);
+      sel.dispatchEvent(new Event('change', { bubbles:true }));
+    }
+  }
+  async function guardarEdicionDetalleInterno(){
     const items = [];
     const bodegaId = Number(document.getElementById('selBodegaDet').value || 0);
-
     document.querySelectorAll('#tablaEditarDetalle tbody tr').forEach(tr => {
       const detalleId = tr.dataset.detalleId ? Number(tr.dataset.detalleId) : null;
       const esNueva   = tr.dataset.isNueva === '1';
@@ -1061,88 +1230,355 @@
       const descInp    = tr.querySelector('.det-desc')?.value;
       const lote       = tr.querySelector('.det-lote')?.value || null;
       const vence      = tr.querySelector('.det-vence')?.value || null;
-
       if (!productoId || !cantidad || !precio) return;
-
       items.push({
-        detalleId: detalleId,
-        productoId: productoId,
-        bodegaId: bodegaId || null,
-        cantidad: cantidad,
-        precioUnitario: precio,
+        detalleId, productoId, bodegaId: bodegaId || null, cantidad, precioUnitario: precio,
         descuentoLinea: (descInp===''||descInp==null) ? null : Number(descInp),
-        accion: esNueva || !detalleId ? 'A' : 'U',
-        lote: lote,
-        fechaVencimiento: vence
+        accion: esNueva || !detalleId ? 'A' : 'U', lote, fechaVencimiento: vence
       });
     });
-
-    DELETED_IDS.forEach(id => {
-      items.push({
-        detalleId: id,
-        productoId: null,
-        bodegaId: null,
-        cantidad: null,
-        precioUnitario: null,
-        descuentoLinea: null,
-        accion: 'D',
-        lote: null,
-        fechaVencimiento: null
-      });
-    });
-
+    DELETED_IDS.forEach(id => { items.push({ detalleId:id, productoId:null, bodegaId:null, cantidad:null, precioUnitario:null, descuentoLinea:null, accion:'D', lote:null, fechaVencimiento:null }); });
     return items;
   }
-
   async function guardarEdicionDetalle(){
     const ventaId = Number(document.getElementById('detVentaId').value);
     const bod = document.getElementById('selBodegaDet').value;
     if (!bod){ setErr('Selecciona la bodega para movimientos.'); return; }
-
-    const items = construirPayloadDetalle();
+    const items = await guardarEdicionDetalleInterno();
     if (items.length === 0){ setErr('No hay cambios por enviar.'); return; }
-
     const r = await tryFetchJson(API_VENTAS + '/' + ventaId + '/detalle', {
-      method:'PUT',
-      headers: {'Content-Type':'application/json', ...commonHeaders},
-      body: JSON.stringify(items)
+      method:'PUT', headers: {'Content-Type':'application/json', ...commonHeaders}, body: JSON.stringify(items)
     });
-
-    if (!r.ok){
-      setErr((r.data && (r.data.error||r.data.detail)) || 'No se pudo actualizar el detalle');
-      return;
-    }
-
+    if (!r.ok){ setErr((r.data && (r.data.error||r.data.detail)) || 'No se pudo actualizar el detalle'); return; }
     DELETED_IDS.clear();
     bootstrap.Modal.getInstance(document.getElementById('modalEditarDetalle')).hide();
     setOk('Detalle actualizado');
-    cargar(lastFilters);
+    cargar(state.lastFilters);
   }
 
-  document.addEventListener('DOMContentLoaded', function(){
-    const selDet = document.getElementById('selBodegaDet');
-    if (selDet){
-      selDet.addEventListener('change', function(){
-        if (!selDet.value){
-          const rows = document.querySelectorAll('#tablaEditarDetalle tbody tr');
-          for (const tr of rows){
-            tr.querySelector('.det-producto').innerHTML = '<option value="">Seleccione bodega primero…</option>';
-            const st = tr.querySelector('.det-stock');
-            st.textContent = '0';
-            st.setAttribute('data-stock','0');
-          }
-          return;
-        }
-        refrescarProductosEnTablaDetalle();
-      });
-    }
-  });
+  // Expuestos
+  return {
+    lastFilters: getLast(),
+    initOnce: async function(){
+      if (_inited) return;
+      await cargarClientesFiltro();
+      document.getElementById('modalNuevaVenta').addEventListener('show.bs.modal', cargarCatalogos);
+      // modal eliminar (estructura simple para compatibilidad)
+      if (!document.getElementById('modalEliminar')){
+        const wrap = document.createElement('div');
+        wrap.innerHTML = `
+        <div class="modal fade nt-modal" id="modalEliminar" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog"><div class="modal-content nt-card">
+            <div class="modal-header">
+              <h5 class="modal-title">Confirmar eliminación</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+              <input type="hidden" id="delVentaId">
+              <p>¿Seguro que deseas eliminar (lógico) la venta <b id="delNumeroVenta"></b>?</p>
+              <p class="text-muted mb-0">Puedes revertirlo desde backoffice si se requiere.</p>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+              <button class="btn btn-danger" onclick="VLIST.confirmarEliminar()">Sí, eliminar</button>
+            </div>
+          </div></div>
+        </div>`;
+        document.body.appendChild(wrap.firstElementChild);
+      }
+      _inited = true;
+      syncPublicFilters();
+    },
+    cargar, buscar, limpiar, cambiarPagina,
+    agregarItem, guardarVenta,
+    abrirSelectorEdicion, abrirEditarCabecera, abrirEditarMaestroDetalle,
+    guardarEdicionVenta, confirmarEliminar, abrirEliminar,
+    guardarEdicionDetalle // por si quieres llamarla desde un botón dentro del modal
+  };
+})();
 
-  window.addEventListener('DOMContentLoaded', function(){
-    lastFilters = { incluirAnuladas: (document.getElementById('incluirAnuladas')?.checked) || false };
-    cargar(lastFilters);
-    document.getElementById('modalNuevaVenta').addEventListener('show.bs.modal', cargarCatalogos);
+// ========= VISTA DETALLE =========
+const VDET = (function(){
+  let _inited=false;
+  let _empleadosById = null;
+  let VENTA_ACTUAL = null, SALDOS=null;
+
+  function show(el){ if(el) el.style.display=''; }
+  function hide(el){ if(el) el.style.display='none'; }
+  function setText(id, value){ var el=document.getElementById(id); if(el) el.textContent=value; }
+
+  function renderCabecera(v){
+    var cliente = (v?.clienteNombre && String(v.clienteNombre).trim()!=='') ? v.clienteNombre : ('ID ' + txt(v?.clienteId));
+    var vendedorTxt = v?.vendedorNombre || (v?.vendedorId ? ('ID ' + v.vendedorId) : '');
+    var cajeroTxt   = v?.cajeroNombre   || (v?.cajeroId   ? ('ID ' + v.cajeroId)   : '');
+
+    var html = ''
+      + '<div class="row g-2">'
+      +   '<div class="col-md-3"><b>Número:</b> ' + txt(v?.numeroVenta) + '</div>'
+      +   '<div class="col-md-3"><b>Fecha:</b> ' + txt(v?.fechaVenta) + '</div>'
+      +   '<div class="col-md-6"><b>Cliente:</b> ' + cliente + '</div>'
+      + '</div>'
+      + '<div class="row g-2 mt-2">'
+      +   '<div class="col-md-3"><b>Tipo Pago:</b> ' + mapTipoPago(v?.tipoPago) + '</div>'
+      +   '<div class="col-md-3"><b>Estado:</b> ' + estadoBadge(v?.estado) + '</div>'
+      +   '<div class="col-md-3"><b>Vendedor:</b> <span id="vendNom">' + vendedorTxt + '</span></div>'
+      +   '<div class="col-md-3"><b>Cajero:</b> <span id="cajNom">' + cajeroTxt + '</span></div>'
+      + '</div>'
+      + '<div class="row g-2 mt-2">'
+      +   '<div class="col-md-3"><b>Subtotal:</b> ' + money(v?.subtotal) + '</div>'
+      +   '<div class="col-md-3"><b>Descuento:</b> ' + money(v?.descuentoGeneral) + '</div>'
+      +   '<div class="col-md-3"><b>IVA:</b> ' + money(v?.iva) + '</div>'
+      +   '<div class="col-md-3"><span class="badge ok">Total ' + money(v?.total) + '</span></div>'
+      + '</div>'
+      + '<div class="row g-2 mt-2"><div class="col-md-12"><b>Observaciones:</b> ' + txt(v?.observaciones) + '</div></div>';
+
+    document.getElementById('cabecera').innerHTML = html;
+  }
+  function renderDetalles(items){
+    const tbody = document.querySelector('#tablaDet tbody');
+    const empty = document.getElementById('tablaDetEmpty');
+    tbody.innerHTML = '';
+    if (!items || !items.length){ if (empty) empty.classList.remove('d-none'); return; }
+    if (empty) empty.classList.add('d-none');
+    for (const d of items){
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+          '<td>' + txt(d?.id) + '</td>'
+        + '<td>' + txt(d?.productoId) + '</td>'
+        + '<td>' + txt(d?.cantidad) + '</td>'
+        + '<td>' + money(d?.precioUnitario) + '</td>'
+        + '<td>' + money(d?.descuentoLinea) + '</td>'
+        + '<td>' + money(d?.subtotal) + '</td>'
+        + '<td>' + txt(d?.lote) + '</td>'
+        + '<td>' + txt(d?.fechaVencimiento) + '</td>';
+      tbody.appendChild(tr);
+    }
+  }
+
+  async function ensureEmpleados(){
+    if (_empleadosById) return _empleadosById;
+    try{
+      const data = await fetchJson(API_CATALOGOS + '/empleados?limit=500');
+      const arr = asArray(data);
+      _empleadosById = {}; for (const e of arr){ if (e?.id != null) _empleadosById[e.id] = e; }
+    }catch(_){ _empleadosById = {}; }
+    return _empleadosById;
+  }
+  async function enriquecerNombres(venta){
+    if (!venta) return venta;
+    if (venta.vendedorNombre && venta.cajeroNombre) return venta;
+    const map = await ensureEmpleados();
+    const vend = venta.vendedorId != null ? map[venta.vendedorId] : null;
+    const caj  = venta.cajeroId   != null ? map[venta.cajeroId]   : null;
+    if (vend) venta.vendedorNombre = [vend.nombres, vend.apellidos].filter(Boolean).join(' ') || vend.codigo || ('EMP-'+vend.id);
+    if (caj)  venta.cajeroNombre   = [caj.nombres,  caj.apellidos ].filter(Boolean).join(' ') || caj.codigo  || ('EMP-'+caj.id);
+    const vn = document.getElementById('vendNom'); if (vn && venta.vendedorNombre) vn.textContent = venta.vendedorNombre;
+    const cn = document.getElementById('cajNom');  if (cn && venta.cajeroNombre)   cn.textContent = venta.cajeroNombre;
+    return venta;
+  }
+
+  function clearMontoValidation(){ const input = document.getElementById('fp_monto'); input.classList.remove('is-invalid'); document.getElementById('fp_monto_err').textContent='Monto inválido.'; }
+  function invalidateMonto(msg){ const input = document.getElementById('fp_monto'); input.classList.add('is-invalid'); document.getElementById('fp_monto_err').textContent = msg || 'Monto inválido.'; }
+
+  async function cargarSaldos(venta){
+    const id = venta?.id; if(!id) return;
+    const data = await fetchJson(API_VENTAS + '/' + id + '/saldos');
+    SALDOS = data;
+    const box = document.getElementById('boxSaldos'); if (box) box.style.display='';
+    const setText = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+    setText('saldoOrigen', (data && data.origen) ? data.origen : '—');
+    setText('saldoTotal',  money(data?.total));
+    setText('saldoPagado', money(data?.pagado));
+    setText('saldoRestante', money(data?.saldo));
+    const btn = document.getElementById('btnRegistrarPago');
+    const linkCxC = document.getElementById('linkCxC');
+    if (btn) btn.style.display='none';
+    if (linkCxC) linkCxC.style.display='none';
+    if(venta && venta.estado === 'A') return;
+    if(data?.origen === 'CONTADO'){
+      if(Number(data.saldo) > 0.0001){ if (btn) btn.style.display=''; const hint = document.getElementById('fp_hintSaldo'); if(hint) hint.textContent = 'Saldo: ' + money(data.saldo); }
+    } else if (data?.origen === 'CREDITO' && data.documento_id){
+      const urlCxC = ctx + '/cxc_detalle.jsp?documentoId=' + encodeURIComponent(data.documento_id);
+      if (linkCxC){ linkCxC.href = urlCxC; linkCxC.style.display=''; }
+    }
+  }
+  function bindValidacionMonto(){
+    const input = document.getElementById('fp_monto'); if(!input) return;
+    input.addEventListener('input', function(){
+      clearMontoValidation();
+      const monto = Number(input.value);
+      const saldo = Number(SALDOS?.saldo || 0);
+      if (!monto || monto <= 0) { invalidateMonto('Ingresa un monto mayor a 0.'); }
+      else if (monto - saldo > 0.0001) { invalidateMonto('El pago excede el saldo (' + money(saldo) + ').'); }
+    }, { once: true });
+  }
+  async function enviarPago(){
+    const alerta = document.getElementById('fp_alert');
+    if (alerta){ alerta.classList.add('d-none'); alerta.textContent=''; }
+    clearMontoValidation();
+    const forma = document.getElementById('fp_forma').value;
+    const monto = Number(document.getElementById('fp_monto').value);
+    const ref   = document.getElementById('fp_ref').value || null;
+    if(!SALDOS || SALDOS.origen !== 'CONTADO'){ if(alerta){ alerta.textContent='Esta venta es CRÉDITO. Registra pagos en CxC.'; alerta.classList.remove('d-none'); } return; }
+    if(isNaN(monto) || monto <= 0){ invalidateMonto('Ingresa un monto mayor a 0.'); return; }
+    const saldo = Number(SALDOS.saldo || 0);
+    if(monto - saldo > 0.0001){ invalidateMonto('El pago excede el saldo (' + money(saldo) + ').'); return; }
+    const id = VENTA_ACTUAL?.id; if(!id){ if(alerta){ alerta.textContent='Venta no cargada.'; alerta.classList.remove('d-none'); } return; }
+    const url = API_VENTAS + '/' + id + '/pagos' + '?forma=' + encodeURIComponent(forma) + '&monto=' + encodeURIComponent(monto) + (ref ? ('&referencia=' + encodeURIComponent(ref)) : '');
+    await fetchJson(url, { method:'POST' });
+    await cargarSaldos(VENTA_ACTUAL);
+    await cargarCabeceraSinDetalle();
+    const modalEl = document.getElementById('modalPago');
+    (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl)).hide();
+    document.getElementById('fp_monto').value = ''; document.getElementById('fp_ref').value = '';
+  }
+  async function cargarCabeceraSinDetalle(){
+    const { query } = parseHash();
+    const sp = new URLSearchParams(query||'');
+    const id = sp.get('id'); if(!id) return;
+    const venta = await fetchJson(API_VENTAS + '/' + id);
+    VENTA_ACTUAL = await enriquecerNombres(venta);
+    renderCabecera(VENTA_ACTUAL);
+  }
+
+  return {
+    initOnce: async function(){
+      if (_inited) return;
+      const btnOpen = document.getElementById('btnRegistrarPago');
+      if(btnOpen) btnOpen.addEventListener('click', function(){ 
+        document.getElementById('fp_monto').classList.remove('is-invalid');
+        bindValidacionMonto();
+      });
+      const btnPagar = document.getElementById('btnPagar');
+      if(btnPagar) btnPagar.addEventListener('click', enviarPago);
+      _inited = true;
+    },
+    cargar: async function(id){
+      try{
+        const venta = await fetchJson(API_VENTAS + '/' + id);
+        const v2 = await enriquecerNombres(venta);
+        VENTA_ACTUAL = v2;
+        renderCabecera(v2);
+        renderDetalles(Array.isArray(v2.items) ? v2.items : []);
+        await cargarSaldos(v2);
+      }catch(err){
+        console.error(err);
+        document.getElementById('cabecera').innerHTML =
+          '<div class="alert alert-danger">Error: ' + (err.message || 'desconocido') + '</div>';
+      }
+    }
+  };
+})();
+
+// ========= VISTA PAGOS =========
+const VPAGOS = (function(){
+  let _inited=false;
+  let page=0, size=20;
+  const state = { lastFilters:{} };
+  function getLast(){ return state.lastFilters; }
+
+  function formatMoney(n){ return money(n); }
+  function formaBadge(k){
+    const kk = (k||'').toUpperCase();
+    if (kk==='EFE') return '<span class="badge text-bg-success">Efectivo</span>';
+    if (kk==='TAR') return '<span class="badge text-bg-info">Tarjeta</span>';
+    if (kk==='TRF') return '<span class="badge text-bg-primary">Transferencia</span>';
+    return '<span class="badge text-bg-secondary">'+(k||'')+'</span>';
+  }
+  async function fetchJsonOrNull(url){ try{ return await fetchJson(url); }catch{ return null; } }
+  function fillSelect(sel, data, map, keepValue){
+    let html = '<option value="">(Todos)</option>';
+    for (const it of data){ const o = map(it); html += '<option value="'+o.value+'"'+(String(keepValue)===String(o.value)?' selected':'')+'>'+o.text+'</option>'; }
+    sel.innerHTML = html;
+  }
+
+  async function cargarCatalogos(){
+    let cli = await fetchJsonOrNull(API_CATALOGOS + '/clientes?limit=200');
+    const clientes = asArray(cli || []);
+    fillSelect(document.getElementById('p_selCliente'), clientes, c=>{
+      const nombre = c?.nombre ? String(c.nombre) : '';
+      const codigo = c?.codigo ? String(c.codigo) : '';
+      const txt = nombre ? ((codigo ? (codigo+' - ') : '') + nombre) : ('CLI-' + c.id);
+      return { value:c.id, text:txt };
+    });
+  }
+
+  function render(rows){
+    const tbody = document.getElementById('tablaPagosBody');
+    const empty = document.getElementById('tablaPagosEmpty');
+    tbody.innerHTML = '';
+    if (!rows.length){ if (empty) empty.classList.remove('d-none'); else { const tr=document.createElement('tr'); tr.innerHTML='<td colspan="7" class="text-center text-muted">Sin resultados</td>'; tbody.appendChild(tr);} return; }
+    if (empty) empty.classList.add('d-none');
+    for (const r of rows){
+      const clienteTxt = (r?.clienteNombre && r.clienteNombre.trim()!=='') ? r.clienteNombre : (r?.clienteCodigo ? r.clienteCodigo : (r?.clienteId!=null ? ('CLI-'+r.clienteId) : ''));
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+          '<td>' + (r?.pagoId ?? '') + '</td>'
+        + '<td>' + (r?.fechaVenta || '') + '</td>'
+        + '<td>' + (r?.numeroVenta || '') + '</td>'
+        + '<td>' + (clienteTxt || '') + '</td>'
+        + '<td>' + formaBadge(r?.formaPago) + '</td>'
+        + '<td class="text-end">' + formatMoney(r?.monto) + '</td>'
+        + '<td>' + (r?.referencia || '') + '</td>';
+      tbody.appendChild(tr);
+    }
+  }
+
+  async function cargar(params){
+    params = params || {};
+    const qs = new URLSearchParams();
+    if (params.clienteId) qs.set('clienteId', params.clienteId);
+    if (params.desde)     qs.set('desde', params.desde);
+    if (params.hasta)     qs.set('hasta', params.hasta);
+    const all = asArray(await fetchJson(API_VENTAS + '/pagos' + (qs.toString()?('?'+qs.toString()):'')));
+    const start = page * size;
+    render(all.slice(start, start + size));
+    document.getElementById('pActualPagos').textContent = (page+1);
+    window.__allRowsPagos = all;
+  }
+  function cambiarPagina(delta){
+    const all = window.__allRowsPagos || [];
+    const maxPage = Math.max(0, Math.ceil(all.length / size) - 1);
+    page = Math.max(0, Math.min(maxPage, page + delta));
+    const start = page * size;
+    render(all.slice(start, start + size));
+    document.getElementById('pActualPagos').textContent = (page+1);
+  }
+  function buscar(ev){
+    ev.preventDefault();
+    const clienteSel = document.getElementById('p_selCliente');
+    const fDesde     = document.getElementById('p_desde');
+    const fHasta     = document.getElementById('p_hasta');
+    state.lastFilters = {
+      clienteId: clienteSel.value || '',
+      desde:     fDesde.value || '',
+      hasta:     fHasta.value || ''
+    };
+    page = 0;
+    cargar(state.lastFilters);
+  }
+  function limpiar(){
+    const form = document.getElementById('filtrosPagos'); if (form) form.reset();
+    const selCliente = document.getElementById('p_selCliente'); if (selCliente) selCliente.value = '';
+    state.lastFilters = {};
+    page = 0;
+    cargar(state.lastFilters);
+  }
+
+  return {
+    lastFilters: getLast(),
+    initOnce: async function(){ if (_inited) return; await cargarCatalogos(); _inited=true; },
+    cargar, buscar, limpiar, cambiarPagina
+  };
+})();
+
+// ====== Boot ======
+window.addEventListener('DOMContentLoaded', async function(){
+  document.getElementById('selBodegaDet')?.addEventListener('change', function(){
+    // La recarga de productos del modal de detalle se maneja dentro de VLIST.* cuando se abre el modal
   });
-  </script>
+  await handleRoute();
+});
+</script>
 </body>
 </html>

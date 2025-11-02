@@ -106,7 +106,25 @@
         </div>
       </a>
     </div>
-
+    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+      <a class="card nt-card text-decoration-none h-100" href="cotizaciones.jsp">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-2"><i class="bi bi-calendar-check fs-3 me-2"></i><h5 class="card-title mb-0 nt-title">Cotizaciones</h5></div>
+          <p class="card-text text-body-secondary small">Ingresos por cotizaciones.</p>
+          <span class="badge bg-outline">Acceso</span>
+        </div>
+      </a>
+    </div>
+    
+    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+      <a class="card nt-card text-decoration-none h-100" href="clientes.jsp">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-2"><i class="bi bi-person-badge fs-3 me-2"></i><h5 class="card-title mb-0 nt-title">Clientes</h5></div>
+          <p class="card-text text-body-secondary small">Manejo de Clientes</p>
+          <span class="badge bg-outline">Acceso</span>
+        </div>
+      </a>
+    </div>
     <!-- Catálogos de producto -->
     <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
       <a class="card nt-card text-decoration-none h-100" href="bodegas.jsp">

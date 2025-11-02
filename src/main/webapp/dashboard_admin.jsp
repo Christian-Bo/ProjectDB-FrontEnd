@@ -83,7 +83,9 @@
       { name:'CxC (Cobrar)',      href:'cxc.jsp',                icon:'bi-wallet2',          desc:'Cuentas por cobrar.' },
       { name:'CxP (Pagar)',       href:'cxp.jsp',                icon:'bi-cash-stack',       desc:'Cuentas por pagar.' },
       { name:'Devoluciones',      href:'devoluciones.jsp',       icon:'bi-arrow-counterclockwise', desc:'Gestión de devoluciones.' },
-      { name:'Proveedores',       href:'proveedores.jsp',        icon:'bi-truck',            desc:'ABM de proveedores.' }
+      { name:'Proveedores',       href:'proveedores.jsp',        icon:'bi-truck',            desc:'ABM de proveedores.' },
+      { name:'Cotizaciones',     href:'cotizaciones.jsp',      icon:'bi-calendar-check',   desc:'Gestión de contizaciones y fechas de pago.' },
+      { name:'Clientes',          href:'clientes.jsp',           icon:'bi-person-badge',     desc:'ABM de clientes y gestión de información.' }
     ],
     inventario: [
       { name:'Inventario',        href:'inventario.jsp',         icon:'bi-archive',          desc:'Stock, kardex y alertas.' },
@@ -101,7 +103,6 @@
     ],
     utilidades: [
       { name:'Ajustes',              href:'ajustes.jsp',              icon:'bi-sliders2',             desc:'Parámetros del sistema.' },
-      { name:'Dashboard Principal',  href:'Dashboard.jsp',            icon:'bi-speedometer2',          desc:'Hub principal.' }
     ]
   };
 
