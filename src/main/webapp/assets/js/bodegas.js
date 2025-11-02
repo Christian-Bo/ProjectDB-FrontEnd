@@ -188,7 +188,7 @@
                 <td>${b.telefono || '-'}</td>
                 <td>${b.email || '-'}</td>
                 <td>${getBadgeEstado(b.activo)}</td>
-                <td>${b.responsableId ? `ID: ${b.responsableId}` : '-'}</td>
+                <td>${b.responsableNombre || '-'}</td>
                 <td class="text-end">
                     <div class="btn-group btn-group-sm">
                         <button class="btn btn-outline-primary" onclick="window.bodegasApp.verDetalle(${b.id})" title="Ver">
