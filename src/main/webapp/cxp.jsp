@@ -428,6 +428,7 @@
       try{ if (window.Auth?.user) return window.Auth.user; const raw = localStorage.getItem('auth_user'); return raw ? JSON.parse(raw) : null; }catch(_){ return null; }
     }
     function homeForRole(role){
+              console.log(role);
       const HOME = { ADMIN:'Dashboard.jsp', OPERADOR:'dashboard_operador.jsp', RRHH:'rrhh-dashboard.jsp' };
       return HOME[(role||'').toUpperCase()] || 'Dashboard.jsp';
     }

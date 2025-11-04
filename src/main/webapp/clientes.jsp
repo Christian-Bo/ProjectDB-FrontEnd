@@ -26,22 +26,66 @@
   <script src="${pageContext.request.contextPath}/assets/js/common.js?v=99"></script>
 
   <style>
-    body.nt-bg { background: var(--nt-bg); color: var(--nt-fg); }
-    .nt-navbar { background: var(--nt-surface-1); border-bottom: 1px solid var(--nt-border); }
-    .nt-title { color: var(--nt-fg-strong); }
-    .nt-subtitle { color: var(--nt-fg-muted); }
-    .nt-card { background: var(--nt-surface-1); border: 1px solid var(--nt-border); border-radius: 1rem; }
-    .nt-card:hover { transform: translateY(-1px); border-color: var(--nt-accent); box-shadow: 0 10px 24px rgba(0,0,0,.25); transition: .12s; }
-    .nt-table-head { background: var(--nt-surface-2); color: var(--nt-fg); }
-    .nt-btn-accent { background: var(--nt-accent); color: #fff; border: none; }
-    .nt-btn-accent:hover { filter: brightness(0.95); }
-    .nt-back { display:inline-flex; align-items:center; gap:.5rem; border:1px solid var(--nt-border); background:transparent; color:var(--nt-primary); }
-    .nt-back:hover { background:var(--nt-surface-2); }
+  /* === Mapea variables existentes del tema (base.css) ===
+     Antes usabas --nt-surface-1, --nt-fg*, que no existen */
+  body.nt-bg { background: var(--nt-bg); color: var(--nt-text); }
+  .nt-title{ color: var(--nt-primary); }
+  .nt-subtitle{ color: var(--nt-text); opacity:.9; }
 
-    .btn-icon{ display:inline-flex; align-items:center; justify-content:center; width:2.25rem; height:2.25rem; padding:0; }
-    .btn-icon i{ font-size:1.05rem; line-height:1; }
-    .table td, .table th{ vertical-align:middle; }
-  </style>
+  .nt-back{
+    display:inline-flex; align-items:center; gap:.5rem;
+    border:1px solid var(--nt-border);
+    background:transparent; color:var(--nt-primary);
+  }
+  .nt-back:hover{ background:var(--nt-surface-2); }
+
+  /* Cards coherentes con el tema */
+  .nt-card{
+    background: var(--nt-surface);                  /* <-- antes: --nt-surface-1 (NO existe) */
+    border:1px solid var(--nt-border);
+    border-radius:1rem; transition:.12s;
+  }
+  .nt-card:hover{
+    transform: translateY(-1px);
+    border-color: var(--nt-accent);
+    box-shadow: 0 10px 24px rgba(0,0,0,.35);
+  }
+
+  /* Encabezados de tabla */
+  .nt-table-head{ background: var(--nt-surface-2); color: var(--nt-primary); }
+
+  /* Botón de acento */
+  .nt-btn-accent{ background: var(--nt-accent); color:#fff; border:none; }
+  .nt-btn-accent:hover{ filter: brightness(.95); }
+
+  /* Inputs oscuros como Transferencias */
+  .form-control.nt-input, .form-select.nt-input{
+    background: var(--nt-surface-2);
+    color: var(--nt-text);                           /* <-- antes: --nt-fg (NO existe) */
+    border-color: var(--nt-border);
+  }
+  .form-control.nt-input:focus, .form-select.nt-input:focus{
+    border-color: var(--nt-accent);
+    box-shadow: 0 0 0 .2rem rgba(0,102,255,.15);
+  }
+
+  /* Modal del tema (asegura fondo sólido) */
+  .modal-content{
+    background: var(--nt-surface) !important;        /* <-- antes: --nt-surface-1 (NO existe) */
+    color: var(--nt-text);
+    border:1px solid var(--nt-border);
+    border-radius:1rem;
+  }
+  .modal-header{
+    background: var(--nt-surface-2);
+    border-bottom:1px solid var(--nt-border);
+    color: var(--nt-primary);
+  }
+  .modal-footer{ border-top:1px solid var(--nt-border); }
+
+  /* Opacidad del backdrop del modal */
+  .modal-backdrop.show{ opacity:.6 !important; }
+</style>
 </head>
 <body class="nt-bg min-vh-100 d-flex flex-column">
 
