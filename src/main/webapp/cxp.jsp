@@ -20,59 +20,36 @@
   <!-- Tema NextTech -->
   <link rel="stylesheet" href="assets/css/base.css?v=13">
   <link rel="stylesheet" href="assets/css/app.css?v=13">
-  <link rel="stylesheet" href="assets/css/cxp.css?v=15"><!-- v15 -->
+  <link rel="stylesheet" href="assets/css/cxp.css?v=16"><!-- ⚠️ v16 -->
 
-<style>
-  body.nt-bg { background: var(--nt-bg); color: var(--nt-text); }
-  .nt-title{ color: var(--nt-primary); }
-  .nt-subtitle{ color: var(--nt-text); opacity:.9; }
+  <style>
+    /* Ajustes rápidos coherentes con el tema global */
+    body.nt-bg { background: var(--nt-bg); color: var(--nt-text); }
+    .nt-title{ color: var(--nt-primary); }
+    .nt-subtitle{ color: var(--nt-text); opacity:.9; }
 
-  .nt-back{
-    display:inline-flex; align-items:center; gap:.5rem;
-    border:1px solid var(--nt-border);
-    background:transparent; color: var(--nt-primary);
-  }
-  .nt-back:hover{ background: var(--nt-surface-2); }
+    .nt-back{
+      display:inline-flex; align-items:center; gap:.5rem;
+      border:1px solid var(--nt-border);
+      background:transparent; color: var(--nt-primary);
+    }
+    .nt-back:hover{ background: var(--nt-surface-2); }
 
-  .nt-card{
-    background: var(--nt-surface);
-    border:1px solid var(--nt-border);
-    border-radius:1rem; transition:.12s;
-  }
-  .nt-card:hover{
-    transform: translateY(-1px);
-    border-color: var(--nt-accent);
-    box-shadow: 0 10px 24px rgba(0,0,0,.35);
-  }
+    .nt-card{ background: var(--nt-surface); border:1px solid var(--nt-border); border-radius:1rem; transition:.12s; }
+    .nt-card:hover{ transform: translateY(-1px); border-color: var(--nt-accent); box-shadow: 0 10px 24px rgba(0,0,0,.35); }
 
-  .nt-table-head{ background: var(--nt-surface-2); color: var(--nt-primary); }
-  .nt-btn-accent{ background: var(--nt-accent); color:#fff; border:none; }
-  .nt-btn-accent:hover{ filter: brightness(.95); }
+    .nt-table-head{ background: var(--nt-surface-2); color: var(--nt-primary); }
+    .nt-btn-accent{ background: var(--nt-accent); color:#fff; border:none; }
+    .nt-btn-accent:hover{ filter: brightness(.95); }
 
-  .form-control.nt-input, .form-select.nt-input{
-    background: var(--nt-surface-2);
-    color: var(--nt-text);
-    border-color: var(--nt-border);
-  }
-  .form-control.nt-input:focus, .form-select.nt-input:focus{
-    border-color: var(--nt-accent);
-    box-shadow: 0 0 0 .2rem rgba(0,102,255,.15);
-  }
+    .form-control.nt-input, .form-select.nt-input{ background: var(--nt-surface-2); color: var(--nt-text); border-color: var(--nt-border); }
+    .form-control.nt-input:focus, .form-select.nt-input:focus{ border-color: var(--nt-accent); box-shadow: 0 0 0 .2rem rgba(0,102,255,.15); }
 
-  .modal-content{
-    background: var(--nt-surface) !important;
-    color: var(--nt-text);
-    border:1px solid var(--nt-border);
-    border-radius:1rem;
-  }
-  .modal-header{
-    background: var(--nt-surface-2);
-    border-bottom:1px solid var(--nt-border);
-    color: var(--nt-primary);
-  }
-  .modal-footer{ border-top:1px solid var(--nt-border); }
-  .modal-backdrop.show{ opacity:.6 !important; }
-</style>
+    .modal-content{ background: var(--nt-surface) !important; color: var(--nt-text); border:1px solid var(--nt-border); border-radius:1rem; }
+    .modal-header{ background: var(--nt-surface-2); border-bottom:1px solid var(--nt-border); color: var(--nt-primary); }
+    .modal-footer{ border-top:1px solid var(--nt-border); }
+    .modal-backdrop.show{ opacity:.6 !important; }
+  </style>
 </head>
 <body class="nt-bg min-vh-100 d-flex flex-column">
 
@@ -256,7 +233,7 @@
             </div>
 
             <div class="col-lg-6 d-flex flex-column gap-3">
-              <!-- NUEVO: selector rápido de documentos -->
+              <!-- Selector rápido de documentos -->
               <div class="card nt-card shadow-sm rounded-xxl">
                 <div class="card-header fw-semibold"><i class="bi bi-bag-check"></i> Seleccionar documentos del proveedor</div>
                 <div class="card-body p-0">
@@ -418,10 +395,32 @@
     <div id="toastStack" class="toast-container"></div>
   </div>
 
+  <!-- Modal de confirmación (eliminar/anular) -->
+  <div class="modal fade" id="confirmDanger" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0" style="border-radius:1rem">
+        <div class="modal-header bg-danger text-white" style="border-top-left-radius:1rem;border-top-right-radius:1rem">
+          <h5 class="modal-title" id="confirmDangerTitle">Confirmar acción</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p id="confirmDangerMsg" class="mb-0">Esta acción no se puede deshacer.</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button id="confirmDangerBtn" class="btn btn-danger">
+            <i class="bi bi-exclamation-octagon me-1"></i>
+            <span id="confirmDangerBtnText">Eliminar</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="assets/js/common.js?v=11"></script>
-  <script src="assets/js/cxp.js?v=15"></script><!-- v15 -->
+ 
+  <script src="assets/js/cxp.js?v=16.3.3"></script> <!-- ⚠️ v16.3 -->
 
   <script>
     function parseAuthUser(){
