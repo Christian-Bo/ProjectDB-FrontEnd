@@ -79,6 +79,8 @@
       { name:'Compras',           href:'compras.jsp',            icon:'bi-bag-check',        desc:'Crear/editar compras.' },
       { name:'Pagos de Compras',  href:'compras_pagos.jsp',      icon:'bi-receipt',          desc:'Aplicaciones y conciliación.' },
       { name:'Ventas',            href:'ventas.jsp',             icon:'bi-cash-coin',        desc:'Registro y seguimiento de ventas.' },
+      { name:'Pagos de Ventas',   href:'ventas_pagos.jsp',       icon:'bi-cash-stack',     desc:'ABM de clientes y gestión de información.' },
+      { name:'Facturas',          href:'facturas.jsp',           icon:'bi-receipt',     desc:'ABM de clientes y gestión de información.' },
       { name:'Transferencias',    href:'transferencias.jsp',     icon:'bi-arrow-left-right', desc:'Traslados entre bodegas.' },
       { name:'CxC (Cobrar)',      href:'cxc.jsp',                icon:'bi-wallet2',          desc:'Cuentas por cobrar.' },
       { name:'CxP (Pagar)',       href:'cxp.jsp',                icon:'bi-cash-stack',       desc:'Cuentas por pagar.' },

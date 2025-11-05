@@ -21,8 +21,7 @@
   <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/app.css?v=13">
 
 <style>
-  /* === Mapea variables existentes del tema (base.css) ===
-     Antes usabas --nt-surface-1, --nt-fg*, que no existen */
+  /* === Mapea variables existentes del tema (base.css) === */
   body.nt-bg { background: var(--nt-bg); color: var(--nt-text); }
   .nt-title{ color: var(--nt-primary); }
   .nt-subtitle{ color: var(--nt-text); opacity:.9; }
@@ -36,7 +35,7 @@
 
   /* Cards coherentes con el tema */
   .nt-card{
-    background: var(--nt-surface);                  /* <-- antes: --nt-surface-1 (NO existe) */
+    background: var(--nt-surface);
     border:1px solid var(--nt-border);
     border-radius:1rem; transition:.12s;
   }
@@ -56,7 +55,7 @@
   /* Inputs oscuros como Transferencias */
   .form-control.nt-input, .form-select.nt-input{
     background: var(--nt-surface-2);
-    color: var(--nt-text);                           /* <-- antes: --nt-fg (NO existe) */
+    color: var(--nt-text);
     border-color: var(--nt-border);
   }
   .form-control.nt-input:focus, .form-select.nt-input:focus{
@@ -66,7 +65,7 @@
 
   /* Modal del tema (asegura fondo sólido) */
   .modal-content{
-    background: var(--nt-surface) !important;        /* <-- antes: --nt-surface-1 (NO existe) */
+    background: var(--nt-surface) !important;
     color: var(--nt-text);
     border:1px solid var(--nt-border);
     border-radius:1rem;
@@ -127,8 +126,10 @@
             <input type="date" id="f_hasta" class="form-control">
           </div>
           <div class="col-sm-3">
-            <label class="form-label">Cliente ID</label>
-            <input type="number" id="f_cliente" min="1" class="form-control" placeholder="Ej. 1">
+            <label class="form-label">Cliente</label>
+            <select id="f_cliente" class="form-select">
+              <option value="">Cargando...</option>
+            </select>
           </div>
           <div class="col-sm-3">
             <label class="form-label">Número</label>
@@ -249,7 +250,7 @@
 
   <!-- Modal: Ver cotización (detalle + convertir a venta) -->
   <div class="modal fade" id="modalVerCot" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content nt-card">
         <div class="modal-header">
           <h5 class="modal-title">Detalle de cotización</h5>
@@ -268,55 +269,66 @@
 
           <!-- Acciones convertir -->
           <div class="card nt-card mb-3">
-            <div class="card-body d-flex flex-wrap gap-3 align-items-end">
-              <div>
-                <label class="form-label">Bodega ID</label>
-                <input type="number" id="cv_bodega" class="form-control" min="1" value="1">
+            <div class="card-body">
+              <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                  <label class="form-label">Bodega *</label>
+                  <select id="cv_bodega" class="form-select">
+                    <option value="">Cargando...</option>
+                  </select>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Serie *</label>
+                  <select id="cv_serie" class="form-select">
+                    <option value="">Cargando...</option>
+                  </select>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label">Cajero</label>
+                  <select id="cv_cajero" class="form-select">
+                    <option value="">Cargando...</option>
+                  </select>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label">Tipo de pago</label>
+                  <select id="cv_tipoPago" class="form-select">
+                    <option value="C" selected>Contado</option>
+                    <option value="R">Crédito</option>
+                  </select>
+                </div>
+                <div class="col-md-2">
+                  <button id="btnConvertir" class="btn nt-btn-accent w-100" disabled>
+                    <i class="bi bi-arrow-left-right me-1"></i> Convertir
+                  </button>
+                </div>
               </div>
-              <div>
-                <label class="form-label">Serie ID</label>
-                <input type="number" id="cv_serie" class="form-control" min="1" value="1">
-              </div>
-              <div>
-                <label class="form-label">Cajero ID</label>
-                <input type="number" id="cv_cajero" class="form-control" min="1" value="1">
-              </div>
-              <div>
-                <label class="form-label">Tipo de pago</label>
-                <select id="cv_tipoPago" class="form-select">
-                  <option value="C" selected>Contado</option>
-                  <option value="R">Crédito</option>
-                </select>
-              </div>
-              <div class="ms-auto">
-                <button id="btnConvertir" class="btn nt-btn-accent" disabled>
-                  <i class="bi bi-arrow-left-right me-1"></i> Convertir a venta
-                </button>
-              </div>
+              <div id="cv_alert" class="alert alert-danger d-none mt-3 mb-0"></div>
+              <div id="cv_ok" class="alert alert-success d-none mt-3 mb-0"></div>
             </div>
-            <div id="cv_alert" class="alert alert-danger d-none mx-3 mb-0"></div>
-            <div id="cv_ok" class="alert alert-success d-none mx-3 mb-3"></div>
           </div>
 
           <!-- Detalle -->
           <div class="card nt-card">
+            <div class="card-header">
+              <h6 class="m-0">Productos de la cotización</h6>
+            </div>
             <div class="table-responsive">
-              <table class="table table-striped table-hover align-middle mb-0" id="tabla">
+              <table class="table table-striped table-hover align-middle mb-0" id="tablaDetalle">
                 <thead class="nt-table-head">
                   <tr>
-                    <th>ID Detalle</th>
                     <th>Producto</th>
-                    <th>Cantidad</th>
-                    <th>Precio</th>
-                    <th>Desc. línea</th>
-                    <th>Subtotal</th>
-                    <th>Descripción</th>
+                    <th class="text-end">Cantidad</th>
+                    <th class="text-end">Precio</th>
+                    <th class="text-end">Desc. línea</th>
+                    <th class="text-end">Subtotal</th>
+                    <th>Lote</th>
+                    <th>Vence</th>
                   </tr>
                 </thead>
-                <tbody></tbody>
+                <tbody id="tbodyDetalle"></tbody>
               </table>
             </div>
-            <div id="tablaEmpty" class="p-3 text-muted d-none">Sin líneas.</div>
+            <div id="tablaDetalleEmpty" class="p-3 text-muted d-none">Sin líneas.</div>
           </div>
         </div>
 
@@ -369,6 +381,7 @@
   }
   function round2(x){ return Math.round(Number(x||0)*100)/100; }
   function txt(x){ return (x===undefined || x===null) ? '' : String(x); }
+  function asArray(x){ return Array.isArray(x) ? x : (x && (x.items||x.content||x.data||x.results||x.records)) || []; }
 
   // Estado (badge)
   function estadoBadgeHtml(e){
@@ -380,6 +393,131 @@
     };
     const it = map[key] || { cls: 'badge rounded-pill text-bg-secondary', label: (e || '—') };
     return '<span class="'+it.cls+'" title="Estado: '+it.label+'">'+it.label+'</span>';
+  }
+
+  function goBack(){ 
+    try{ if(history.length>1){ history.back(); return; } }catch(_){} 
+    location.href='${pageContext.request.contextPath}/Dashboard.jsp'; 
+  }
+
+  /* =========================
+     CATÁLOGOS GLOBALES
+     ========================= */
+  let CAT_CLIENTES = [];
+  let CAT_VENDEDORES = [];
+  let CAT_PRODS = [];
+  let CAT_BODEGAS = [];
+  let CAT_SERIES = [];
+  let CAT_EMPLEADOS = []; // Para cajeros
+
+  let CATALOGOS_CARGADOS = false;
+  let CATALOGOS_CONVERSION_CARGADOS = false;
+  let CATALOGOS_FILTRO_CARGADOS = false;
+
+  // Cargar clientes para el filtro
+  async function cargarClientesFiltro(){
+    if(CATALOGOS_FILTRO_CARGADOS) return;
+    
+    try{
+      const data = await fetchJson(API_CAT + '/clientes?limit=200');
+      CAT_CLIENTES = asArray(data);
+      
+      const selFiltro = document.getElementById('f_cliente');
+      if(selFiltro){
+        selFiltro.innerHTML = '<option value="">(Todos)</option>' +
+          CAT_CLIENTES.map(c => {
+            const codigo = c.codigo || ('CLI-' + c.id);
+            const nombre = c.nombre || c.razonSocial || '';
+            const nit = c.nit ? (' - NIT: ' + c.nit) : '';
+            return '<option value="'+c.id+'">['+codigo+'] '+nombre+nit+'</option>';
+          }).join('');
+      }
+      
+      CATALOGOS_FILTRO_CARGADOS = true;
+    }catch(err){
+      console.error('[cotizaciones] Error cargando clientes para filtro:', err);
+      const selFiltro = document.getElementById('f_cliente');
+      if(selFiltro) selFiltro.innerHTML = '<option value="">(Error al cargar)</option>';
+    }
+  }
+
+  async function cargarCatalogos(){
+    if(CATALOGOS_CARGADOS) return;
+    
+    try{
+      [CAT_CLIENTES, CAT_VENDEDORES, CAT_PRODS] = await Promise.all([
+        fetchJson(API_CAT + '/clientes'),
+        fetchJson(API_CAT + '/empleados'),
+        fetchJson(API_CAT + '/productos-stock')
+      ]);
+
+      CAT_CLIENTES = asArray(CAT_CLIENTES);
+      CAT_VENDEDORES = asArray(CAT_VENDEDORES);
+      CAT_PRODS = asArray(CAT_PRODS);
+
+      // Cliente
+      const selCli = document.getElementById('nc_cliente');
+      selCli.innerHTML = '<option value="">-- Selecciona --</option>' +
+        CAT_CLIENTES.map(c => '<option value="'+c.id+'">['+(c.codigo||('CLI-'+c.id))+'] '+c.nombre+' '+(c.nit?('(NIT '+c.nit+')'):'')+'</option>').join('');
+
+      // Vendedor
+      const selVen = document.getElementById('nc_vendedor');
+      selVen.innerHTML = '<option value="">-- Selecciona --</option>' +
+        CAT_VENDEDORES.map(e => {
+          const nom = ((e.nombres||'') + ' ' + (e.apellidos||'')).trim();
+          return '<option value="'+e.id+'">['+(e.codigo||('EMP-'+e.id))+'] '+(nom||('Empleado '+e.id))+'</option>';
+        }).join('');
+
+      CATALOGOS_CARGADOS = true;
+    }catch(err){
+      console.error('[cotizaciones] Error cargando catálogos:', err);
+      throw err;
+    }
+  }
+
+  async function cargarCatalogosConversion(){
+    if(CATALOGOS_CONVERSION_CARGADOS) return;
+    
+    try{
+      [CAT_BODEGAS, CAT_SERIES, CAT_EMPLEADOS] = await Promise.all([
+        fetchJson(API_CAT + '/bodegas'),
+        fetchJson(API_CAT + '/series'),
+        fetchJson(API_CAT + '/empleados')
+      ]);
+
+      CAT_BODEGAS = asArray(CAT_BODEGAS);
+      CAT_SERIES = asArray(CAT_SERIES);
+      CAT_EMPLEADOS = asArray(CAT_EMPLEADOS);
+
+      // Llenar select de bodegas
+      const selBod = document.getElementById('cv_bodega');
+      selBod.innerHTML = '<option value="">-- Selecciona bodega --</option>' +
+        CAT_BODEGAS.map(b => '<option value="'+b.id+'">'+(b.nombre||('Bodega '+b.id))+'</option>').join('');
+      // Preseleccionar bodega 1 si existe
+      if(CAT_BODEGAS.find(b => b.id === 1)) selBod.value = '1';
+
+      // Llenar select de series
+      const selSer = document.getElementById('cv_serie');
+      selSer.innerHTML = '<option value="">-- Selecciona serie --</option>' +
+        CAT_SERIES.map(s => '<option value="'+s.id+'">'+(s.serie||('Serie '+s.id))+' ('+s.correlativo+')</option>').join('');
+      // Preseleccionar serie 1 si existe
+      if(CAT_SERIES.find(s => s.id === 1)) selSer.value = '1';
+
+      // Llenar select de cajeros (empleados)
+      const selCaj = document.getElementById('cv_cajero');
+      selCaj.innerHTML = '<option value="">-- Ninguno --</option>' +
+        CAT_EMPLEADOS.map(e => {
+          const nom = ((e.nombres||'') + ' ' + (e.apellidos||'')).trim();
+          return '<option value="'+e.id+'">['+(e.codigo||('EMP-'+e.id))+'] '+(nom||('Empleado '+e.id))+'</option>';
+        }).join('');
+      // Preseleccionar cajero 1 si existe
+      if(CAT_EMPLEADOS.find(e => e.id === 1)) selCaj.value = '1';
+
+      CATALOGOS_CONVERSION_CARGADOS = true;
+    }catch(err){
+      console.error('[cotizaciones] Error cargando catálogos de conversión:', err);
+      throw err;
+    }
   }
 
   /* =========================
@@ -433,7 +571,7 @@
     params.append('size', size);
 
     const data = await fetchJson(API_COTS + '?' + params.toString());
-    setRows(Array.isArray(data) ? data : []);
+    setRows(Array.isArray(data) ? data : asArray(data));
   }
 
   document.getElementById('btnBuscar').addEventListener('click', () => buscar());
@@ -448,31 +586,6 @@
   /* =========================
      MODAL NUEVA COTIZACIÓN
      ========================= */
-  let CAT_CLIENTES = [];
-  let CAT_VENDEDORES = [];
-  let CAT_PRODS = []; // {id,codigo,nombre,precioVenta,stockDisponible}
-
-  async function cargarCatalogos(){
-    [CAT_CLIENTES, CAT_VENDEDORES, CAT_PRODS] = await Promise.all([
-      fetchJson(API_CAT + '/clientes'),
-      fetchJson(API_CAT + '/empleados'),
-      fetchJson(API_CAT + '/productos-stock')
-    ]);
-
-    // Cliente
-    const selCli = document.getElementById('nc_cliente');
-    selCli.innerHTML = '<option value="">-- Selecciona --</option>' +
-      CAT_CLIENTES.map(c => '<option value="'+c.id+'">['+(c.codigo||('CLI-'+c.id))+'] '+c.nombre+' '+(c.nit?('(NIT '+c.nit+')'):'')+'</option>').join('');
-
-    // Vendedor
-    const selVen = document.getElementById('nc_vendedor');
-    selVen.innerHTML = '<option value="">-- Selecciona --</option>' +
-      CAT_VENDEDORES.map(e => {
-        const nom = ((e.nombres||'') + ' ' + (e.apellidos||'')).trim();
-        return '<option value="'+e.id+'">['+(e.codigo||('EMP-'+e.id))+'] '+(nom||('Empleado '+e.id))+'</option>';
-      }).join('');
-  }
-
   const bodyItems = document.getElementById('nc_body');
   const btnAdd = document.getElementById('nc_add');
   const btnSave = document.getElementById('nc_save');
@@ -667,7 +780,7 @@
 
   document.getElementById('modalNuevaCot').addEventListener('shown.bs.modal', async ()=>{
     try{
-      if(CAT_CLIENTES.length===0) await cargarCatalogos();
+      if(!CATALOGOS_CARGADOS) await cargarCatalogos();
       if(bodyItems.querySelectorAll('tr').length===0) nuevaFila();
       validarFormulario(); recalcular();
     }catch(err){
@@ -675,6 +788,7 @@
       alertBox.classList.remove('d-none');
     }
   });
+  
   document.getElementById('modalNuevaCot').addEventListener('hidden.bs.modal', ()=>{
     alertBox.classList.add('d-none'); alertBox.textContent='';
     bodyItems.innerHTML='';
@@ -693,40 +807,44 @@
   /* =========================
      MODAL VER COTIZACIÓN
      ========================= */
-    function goBack(){ try{ if(history.length>1){ history.back(); return; } }catch(_){ } location.href='${pageContext.request.contextPath}/Dashboard.jsp'; }
-
   let COT_ACTUAL = null;
 
-  function setHtml(id, html){ var el=document.getElementById(id); if(el) el.innerHTML = html; }
+  function setHtml(id, html){ 
+    var el=document.getElementById(id); 
+    if(el) el.innerHTML = html; 
+  }
 
   function renderCabecera(h){
     const estadoHtml = estadoBadgeHtml(h.estado);
     const html = ''
       + '<div class="row g-2">'
-      +   '<div class="col-md-3"><b>Número:</b> ' + txt(h.numeroCotizacion) + '</div>'
-      +   '<div class="col-md-3"><b>Fecha:</b> ' + txt(h.fechaCotizacion) + '</div>'
-      +   '<div class="col-md-3"><b>Vigencia:</b> ' + txt(h.fechaVigencia) + '</div>'
+      +   '<div class="col-md-3"><b>Número:</b> ' + txt(h.numeroCotizacion || h.numero_cotizacion) + '</div>'
+      +   '<div class="col-md-3"><b>Fecha:</b> ' + txt(h.fechaCotizacion || h.fecha_cotizacion) + '</div>'
+      +   '<div class="col-md-3"><b>Vigencia:</b> ' + txt(h.fechaVigencia || h.fecha_vigencia) + '</div>'
       +   '<div class="col-md-3"><b>Estado:</b> ' + estadoHtml + '</div>'
       + '</div>'
       + '<div class="row g-2 mt-2">'
-      +   '<div class="col-md-6"><b>Cliente:</b> ' + txt(h.clienteNombre || ('ID '+h.clienteId)) + '</div>'
-      +   '<div class="col-md-6"><b>Vendedor:</b> ' + txt(h.vendedorNombre || ('ID '+h.vendedorId)) + '</div>'
+      +   '<div class="col-md-6"><b>Cliente:</b> ' + txt(h.clienteNombre || h.cliente_nombre || ('ID '+h.clienteId)) + '</div>'
+      +   '<div class="col-md-6"><b>Vendedor:</b> ' + txt(h.vendedorNombre || h.vendedor_nombre || ('ID '+h.vendedorId)) + '</div>'
       + '</div>'
       + '<div class="row g-2 mt-2">'
       +   '<div class="col-md-4"><b>Subtotal:</b> ' + money(h.subtotal) + '</div>'
-      +   '<div class="col-md-4"><b>Descuento:</b> ' + money(h.descuentoGeneral) + '</div>'
-      +   '<div class="col-md-4"><span class="badge ok">Total ' + money(h.total) + '</span></div>'
+      +   '<div class="col-md-4"><b>Descuento:</b> ' + money(h.descuentoGeneral || h.descuento_general) + '</div>'
+      +   '<div class="col-md-4"><span class="badge bg-primary-subtle text-primary-emphasis">Total ' + money(h.total) + '</span></div>'
       + '</div>'
       + '<div class="row g-2 mt-2">'
       +   '<div class="col-md-12"><b>Observaciones:</b> ' + txt(h.observaciones) + '</div>'
-      +   '<div class="col-md-12"><b>Términos:</b> ' + txt(h.terminosCondiciones) + '</div>'
+      +   '<div class="col-md-12"><b>Términos:</b> ' + txt(h.terminosCondiciones || h.terminos_condiciones || h.terminos) + '</div>'
       + '</div>';
     setHtml('cabecera', html);
   }
 
   function renderDetalle(items){
-    const tbody = document.querySelector('#tabla tbody');
-    const empty = document.getElementById('tablaEmpty');
+    const tbody = document.getElementById('tbodyDetalle');
+    const empty = document.getElementById('tablaDetalleEmpty');
+    
+    if(!tbody) return;
+    
     tbody.innerHTML = '';
 
     if(!items || !items.length){
@@ -737,15 +855,17 @@
 
     for (let i=0; i<items.length; i++){
       const d = items[i];
+      const prodNombre = d.productoNombre || d.producto_nombre || d.productoCodigo || d.producto_codigo || ('ID ' + d.productoId);
+      
       const tr = document.createElement('tr');
       tr.innerHTML =
-          '<td>' + txt(d.id) + '</td>'
-        + '<td>[' + txt(d.productoId) + '] ' + txt(d.productoNombre || d.productoCodigo || '') + '</td>'
-        + '<td>' + txt(d.cantidad) + '</td>'
-        + '<td>' + money(d.precioUnitario) + '</td>'
-        + '<td>' + money(d.descuentoLinea) + '</td>'
-        + '<td>' + money(d.subtotal) + '</td>'
-        + '<td>' + txt(d.descripcionAdicional) + '</td>';
+          '<td>' + prodNombre + '</td>'
+        + '<td class="text-end">' + txt(d.cantidad) + '</td>'
+        + '<td class="text-end">' + money(d.precioUnitario || d.precio_unitario) + '</td>'
+        + '<td class="text-end">' + money(d.descuentoLinea || d.descuento_linea) + '</td>'
+        + '<td class="text-end">' + money(d.subtotal) + '</td>'
+        + '<td>' + txt(d.lote || 'S/N') + '</td>'
+        + '<td>' + txt(d.fechaVencimiento || d.fecha_vencimiento || '—') + '</td>';
       tbody.appendChild(tr);
     }
   }
@@ -790,7 +910,7 @@
         throw new Error(msg);
       }
 
-      const ventaId = (data && (data.venta_id || data.id)) || null;
+      const ventaId = (data && (data.venta_id || data.ventaId || data.id)) || null;
       if(ventaId){
         if(aOk){ aOk.textContent = 'Venta creada (ID ' + ventaId + '). Redirigiendo…'; aOk.classList.remove('d-none'); }
         setTimeout(function(){
@@ -802,20 +922,36 @@
     }catch(err){
       if(aErr){ aErr.textContent = 'Error: ' + (err.message || 'no controlado'); aErr.classList.remove('d-none'); }
     }finally{
-      if(btn){ btn.disabled = false; btn.innerHTML = '<i class="bi bi-arrow-left-right me-1"></i> Convertir a venta'; }
+      if(btn){ btn.disabled = false; btn.innerHTML = '<i class="bi bi-arrow-left-right me-1"></i> Convertir'; }
     }
   }
 
   async function abrirVerCot(id){
     const modalEl = document.getElementById('modalVerCot');
     const md = bootstrap.Modal.getOrCreateInstance(modalEl);
+    
     // Limpia UI
     const topAlert = document.getElementById('topAlert');
     if(topAlert){ topAlert.classList.add('d-none'); topAlert.textContent=''; }
+    
     setHtml('cabecera','<div class="text-muted">Cargando cotización...</div>');
-    const tb = document.querySelector('#tabla tbody'); if (tb) tb.innerHTML='';
-    const empty = document.getElementById('tablaEmpty'); if (empty) empty.classList.add('d-none');
+    
+    const tb = document.getElementById('tbodyDetalle'); 
+    if (tb) tb.innerHTML='';
+    
+    const empty = document.getElementById('tablaDetalleEmpty'); 
+    if (empty) empty.classList.add('d-none');
+    
     document.getElementById('btnConvertir').disabled = true;
+
+    // Cargar catálogos de conversión si no están cargados
+    if(!CATALOGOS_CONVERSION_CARGADOS){
+      try{
+        await cargarCatalogosConversion();
+      }catch(err){
+        console.error('[cotizaciones] Error cargando catálogos de conversión:', err);
+      }
+    }
 
     md.show();
 
@@ -825,11 +961,18 @@
 
       COT_ACTUAL = h;
       renderCabecera(h);
-      renderDetalle(h.items);
+      
+      // Renderizar detalle - asegurarse de obtener el array correcto
+      const items = h.items || h.detalle || h.lineas || [];
+      renderDetalle(asArray(items));
+      
       document.getElementById('btnConvertir').disabled = false;
     }catch(err){
-      if(topAlert){ topAlert.textContent = 'Error: ' + (err.message || 'desconocido'); topAlert.classList.remove('d-none'); }
-      console.error(err);
+      if(topAlert){ 
+        topAlert.textContent = 'Error: ' + (err.message || 'desconocido'); 
+        topAlert.classList.remove('d-none'); 
+      }
+      console.error('[cotizaciones] Error:', err);
     }
   }
 
@@ -839,6 +982,9 @@
      BOOT
      ========================= */
   window.addEventListener('DOMContentLoaded', () => {
+    // Cargar clientes para el filtro al iniciar
+    cargarClientesFiltro().catch(console.error);
+    // Buscar cotizaciones
     buscar().catch(console.error);
   });
   </script>

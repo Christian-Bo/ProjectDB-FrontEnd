@@ -1,7 +1,7 @@
 <%-- 
-  Document   : ventas (unificado: listado + detalle + pagos)
+  Document   : ventas (separado: sin pagos)
   Created on : 02/11/2025
-  Author     : NextTech (unificado por Assistant)
+  Author     : NextTech (ajustado por Assistant)
 --%>
 <%@page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" isELIgnored="false"%>
 <!DOCTYPE html>
@@ -70,7 +70,7 @@
     .nt-edit-modal { border-radius: 1rem; }
     .nt-edit-option {
       border: 1px solid var(--bs-border-color);
-      background: linear-gradient(180deg, var(--bs-body-bg), rgba(0,0,0,0.01));
+      background: #1b2233;
       border-radius: 0.85rem;
       padding: 0.9rem 1rem;
       display: grid;
@@ -113,7 +113,7 @@
     <ul class="nav nav-pills nt-tabs gap-2 mb-3" id="ntTabs">
       <li class="nav-item"><a href="#" class="nav-link" data-view="lista"><i class="bi bi-list-ul me-1"></i>Listado</a></li>
       <li class="nav-item"><a href="#" class="nav-link" data-view="detalle"><i class="bi bi-eye me-1"></i>Detalle</a></li>
-      <li class="nav-item"><a href="#" class="nav-link" data-view="pagos"><i class="bi bi-wallet2 me-1"></i>Pagos</a></li>
+      <%-- Nota: pestaña Pagos eliminada --%>
     </ul>
   </div>
 
@@ -125,9 +125,7 @@
         <div class="nt-subtitle">Listado, creación y edición</div>
       </div>
       <div class="d-flex gap-2">
-        <button type="button" class="btn btn-outline-primary" onclick="Router.navigate('pagos')">
-          <i class="bi bi-wallet2 me-1"></i> Ver pagos de ventas
-        </button>
+        <%-- Botón "Ver pagos de ventas" eliminado --%>
         <button class="btn nt-btn-accent" data-bs-toggle="modal" data-bs-target="#modalNuevaVenta">
           <i class="bi bi-plus-circle me-1"></i> Nueva venta
         </button>
@@ -223,7 +221,7 @@
       </div>
     </div>
 
-    <!-- Saldos / Acciones -->
+    <!-- Saldos / Acciones (solo emitir factura) -->
     <div class="card nt-card mb-3" id="boxSaldos" style="display:none;">
       <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-3">
         <div class="d-flex flex-column">
@@ -248,11 +246,7 @@
           <button id="btnEmitirFactura" type="button" class="btn btn-outline-info" style="display:none;">
             <i class="bi bi-filetype-pdf me-1"></i> Emitir factura (PDF)
           </button>
-
-          <button id="btnRegistrarPago" type="button" class="btn nt-btn-accent" style="display:none;" data-bs-toggle="modal" data-bs-target="#modalPago">
-            <i class="bi bi-cash-coin me-1"></i> Registrar pago
-          </button>
-          <!--<a id="linkCxC" href="${pageContext.request.contextPath}/cxc.jsp" class="btn btn-outline-info" style="display:none;">Ver documento CxC</a>-->
+          <%-- Botón Registrar pago y link CxC eliminados --%>
         </div>
       </div>
     </div>
@@ -280,77 +274,7 @@
     </div>
   </section>
 
-  <!-- ====== VISTA: PAGOS ====== -->
-  <section id="view-pagos" class="container py-3 d-none" data-view="pagos">
-    <div class="d-flex align-items-center justify-content-between mb-3">
-      <div>
-        <h2 class="m-0 nt-title"><i class="bi bi-wallet2"></i> Pagos de ventas</h2>
-        <div class="nt-subtitle">Consulta y anulación de pagos registrados</div>
-      </div>
-      <button class="btn btn-outline-secondary" type="button" onclick="Router.navigate('lista')">
-        <i class="bi bi-list-ul me-1"></i> Ir al listado de ventas
-      </button>
-    </div>
-
-    <!-- Filtros -->
-    <div class="card nt-card mb-3">
-      <div class="card-body">
-        <form id="filtrosPagos" onsubmit="VPAGOS.buscar(event)" class="row g-3 align-items-end">
-          <div class="col-md-4">
-            <label class="form-label">Cliente</label>
-            <select id="p_selCliente" name="clienteId" class="form-select">
-              <option value="">(Todos)</option>
-            </select>
-          </div>
-          <div class="col-md-2">
-            <label class="form-label">Desde</label>
-            <input id="p_desde" name="desde" type="date" class="form-control">
-          </div>
-          <div class="col-md-2">
-            <label class="form-label">Hasta</label>
-            <input id="p_hasta" name="hasta" type="date" class="form-control">
-          </div>
-
-          <div class="col-12 d-flex gap-2 justify-content-end">
-            <button class="btn nt-btn-accent" type="submit"><i class="bi bi-search me-1"></i>Buscar</button>
-            <button class="btn btn-outline-secondary" type="button" onclick="VPAGOS.limpiar()"><i class="bi bi-x-circle me-1"></i>Limpiar</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Paginación -->
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <div class="d-flex align-items-center gap-2">
-        <button class="btn btn-outline-secondary btn-sm" onclick="VPAGOS.cambiarPagina(-1)">&laquo; Anterior</button>
-        <div> Página <span id="pActualPagos">1</span> </div>
-        <button class="btn btn-outline-secondary btn-sm" onclick="VPAGOS.cambiarPagina(1)">Siguiente &raquo;</button>
-      </div>
-      <small class="text-muted">Mostrando 20 por página</small>
-    </div>
-
-    <!-- Tabla -->
-    <div class="card nt-card">
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="nt-table-head">
-            <tr>
-              <th>ID Pago</th>
-              <th>Fecha Venta</th>
-              <th>Número Venta</th>
-              <th>Cliente</th>
-              <th>Forma</th>
-              <th class="text-end">Monto</th>
-              <th>Referencia</th>
-            </tr>
-          </thead>
-          <tbody id="tablaPagosBody">
-            <tr id="tablaPagosEmpty"><td colspan="7" class="text-center text-muted">Sin resultados</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </section>
+  <%-- ====== VISTA: PAGOS eliminada por separación a ventas_pagos.jsp ====== --%>
 
   <!-- ====== MODALES ====== -->
 
@@ -607,45 +531,6 @@
     </div>
   </div>
 
-  <!-- Modal: Registrar pago (CONTADO) -->
-  <div class="modal fade nt-modal" id="modalPago" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content nt-card">
-        <div class="modal-header">
-          <h5 class="modal-title">Registrar pago de venta</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-        </div>
-        <div class="modal-body">
-          <form id="formPago" autocomplete="off" novalidate>
-            <div class="mb-3">
-              <label class="form-label">Forma de pago</label>
-              <select id="fp_forma" class="form-select" required>
-                <option value="EFE">Efectivo (EFE)</option>
-                <option value="TAR">Tarjeta (TAR)</option>
-                <option value="TRF">Transferencia (TRF)</option>
-              </select>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Monto</label>
-              <input id="fp_monto" type="number" min="0.01" step="0.01" class="form-control" placeholder="0.00" required>
-              <div class="form-text" id="fp_hintSaldo">Saldo: —</div>
-              <div id="fp_monto_err" class="invalid-feedback">Monto inválido.</div>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Referencia (opcional)</label>
-              <input id="fp_ref" type="text" maxlength="200" class="form-control" placeholder="Caja / POS / Banco / Nota">
-            </div>
-          </form>
-          <div id="fp_alert" class="alert alert-danger d-none"></div>
-        </div>
-        <div class="modal-footer">
-          <button id="btnPagar" type="button" class="btn nt-btn-accent">Registrar</button>
-          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- Toast (incluye botón de acción) -->
   <div class="position-fixed top-0 end-0 p-3" style="z-index:1080">
     <div id="appToast" class="toast align-items-center text-bg-primary border-0" role="alert" aria-live="assertive" aria-atomic="true">
@@ -657,11 +542,10 @@
     </div>
   </div>
 
-  <!-- Bootstrap -->
+  <!-- Bootstrap (ok incluirlo aquí) -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-  <!-- ====== JS unificado (sin hashes) ====== -->
-<script>
+  <script>
 /* ====== Sync API.baseUrl desde <meta> ====== */
 (function(){
   try{
@@ -671,11 +555,11 @@
       const base = (window.API_BASE || meta?.getAttribute('content') || '').trim();
       if (base) API.baseUrl = base;
     }
-    console.log('[ventas.jsp:unificado] API.baseUrl =', API.baseUrl || '(vacío)');
+    console.log('[ventas.jsp] API.baseUrl =', API.baseUrl || '(vacío)');
   }catch(_){}
 })();
 
-// Helpers navegación/roles
+/* ===== Helpers navegación/roles ===== */
 function parseAuthUser(){
   try{
     if (window.Auth?.user) return window.Auth.user;
@@ -693,7 +577,7 @@ function goBack(){
   location.href = homeForRole(user?.role || user?.rol);
 }
 
-// ====== Config y helpers de URL seguros ======
+/* ===== Config y helpers de URL ===== */
 const ctxRaw = '${pageContext.request.contextPath}';
 const ctx = (ctxRaw || '').trim();
 function computeApiRoot(){
@@ -748,7 +632,7 @@ const API_CATALOGOS = joinUrl(API_ROOT, '/api/catalogos');
 const USER_ID       = 1;
 const commonHeaders = {'X-User-Id': String(USER_ID)};
 
-// ====== TOAST mejorado con botón de acción (robusto) ======
+/* ===== Toast con acción ===== */
 const AppToast = (function(){
   function ensure(){
     let t = document.getElementById('appToast');
@@ -797,7 +681,6 @@ const AppToast = (function(){
     );
     msgEl.textContent = opts?.message ?? 'OK';
 
-    // acción
     if (actBtn){
       actBtn.classList.add('d-none');
       actBtn.onclick = null;
@@ -823,7 +706,7 @@ const AppToast = (function(){
   };
 })();
 
-// Utils (no-cache en GET para refrescar tabla sin reload)
+/* ===== Utils ===== */
 function withNoCache(url){
   try{ const u=new URL(url, location.origin); u.searchParams.set('_', String(Date.now())); return u.toString(); }
   catch(_){ return url + (url.includes('?')?'&':'?') + '_=' + Date.now(); }
@@ -853,7 +736,7 @@ function setErr(msg){ AppToast.err(msg); }
 function estadoBadge(e){ if(e==='A') return '<span class="badge text-bg-danger">Anulada</span>'; if(e==='P') return '<span class="badge text-bg-success">Procesada</span>'; return '<span class="badge text-bg-secondary">Desconocido</span>'; }
 function mapTipoPago(c){ if(!c) return ''; return c==='C'?'Contado':(c==='R'?'Crédito':c); }
 
-// ========= Router sin hash =========
+/* ========= Router (solo lista/detalle) ========= */
 const Router = (function(){
   let current = 'lista';
   let lastDetalleId = null;
@@ -882,15 +765,6 @@ const Router = (function(){
       const id = params?.id ?? lastDetalleId;
       if (id){ lastDetalleId = id; await VDET.cargar(id); }
     }
-    if (current === 'pagos'){
-      await VPAGOS.initOnce();
-      if (params?.clienteId){
-        const sel = document.getElementById('p_selCliente');
-        if (sel && [...sel.options].some(o=>o.value===String(params.clienteId))) sel.value = String(params.clienteId);
-        VPAGOS.lastFilters.clienteId = String(params.clienteId);
-      }
-      await VPAGOS.cargar(VPAGOS.lastFilters);
-    }
   }
   function init(){
     document.querySelectorAll('#ntTabs .nav-link').forEach(el=>{
@@ -904,7 +778,7 @@ const Router = (function(){
   return { init, navigate };
 })();
 
-// ========= VISTA LISTA =========
+/* ========= VISTA LISTA ========= */
 const VLIST = (function(){
   let _inited = false, _catalogosCargados = false;
   let _clientes = [], _empleados = [], _bodegas = [], _series=[];
@@ -1030,7 +904,7 @@ const VLIST = (function(){
   }
   function cambiarPagina(delta){ page = Math.max(0, page + delta); cargar(state.lastFilters); }
 
-  // === Nueva venta / items ===
+  /* === Nueva venta / items === */
   async function cargarProductosParaBodega(selectEl, bodegaId, selectedId){
     if (!selectEl) return;
     selectEl.disabled = true;
@@ -1150,7 +1024,6 @@ const VLIST = (function(){
     });
     if (!r.ok){ setErr((r.data && (r.data.error||r.data.message||r.data.detail)) || 'No se pudo registrar la venta'); return; }
 
-    // cerrar modal y limpiar
     bootstrap.Modal.getInstance(document.getElementById('modalNuevaVenta'))?.hide();
     document.getElementById('formVenta').reset();
     document.querySelector('#tablaItems tbody').innerHTML = '';
@@ -1158,8 +1031,6 @@ const VLIST = (function(){
 
     setOk('Venta registrada');
     page = 0;
-
-    // refrescar tabla sin recargar página
     await cargarYRefrescarTabla();
   }
 
@@ -1226,8 +1097,6 @@ const VLIST = (function(){
     }
     bootstrap.Modal.getInstance(document.getElementById('modalEditarVenta')).hide();
     setOk('Venta actualizada');
-
-    // refrescar tabla sin recargar página
     await cargarYRefrescarTabla();
   }
   function valueOrNull(v){ return (v==='' || v==null) ? null : Number(v); }
@@ -1261,8 +1130,6 @@ const VLIST = (function(){
     }
     bootstrap.Modal.getInstance(document.getElementById('modalEliminar')).hide();
     setOk('Venta eliminada');
-
-    // refrescar tabla sin recargar página
     await cargarYRefrescarTabla();
   }
 
@@ -1292,12 +1159,6 @@ const VLIST = (function(){
     }
     await refrescarProductosEnTablaDetalle();
     new bootstrap.Modal(document.getElementById('modalEditarDetalle')).show();
-  }
-
-  function fillSelect(sel, data, map, selected){
-    let html = '<option value="">Seleccione...</option>';
-    for (const it of data){ const o = map(it); html += '<option value="'+o.value+'"'+(String(selected)===String(o.value)?' selected':'')+'>'+o.text+'</option>'; }
-    sel.innerHTML = html;
   }
 
   function construirFilaDetalle(op){
@@ -1357,6 +1218,15 @@ const VLIST = (function(){
       sel.dispatchEvent(new Event('change', { bubbles:true }));
     }
   }
+  function agregarItemDet(){
+    const tbody = document.querySelector('#tablaEditarDetalle tbody');
+    const tr = construirFilaDetalle({ isNueva:true });
+    tbody.appendChild(tr);
+    // Cargar productos según bodega actual
+    const bodId = document.getElementById('selBodegaDet').value || '';
+    const sel = tr.querySelector('.det-producto');
+    if (bodId) cargarProductosParaBodega(sel, bodId, null);
+  }
   async function guardarEdicionDetalleInterno(){
     const items = [];
     const bodegaId = Number(document.getElementById('selBodegaDet').value || 0);
@@ -1392,19 +1262,17 @@ const VLIST = (function(){
     DELETED_IDS.clear();
     bootstrap.Modal.getInstance(document.getElementById('modalEditarDetalle')).hide();
     setOk('Detalle actualizado');
-
-    // refrescar tabla sin recargar página
     await cargarYRefrescarTabla();
   }
 
-  // Expuestos
+  /* Expuestos */
   return {
     lastFilters: getLast(),
     initOnce: async function(){
       if (_inited) return;
       await cargarClientesFiltro();
       document.getElementById('modalNuevaVenta').addEventListener('show.bs.modal', cargarCatalogos);
-      // modal eliminar simple (si no existe)
+
       if (!document.getElementById('modalEliminar')){
         const wrap = document.createElement('div');
         wrap.innerHTML = `
@@ -1434,11 +1302,11 @@ const VLIST = (function(){
     agregarItem, guardarVenta,
     abrirSelectorEdicion, abrirEditarCabecera, abrirEditarMaestroDetalle,
     guardarEdicionVenta, confirmarEliminar, abrirEliminar,
-    guardarEdicionDetalle
+    guardarEdicionDetalle, agregarItemDet
   };
 })();
 
-// ========= VISTA DETALLE =========
+/* ========= VISTA DETALLE (sin pagos, solo emitir factura) ========= */
 const VDET = (function(){
   let _inited=false;
   let _empleadosById = null;
@@ -1514,9 +1382,6 @@ const VDET = (function(){
     return venta;
   }
 
-  function clearMontoValidation(){ const input = document.getElementById('fp_monto'); input.classList.remove('is-invalid'); document.getElementById('fp_monto_err').textContent='Monto inválido.'; }
-  function invalidateMonto(msg){ const input = document.getElementById('fp_monto'); input.classList.add('is-invalid'); document.getElementById('fp_monto_err').textContent = msg || 'Monto inválido.'; }
-
   async function cargarSaldos(venta){
     const id = venta?.id; if(!id) return;
     const data = await fetchJson(joinUrl(API_VENTAS, '/' + id + '/saldos'));
@@ -1527,64 +1392,18 @@ const VDET = (function(){
     setText('saldoTotal',  money(data?.total));
     setText('saldoPagado', money(data?.pagado));
     setText('saldoRestante', money(data?.saldo));
-    const btn = document.getElementById('btnRegistrarPago');
     const btnEmit = document.getElementById('btnEmitirFactura');
-    const linkCxC = document.getElementById('linkCxC');
-    if (btn) btn.style.display='none';
-    if (linkCxC) linkCxC.style.display='none';
     if (btnEmit) btnEmit.style.display = (venta && venta.estado !== 'A') ? '' : 'none';
-    if(venta && venta.estado === 'A') return;
-    if(data?.origen === 'CONTADO'){
-      if(Number(data.saldo) > 0.0001){
-        if (btn) btn.style.display='';
-        const hint = document.getElementById('fp_hintSaldo'); if(hint) hint.textContent = 'Saldo: ' + money(data.saldo);
-      }
-    } else if (data?.origen === 'CREDITO'){
-      if (linkCxC){
-        linkCxC.href = ctx + '/cxc.jsp';
-        linkCxC.style.display='';
-      }
-    }
-  }
-  function bindValidacionMonto(){
-    const input = document.getElementById('fp_monto'); if(!input) return;
-    input.addEventListener('input', function(){
-      clearMontoValidation();
-      const monto = Number(input.value);
-      const saldo = Number(SALDOS?.saldo || 0);
-      if (!monto || monto <= 0) { invalidateMonto('Ingresa un monto mayor a 0.'); }
-      else if (monto - saldo > 0.0001) { invalidateMonto('El pago excede el saldo (' + money(saldo) + ').'); }
-    }, { once: true });
-  }
-  async function enviarPago(){
-    const alerta = document.getElementById('fp_alert');
-    if (alerta){ alerta.classList.add('d-none'); alerta.textContent=''; }
-    clearMontoValidation();
-    const forma = document.getElementById('fp_forma').value;
-    const monto = Number(document.getElementById('fp_monto').value);
-    const ref   = document.getElementById('fp_ref').value || null;
-    if(!SALDOS || SALDOS.origen !== 'CONTADO'){ if(alerta){ alerta.textContent='Esta venta es CRÉDITO. Registra pagos en CxC.'; alerta.classList.remove('d-none'); } return; }
-    if(isNaN(monto) || monto <= 0){ invalidateMonto('Ingresa un monto mayor a 0.'); return; }
-    const saldo = Number(SALDOS.saldo || 0);
-    if(monto - saldo > 0.0001){ invalidateMonto('El pago excede el saldo (' + money(saldo) + ').'); return; }
-    const id = VENTA_ACTUAL?.id; if(!id){ if(alerta){ alerta.textContent='Venta no cargada.'; alerta.classList.remove('d-none'); } return; }
-    const url = joinUrl(API_VENTAS, '/' + id + '/pagos' + '?forma=' + encodeURIComponent(forma) + '&monto=' + encodeURIComponent(monto) + (ref ? ('&referencia=' + encodeURIComponent(ref)) : ''));
-    await fetchJson(url, { method:'POST' });
-    await cargarSaldos(VENTA_ACTUAL);
-    await cargarCabeceraSinDetalle();
-    const modalEl = document.getElementById('modalPago');
-    (bootstrap.Modal.getOrCreateInstance(modalEl)).hide();
-    document.getElementById('fp_monto').value = ''; document.getElementById('fp_ref').value = '';
   }
 
-  // ===== Helper: detectar serie desde el número de venta =====
+  /* ===== Helper: detectar serie desde el número de venta ===== */
   function detectarSerieDesdeNumero(numeroVenta){
     if (!numeroVenta) return '';
     const pref = String(numeroVenta).trim().split('-')[0] || '';
     return (pref.match(/[A-Za-z]+/)?.[0] || '').toUpperCase();
   }
 
-  // ===== PDF helpers =====
+  /* ===== PDF helpers ===== */
   function getFacturaPdfUrl(facturaId){
     const urlRel = joinUrl(API_FACTURAS, '/' + facturaId + '/pdf');
     return absolutize(urlRel);
@@ -1614,14 +1433,13 @@ const VDET = (function(){
     renderCabecera(VENTA_ACTUAL);
   }
 
-  // ===== Emisión de factura: SIN MODAL, directo desde botón =====
+  /* ===== Emisión de factura: SIN MODAL ===== */
   async function emitirFacturaAuto(){
     try{
       const ventaId = VENTA_ACTUAL?.id;
       if (!ventaId){ setErr('Venta no cargada.'); return; }
       if (VENTA_ACTUAL?.estado === 'A'){ setErr('La venta está anulada.'); return; }
 
-      // Determinar serie
       const pref = detectarSerieDesdeNumero(VENTA_ACTUAL?.numeroVenta || '');
       const series = asArray(await fetchJson(joinUrl(API_CATALOGOS, '/series')));
       if (!series.length){ setErr('No hay series configuradas.'); return; }
@@ -1631,7 +1449,6 @@ const VDET = (function(){
         AppToast.warn(`No encontré serie "${pref}". Usaré "${target.serie}".`);
       }
 
-      // Emitir
       const payload = { ventaId, serieId: Number(target.id), emitidaPor: USER_ID };
       const r = await tryFetchJson(API_FACTURAS, {
         method:'POST', headers:{ 'Content-Type':'application/json', ...commonHeaders }, body: JSON.stringify(payload)
@@ -1646,13 +1463,11 @@ const VDET = (function(){
       if (!facturaId){ setErr('Factura emitida, pero no recibí el ID.'); return; }
 
       const pdfUrl = getFacturaPdfUrl(facturaId);
-      // Guardar referencia de la última factura
       localStorage.setItem('last_factura_id', String(facturaId));
       localStorage.setItem('last_factura_pdf', pdfUrl);
       localStorage.setItem('last_factura_venta', String(VENTA_ACTUAL?.id || ''));
       localStorage.setItem('last_factura_time', String(Date.now()));
 
-      // Abrir y toast con acción
       await abrirPdfFactura(facturaId);
       AppToast.show({
         message: 'La factura ya se ha creado.',
@@ -1670,16 +1485,6 @@ const VDET = (function(){
     initOnce: async function(){
       if (_inited) return;
 
-      // Pago
-      const btnOpen = document.getElementById('btnRegistrarPago');
-      if(btnOpen) btnOpen.addEventListener('click', function(){
-        document.getElementById('fp_monto').classList.remove('is-invalid');
-        bindValidacionMonto();
-      });
-      const btnPagar = document.getElementById('btnPagar');
-      if(btnPagar) btnPagar.addEventListener('click', enviarPago);
-
-      // Emitir factura DIRECTO (sin modal)
       const btnEmit = document.getElementById('btnEmitirFactura');
       if (btnEmit){
         btnEmit.addEventListener('click', async function(){
@@ -1711,108 +1516,7 @@ const VDET = (function(){
   };
 })();
 
-// ========= VISTA PAGOS =========
-const VPAGOS = (function(){
-  let _inited=false;
-  let page=0, size=20;
-  const state = { lastFilters:{} };
-  function getLast(){ return state.lastFilters; }
-
-  function formaBadge(k){
-    const kk = (k||'').toUpperCase();
-    if (kk==='EFE') return '<span class="badge text-bg-success">Efectivo</span>';
-    if (kk==='TAR') return '<span class="badge text-bg-info">Tarjeta</span>';
-    if (kk==='TRF') return '<span class="badge text-bg-primary">Transferencia</span>';
-    return '<span class="badge text-bg-secondary">'+(k||'')+'</span>';
-  }
-  async function fetchJsonOrNull(url){ try{ return await fetchJson(url); }catch{ return null; } }
-  function fillSelect(sel, data, map, keepValue){
-    let html = '<option value="">(Todos)</option>';
-    for (const it of data){ const o = map(it); html += '<option value="'+o.value+'"'+(String(keepValue)===String(o.value)?' selected':'')+'>'+o.text+'</option>'; }
-    sel.innerHTML = html;
-  }
-
-  async function cargarCatalogos(){
-    let cli = await fetchJsonOrNull(joinUrl(API_CATALOGOS, '/clientes?limit=200'));
-    const clientes = asArray(cli || []);
-    fillSelect(document.getElementById('p_selCliente'), clientes, c=>{
-      const nombre = c?.nombre ? String(c.nombre) : '';
-      const codigo = c?.codigo ? String(c.codigo) : '';
-      const txt = nombre ? ((codigo ? (codigo+' - ') : '') + nombre) : ('CLI-' + c.id);
-      return { value:c.id, text:txt };
-    });
-  }
-
-  function render(rows){
-    const tbody = document.getElementById('tablaPagosBody');
-    const empty = document.getElementById('tablaPagosEmpty');
-    tbody.innerHTML = '';
-    if (!rows.length){ if (empty) empty.classList.remove('d-none'); else { const tr=document.createElement('tr'); tr.innerHTML='<td colspan="7" class="text-center text-muted">Sin resultados</td>'; tbody.appendChild(tr);} return; }
-    if (empty) empty.classList.add('d-none');
-    for (const r of rows){
-      const clienteTxt = (r?.clienteNombre && r.clienteNombre.trim()!=='') ? r.clienteNombre : (r?.clienteCodigo ? r.clienteCodigo : (r?.clienteId!=null ? ('CLI-'+r.clienteId) : ''));
-      const tr = document.createElement('tr');
-      tr.innerHTML =
-          '<td>' + (r?.pagoId ?? '') + '</td>'
-        + '<td>' + (r?.fechaVenta || '') + '</td>'
-        + '<td>' + (r?.numeroVenta || '') + '</td>'
-        + '<td>' + (clienteTxt || '') + '</td>'
-        + '<td>' + formaBadge(r?.formaPago) + '</td>'
-        + '<td class="text-end">' + money(r?.monto) + '</td>'
-        + '<td>' + (r?.referencia || '') + '</td>';
-      tbody.appendChild(tr);
-    }
-  }
-
-  async function cargar(params){
-    params = params || {};
-    const qs = new URLSearchParams();
-    if (params.clienteId) qs.set('clienteId', params.clienteId);
-    if (params.desde)     qs.set('desde', params.desde);
-    if (params.hasta)     qs.set('hasta', params.hasta);
-    const all = asArray(await fetchJson(joinUrl(API_VENTAS, '/pagos' + (qs.toString()?('?'+qs.toString()):''))));
-    const start = page * size;
-    render(all.slice(start, start + size));
-    document.getElementById('pActualPagos').textContent = (page+1);
-    window.__allRowsPagos = all;
-  }
-  function cambiarPagina(delta){
-    const all = window.__allRowsPagos || [];
-    const maxPage = Math.max(0, Math.ceil(all.length / size) - 1);
-    page = Math.max(0, Math.min(maxPage, page + delta));
-    const start = page * size;
-    render(all.slice(start, start + size));
-    document.getElementById('pActualPagos').textContent = (page+1);
-  }
-  function buscar(ev){
-    ev.preventDefault();
-    const clienteSel = document.getElementById('p_selCliente');
-    const fDesde     = document.getElementById('p_desde');
-    const fHasta     = document.getElementById('p_hasta');
-    state.lastFilters = {
-      clienteId: clienteSel.value || '',
-      desde:     fDesde.value || '',
-      hasta:     fHasta.value || ''
-    };
-    page = 0;
-    cargar(state.lastFilters);
-  }
-  function limpiar(){
-    const form = document.getElementById('filtrosPagos'); if (form) form.reset();
-    const selCliente = document.getElementById('p_selCliente'); if (selCliente) selCliente.value = '';
-    state.lastFilters = {};
-    page = 0;
-    cargar(state.lastFilters);
-  }
-
-  return {
-    lastFilters: getLast(),
-    initOnce: async function(){ if (_inited) return; await cargarCatalogos(); _inited=true; },
-    cargar, buscar, limpiar, cambiarPagina
-  };
-})();
-
-// ====== Boot ======
+/* ====== Boot ====== */
 function maybeOfferLastFacturaToast(){
   try{
     const url = localStorage.getItem('last_factura_pdf');
@@ -1831,14 +1535,12 @@ function maybeOfferLastFacturaToast(){
 window.addEventListener('DOMContentLoaded', async function(){
   Router.init();
   document.getElementById('selBodegaDet')?.addEventListener('change', function(){
-    // la recarga de productos del modal de detalle se maneja al abrir el modal
+    /* la recarga de productos del modal de detalle se maneja al abrir el modal */
   });
   await Router.navigate('lista');
-  // Ofrecer abrir la última factura si existe (24h)
   maybeOfferLastFacturaToast();
 });
 </script>
-
 
 </body>
 </html>
