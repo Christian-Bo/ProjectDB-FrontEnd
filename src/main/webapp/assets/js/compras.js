@@ -1,4 +1,4 @@
-/* compras.js — versión con combos, autofill y reset de fila al cambiar producto */
+/* compras.js — combos, autofill y PUT de cabecera con totales coherentes */
 
 /* ====================== util red ====================== */
 (function(){
@@ -25,23 +25,20 @@ const $$ = (s,c=document)=>Array.from(c.querySelectorAll(s));
 const money = v => (v==null?'0.00':Number(v).toLocaleString('es-GT',{minimumFractionDigits:2, maximumFractionDigits:2}));
 const V = (x, d='--') => (x===null||x===undefined||x==='') ? d : x;
 
-/* ====================== parsers robustos (coma/punto) ====================== */
+/* ====================== parsers ====================== */
 function toInt(v){ const n = parseInt(String(v??'').replace(/[^\d-]/g,''),10); return Number.isFinite(n)? n : 0; }
 function toDec(v){
   if (v==null || v==='') return 0;
   if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
-  let s = String(v).trim();
-  s = s.replace(/\s/g,'').replace(/[^\d.,-]/g,''); // deja solo dígitos, , . y -
+  let s = String(v).trim().replace(/\s/g,'').replace(/[^\d.,-]/g,'');
   const lastComma = s.lastIndexOf(','), lastDot = s.lastIndexOf('.');
-  if (lastComma === -1 && lastDot === -1){
-    const n = parseFloat(s); return Number.isFinite(n)? n : 0;
-  }
-  const sepIndex = Math.max(lastComma, lastDot);
-  const sepChar  = s[sepIndex];
-  s = s.replace(/[.,]/g, ch => ch===sepChar ? '.' : ''); // '.' como decimal
-  const n = parseFloat(s);
-  return Number.isFinite(n)? n : 0;
+  if (lastComma === -1 && lastDot === -1) return Number.parseFloat(s) || 0;
+  const sepIndex = Math.max(lastComma, lastDot), sepChar = s[sepIndex];
+  s = s.replace(/[.,]/g, ch => ch===sepChar ? '.' : '');
+  return Number.parseFloat(s) || 0;
 }
+const nz = v => (v===undefined||v===null||v==='') ? null : v;
+const n0 = v => (v===undefined||v===null||Number.isNaN(v) ? 0 : Number(v));
 
 /* ====================== modal manager ====================== */
 class ModalManager{
@@ -78,9 +75,26 @@ let compras=[], compraActual=null;
 let pendingChanges = false;
 const compraCache = new Map();
 
-/* ====================== catálogos (para combos) ====================== */
+/* ===== helpers de caché ===== */
+function invalidateCompra(id){
+  if (!id && id!==0) return;
+  compraCache.delete(id);
+  if (compraActual?.cabecera?.id === id) compraActual = null;
+}
+
+/* ====================== catálogos ====================== */
 const CAT = { proveedores:null, bodegas:null, empleados:null, productos:null };
 
+function ensureOption(selectEl, id, label){
+  if (!selectEl) return;
+  if (!id && id!==0) return;
+  const exists = Array.from(selectEl.options).some(opt => String(opt.value)===String(id));
+  if (!exists){
+    const op = document.createElement('option');
+    op.value = String(id); op.textContent = label ?? `ID ${id}`;
+    selectEl.appendChild(op);
+  }
+}
 function fillSelect(sel, items, currentId, {placeholder='— Seleccione —'}={}) {
   const el = (typeof sel === 'string') ? $(sel) : sel;
   el.innerHTML = '';
@@ -91,9 +105,12 @@ function fillSelect(sel, items, currentId, {placeholder='— Seleccione —'}={}
     const op = document.createElement('option');
     op.value = String(it.id);
     op.textContent = it.nombre;
-    if (currentId != null && Number(currentId) === Number(it.id)) op.selected = true;
     el.appendChild(op);
   });
+  if (currentId!=null && currentId!==''){
+    ensureOption(el, currentId, (items||[]).find(i=>String(i.id)===String(currentId))?.nombre);
+    el.value = String(currentId);
+  }
 }
 
 async function loadCatalogOnce(){
@@ -120,7 +137,7 @@ async function enrichListWithNames(list){
   await Promise.all(needs.map(async row=>{
     try{
       let full = compraCache.get(row.id);
-      if (!full) { full = await ntGet(`${API}/${row.id}`); compraCache.set(row.id, full); }
+      if (!full) { full = await ntGet(`${API}/${row.id}?_=${Date.now()}`); compraCache.set(row.id, full); }
       const cab = full?.cabecera || {};
       row.proveedorNombre     = cab.proveedorNombre     ?? row.proveedorNombre;
       row.bodegaDestinoNombre = cab.bodegaDestinoNombre ?? row.bodegaDestinoNombre;
@@ -176,33 +193,25 @@ const badge = e => {
 };
 
 /* ====================== DETALLE: UI + AUTOFILL ====================== */
-
-/** Limpia campos de una fila de detalle (conserva cantidad por defecto). */
 function resetDetalleRow(tr, { keepQty = true } = {}) {
   if (!tr) return;
-
   const qtyEl = tr.querySelector('.inp-cantidad, .linea_cant');
   const qtyVal = qtyEl ? qtyEl.value : '';
-
   const precioEl = tr.querySelector('.inp-precio, .linea_pu');
   const descEl   = tr.querySelector('.inp-descuento, .linea_desc');
   const loteEl   = tr.querySelector('.inp-lote, .linea_lote');
   const venceEl  = tr.querySelector('.inp-vence, .linea_vence');
-
   if (precioEl) precioEl.value = '';
   if (descEl)   descEl.value   = '';
   if (loteEl)   loteEl.value   = '';
   if (venceEl)  venceEl.value  = '';
-
   ['.meta-codigo', '.meta-unidad', '.meta-stock'].forEach(sel=>{
     const el = tr.querySelector(sel);
     if (el) el.textContent = '—';
   });
-
   if (qtyEl && keepQty) qtyEl.value = qtyVal || '1';
 }
 
-/** Crea una fila desde un <template> y la inserta. */
 function appendRowFromTemplate(tbodySel, templateId){
   const tb = $(tbodySel);
   const tpl = $(templateId);
@@ -213,25 +222,19 @@ function appendRowFromTemplate(tbodySel, templateId){
   return node;
 }
 
-/** Rellena el combo de producto y maneja el cambio (sincroniza hidden, limpia y autofill). */
 async function prepareProductSelect(selectEl){
   if (!selectEl) return;
   await loadProductosOnce();
-  fillSelect(selectEl, CAT.productos, null, {placeholder:'Seleccione…'});
-
+  fillSelect(selectEl, CAT.productos, null, {placeholder:'— Seleccione —'});
   const tr = selectEl.closest('tr');
   const hidden = tr?.querySelector('.inp-productoId');
-
   selectEl.addEventListener('change', async () => {
     if (hidden) hidden.value = selectEl.value || '';
-    // Limpia campos de la fila (conserva cantidad)
     resetDetalleRow(tr, { keepQty: true });
-    // Refresca metas + precio sugerido del nuevo producto
     await autofillProducto(tr, selectEl.value, $('#cab_bodegaSel')?.value || null);
   });
 }
 
-/** Llama al endpoint de autofill para mostrar código/unidad/stock y sugerir precio. */
 async function autofillProducto(tr, productoId, bodegaId){
   const metaCodigo = tr.querySelector('.meta-codigo');
   const metaUnidad = tr.querySelector('.meta-unidad');
@@ -249,11 +252,9 @@ async function autofillProducto(tr, productoId, bodegaId){
     u.searchParams.set('productoId', productoId);
     if (bodegaId) u.searchParams.set('bodegaId', bodegaId);
     const info = await ntGet(u.toString());
-
     if (metaCodigo) metaCodigo.textContent = info?.producto_codigo ?? '—';
     if (metaUnidad) metaUnidad.textContent = info?.unidad_medida ?? '—';
     if (metaStock)  metaStock.textContent  = info?.stock_disponible ?? '—';
-
     if (inpPrecio && (!inpPrecio.value || toDec(inpPrecio.value)===0) && info?.precio_compra){
       inpPrecio.value = info.precio_compra;
     }
@@ -262,7 +263,7 @@ async function autofillProducto(tr, productoId, bodegaId){
   }
 }
 
-/* ===== Compat: API anterior addLinea / recolectarDetalle (con parsers robustos) ==== */
+/* ===== Compat: addLinea / recolectarDetalle ==== */
 function addLinea(tbodySel){
   const tplId = (tbodySel.includes('Agregar')) ? '#tplFilaDetalleAgregar' : '#tplFilaDetalleNuevo';
   appendRowFromTemplate(tbodySel, tplId);
@@ -273,14 +274,12 @@ function recolectarDetalle(tbodySel){
     let productoId = toInt(row.querySelector('.inp-productoId')?.value || '');
     if (!productoId) productoId = toInt(row.querySelector('select.prod-select')?.value || '');
     if (!productoId) productoId = toInt(row.querySelector('.linea_productoId')?.value || '');
-
     const cantidadPedida = toInt(row.querySelector('.inp-cantidad, .linea_cant')?.value || '');
     const precioUnitario = toDec(row.querySelector('.inp-precio, .linea_pu')?.value || '');
-    const descuentoLinea = toDec(row.querySelector('.inp-descuento, .linea_desc')?.value || '');
-    const lote = (row.querySelector('.inp-lote, .linea_lote')?.value || '').trim() || null;
-    const fechaVencimiento = (row.querySelector('.inp-vence, .linea_vence')?.value || '').trim() || null;
-
-    if(productoId && cantidadPedida>0){
+    const descuentoLinea = row.querySelector('.inp-descuento, .linea_desc')?.value ? toDec(row.querySelector('.inp-descuento, .linea_desc').value) : 0;
+    const lote = nz((row.querySelector('.inp-lote, .linea_lote')?.value || '').trim());
+    const fechaVencimiento = nz((row.querySelector('.inp-vence, .linea_vence')?.value || '').trim());
+    if(productoId>0 && cantidadPedida>0){
       return {productoId,cantidadPedida,precioUnitario,descuentoLinea,lote,fechaVencimiento};
     }
     return null;
@@ -296,35 +295,43 @@ async function nuevaCabecera(){
   $('#cab_noFacturaProveedor').value='';
   $('#cab_fechaCompra').valueAsDate = new Date();
   $('#cab_observaciones').value='';
-
   await cargarCatalogosUI({});
-
   $('#tblDetalleNuevo tbody').innerHTML='';
   addLinea('#tblDetalleNuevo tbody');
-
   await mm.open('#mdlCabecera');
 }
+
+function safeTotalsFromCab(cab){
+  const subtotal = n0(cab?.subtotal);
+  const descuentoGeneral = n0(cab?.descuentoGeneral);
+  const iva = n0(cab?.iva);
+  let total = cab?.total;
+  total = Number.isFinite(Number(total)) ? Number(total) : (subtotal - descuentoGeneral + iva);
+  return { subtotal, descuentoGeneral, iva, total: n0(total) };
+}
+
 async function guardarCabecera(ev){
   ev.preventDefault();
   const compraId = $('#cab_compraId').value;
 
-  const payload = {
+  const base = {
     usuarioId: toInt($('#cab_usuarioId').value),
     numeroCompra: $('#cab_numeroCompra').value.trim(),
     noFacturaProveedor: $('#cab_noFacturaProveedor').value.trim(),
     fechaCompra: $('#cab_fechaCompra').value,
     proveedorId: toInt($('#cab_proveedorSel').value),
     empleadoCompradorId: toInt($('#cab_compradorSel').value),
-    empleadoAutorizaId: $('#cab_autorizaSel').value ? toInt($('#cab_autorizaSel').value) : null,
     bodegaDestinoId: toInt($('#cab_bodegaSel').value),
-    observaciones: $('#cab_observaciones').value?.trim() || null
+    observaciones: nz($('#cab_observaciones').value?.trim())
   };
+  const empAut = $('#cab_autorizaSel').value ? toInt($('#cab_autorizaSel').value) : null;
+  if (empAut) base.empleadoAutorizaId = empAut;
 
   const creando = !compraId;
   const detalle = creando ? recolectarDetalle('#tblDetalleNuevo tbody') : [];
 
-  if(!payload.usuarioId || !payload.numeroCompra || !payload.noFacturaProveedor || !payload.fechaCompra ||
-     !payload.proveedorId || !payload.empleadoCompradorId || !payload.bodegaDestinoId ||
+  if(!base.usuarioId || !base.numeroCompra || !base.noFacturaProveedor || !base.fechaCompra ||
+     !base.proveedorId || !base.empleadoCompradorId || !base.bodegaDestinoId ||
      (creando && detalle.length===0)){
     showToast('Complete los campos requeridos y agregue al menos una línea', 'warning', 'Validación'); 
     return;
@@ -332,29 +339,34 @@ async function guardarCabecera(ev){
 
   try{
     if(creando){
-      const id = await ntPost(API, { ...payload, detalle });
+      const id = await ntPost(API, { ...base, detalle });
       showToast(`Compra creada #${id}`, 'success', 'Éxito');
       await mm.close();
+      invalidateCompra(id);
       await buscar();
-      await verCompra(id, true);
+      await verCompra(id, true, true);
     }else{
+      const idNum = toInt(compraId);
+      if (!compraActual || compraActual?.cabecera?.id !== idNum){
+        try{ compraActual = await ntGet(`${API}/${idNum}?_=${Date.now()}`); compraCache.set(idNum, compraActual); }catch{}
+      }
+      const cab = compraActual?.cabecera || {};
+      const totals = safeTotalsFromCab(cab);
+
       const put = {
-        usuarioId: payload.usuarioId,
-        compraId: toInt(compraId),
-        noFacturaProveedor: payload.noFacturaProveedor,
-        fechaCompra: payload.fechaCompra,
-        proveedorId: payload.proveedorId,
-        empleadoCompradorId: payload.empleadoCompradorId,
-        empleadoAutorizaId: payload.empleadoAutorizaId,
-        bodegaDestinoId: payload.bodegaDestinoId,
-        descuentoGeneral: null,
-        observaciones: payload.observaciones
+        ...base,
+        ...totals,          // subtotal, descuentoGeneral, iva, total — no usados por el DTO en backend, pero inofensivos
+        compraId: idNum
       };
-      await ntPut(`${API}/${compraId}/cabecera`, put);
+
+      await ntPut(`${API}/${idNum}/cabecera`, put);
       showToast('Cabecera actualizada', 'success', 'Éxito');
       pendingChanges = true;
       await mm.close();
-      await verCompra(toInt(compraId), true);
+
+      // 🔥 refrescar datos: invalidar caché y traer del backend
+      invalidateCompra(idNum);
+      await verCompra(idNum, true, true);
       await buscar();
     }
   }catch(e){
@@ -363,10 +375,15 @@ async function guardarCabecera(ev){
 }
 
 /* ====================== ver / detalle ====================== */
-async function verCompra(id, abrir){
+async function verCompra(id, abrir, force=false){
   try{
-    compraActual = compraCache.get(id) || await ntGet(`${API}/${id}`);
-    compraCache.set(id, compraActual);
+    let full = !force ? compraCache.get(id) : null;
+    if (!full){
+      // cache-busting para garantizar lectura fresca
+      full = await ntGet(`${API}/${id}?_=${Date.now()}`);
+      compraCache.set(id, full);
+    }
+    compraActual = full;
 
     const c = compraActual?.cabecera || {};
     $('#cmp_numero').textContent = V(c.numeroCompra,'');
@@ -426,7 +443,9 @@ async function guardarLineas(ev){
     showToast('Líneas agregadas', 'success', 'Éxito');
     pendingChanges = true;
     await mm.close();
-    await verCompra(compraId, true);
+
+    invalidateCompra(compraId);
+    await verCompra(compraId, true, true);
     await buscar();
   }catch(e){
     showToast(e.message || 'Error al agregar líneas', 'error', 'Error');
@@ -458,15 +477,17 @@ async function guardarLinea(ev){
     precioUnitario: toDec($('#ed_precioUnitario').value),
     descuentoLinea: $('#ed_descuentoLinea').value ? toDec($('#ed_descuentoLinea').value) : null,
     cantidadPedida: $('#ed_cantidadPedida').value ? toInt($('#ed_cantidadPedida').value) : null,
-    lote: $('#ed_lote').value || null,
-    fechaVencimiento: $('#ed_fechaVencimiento').value || null
+    lote: nz($('#ed_lote').value),
+    fechaVencimiento: nz($('#ed_fechaVencimiento').value)
   };
   try{
     await ntPut(`${API}/${compraId}/detalles/${detalleId}`, payload);
     showToast('Línea actualizada', 'success', 'Éxito');
     pendingChanges = true;
     await mm.close();
-    await verCompra(compraId, true);
+
+    invalidateCompra(compraId);
+    await verCompra(compraId, true, true);
     await buscar();
   }catch(e){
     showToast(e.message || 'Error al editar línea', 'error', 'Error');
@@ -478,11 +499,14 @@ async function eliminarLinea(detalleId){
   if(!compraActual) return;
   if(!confirm('¿Eliminar la línea seleccionada?')) return;
   const usuarioId=1;
+  const compraId = compraActual.cabecera.id;
   try{
-    await ntDelete(`${API}/${compraActual.cabecera.id}/detalles/${detalleId}?usuarioId=${usuarioId}`);
+    await ntDelete(`${API}/${compraId}/detalles/${detalleId}?usuarioId=${usuarioId}`);
     showToast('Línea eliminada', 'success', 'Éxito');
     pendingChanges = true;
-    await verCompra(compraActual.cabecera.id, true);
+
+    invalidateCompra(compraId);
+    await verCompra(compraId, true, true);
     await buscar();
   }catch(e){
     showToast(e.message || 'Error al eliminar línea', 'error', 'Error');
@@ -508,7 +532,9 @@ async function anularCompra(ev){
     showToast('Compra anulada', 'success', 'Éxito');
     pendingChanges = true;
     await mm.close();
-    await verCompra(compraId, true);
+
+    invalidateCompra(compraId);
+    await verCompra(compraId, true, true);
     await buscar();
   }catch(e){
     showToast(e.message || 'Error al anular', 'error', 'Error');
@@ -522,15 +548,20 @@ async function abrirSelectorModo(idCompra){
 }
 async function elegirEditarCabecera(){
   const id = toInt($('#modo_compraId').value);
-  await verCompra(id, false);
-  const c = compraActual.cabecera;
+  await verCompra(id, false, true);  // ⚠️ recarga forzada
 
+  const c = compraActual.cabecera;
   await cargarCatalogosUI({
     provId:   c.proveedorId || null,
     bodegaId: c.bodegaDestinoId || null,
     compId:   c.empleadoCompradorId || null,
     autoId:   c.empleadoAutorizaId || null
   });
+
+  ensureOption($('#cab_proveedorSel'), c.proveedorId, c.proveedorNombre);
+  ensureOption($('#cab_bodegaSel'), c.bodegaDestinoId, c.bodegaDestinoNombre);
+  ensureOption($('#cab_compradorSel'), c.empleadoCompradorId, c.empleadoCompradorNombre);
+  if (c.empleadoAutorizaId) ensureOption($('#cab_autorizaSel'), c.empleadoAutorizaId, c.empleadoAutorizaNombre);
 
   $('#cabeceraTitle').textContent = `Editar compra ${c.numeroCompra || ''}`;
   $('#cab_compraId').value = c.id;
@@ -540,11 +571,16 @@ async function elegirEditarCabecera(){
   $('#cab_fechaCompra').value = c.fechaCompra || '';
   $('#cab_observaciones').value = c.observaciones || '';
 
+  $('#cab_proveedorSel').value  = c.proveedorId || '';
+  $('#cab_bodegaSel').value     = c.bodegaDestinoId || '';
+  $('#cab_compradorSel').value  = c.empleadoCompradorId || '';
+  $('#cab_autorizaSel').value   = c.empleadoAutorizaId || '';
+
   await mm.replace('#mdlCabecera');
 }
 async function elegirMaestroDetalle(){
   const id = toInt($('#modo_compraId').value);
-  await verCompra(id, true);
+  await verCompra(id, true, true);   // ⚠️ recarga forzada
 }
 
 /* ====================== botón GUARDAR maestro–detalle ====================== */
@@ -588,9 +624,9 @@ function bind(){
   $('#tblCompras').addEventListener('click', async (e)=>{
     const b = e.target.closest('button'); if(!b) return;
     const id = toInt(b.dataset.id);
-    if (b.dataset.act==='ver'){ await verCompra(id, true); }
+    if (b.dataset.act==='ver'){ await verCompra(id, true, true); }   // ⚠️ fuerza recarga al abrir
     if (b.dataset.act==='modo'){ await abrirSelectorModo(id); }
-    if (b.dataset.act==='anular'){ await verCompra(id, false); abrirAnular(); }
+    if (b.dataset.act==='anular'){ await verCompra(id, false, true); abrirAnular(); }
   });
 
   // maestro–detalle
