@@ -91,7 +91,7 @@
   <!-- Topbar -->
   <header class="navbar nt-navbar">
     <div class="container">
-      <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="Dashboard.jsp" title="Ir al dashboard">
+      <a class="navbar-brand d-flex align-items-center gap-2 fw-bold">
         <i class="bi bi-bag-plus"></i> Nextech — Categorías
       </a>
       <div class="d-flex align-items-center gap-2">

@@ -81,7 +81,7 @@
   <!-- Navbar -->
   <header class="navbar nt-navbar">
     <div class="container d-flex align-items-center justify-content-between">
-      <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="Dashboard.jsp" title="Ir al dashboard">
+      <a class="navbar-brand d-flex align-items-center gap-2 fw-bold">
         <i class="bi bi-cash-stack"></i> NextTech — Simulador de Precios
       </a>
       <div class="d-flex align-items-center gap-2">

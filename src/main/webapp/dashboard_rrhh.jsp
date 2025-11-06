@@ -23,7 +23,7 @@
 
 <header class="navbar nt-navbar">
   <div class="container d-flex align-items-center justify-content-between">
-    <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="Dashboard.jsp">
+    <a class="navbar-brand fw-bold d-flex align-items-center gap-2">
       <i class="bi bi-people"></i> NextTech — RRHH
     </a>
     <div class="d-flex align-items-center gap-2">

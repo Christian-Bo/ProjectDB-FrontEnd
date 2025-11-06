@@ -92,7 +92,7 @@
   <!-- Header / Navbar -->
   <header class="navbar nt-navbar">
     <div class="container d-flex align-items-center justify-content-between">
-      <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="${pageContext.request.contextPath}/Dashboard.jsp" title="Ir al dashboard">
+      <a class="navbar-brand fw-bold d-flex align-items-center gap-2">
         <i class="bi bi-people"></i> NextTech — Clientes
       </a>
         <button type="button" class="btn btn-sm nt-back" onclick="goBack()" title="Regresar">

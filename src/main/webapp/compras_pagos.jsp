@@ -52,7 +52,7 @@
   <!-- Header -->
   <header class="navbar nt-navbar">
     <div class="container d-flex align-items-center justify-content-between">
-      <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="Dashboard.jsp" title="Ir al dashboard">
+      <a class="navbar-brand fw-bold d-flex align-items-center gap-2">
         <i class="bi bi-cash-coin"></i> Nextech — Pagos de Compras
       </a>
       <div class="d-flex align-items-center gap-2">

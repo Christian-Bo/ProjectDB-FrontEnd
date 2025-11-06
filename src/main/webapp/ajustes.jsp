@@ -91,7 +91,7 @@
   <!-- Topbar: marca a la izquierda y REGRESAR a la derecha (sin chip ni botón Salir) -->
   <header class="navbar nt-navbar">
     <div class="container-fluid">
-      <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="Dashboard.jsp" title="Ir al dashboard">
+      <a class="navbar-brand d-flex align-items-center gap-2 fw-bold">
         <i class="bi bi-sliders"></i> NextTech — Ajustes de Inventario
       </a>
       <div class="d-flex align-items-center gap-2">

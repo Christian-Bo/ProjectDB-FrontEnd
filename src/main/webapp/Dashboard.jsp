@@ -35,7 +35,7 @@
   <!-- Navbar mínima con botón Regresar -->
   <nav class="navbar nt-navbar shadow-sm">
     <div class="container d-flex align-items-center justify-content-between">
-      <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="Dashboard.jsp" title="Inicio">
+      <a class="navbar-brand fw-bold d-flex align-items-center gap-2"  title="Inicio">
         <i class="bi bi-boxes"></i> NextTech
       </a>
       <button type="button" class="btn btn-outline-light btn-sm" onclick="goBack()" title="Regresar">

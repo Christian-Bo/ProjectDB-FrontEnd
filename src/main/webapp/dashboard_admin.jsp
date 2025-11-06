@@ -35,7 +35,7 @@
 <!-- Header: SOLO en dashboards se muestra “Salir” -->
 <header class="navbar nt-navbar">
   <div class="container d-flex align-items-center justify-content-between">
-    <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="Dashboard.jsp" title="Inicio">
+    <a class="navbar-brand fw-bold d-flex align-items-center gap-2">
       <i class="bi bi-shield-lock"></i> NextTech — Admin
     </a>
     <div class="d-flex align-items-center gap-2">
