@@ -101,16 +101,6 @@
     </div>
 
     <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
-      <a class="card nt-card text-decoration-none h-100" href="simulador_de_precios.jsp">
-        <div class="card-body">
-          <div class="d-flex align-items-center mb-2"><i class="bi bi-calculator fs-3 me-2"></i><h5 class="card-title mb-0 nt-title">Simulador de Precios</h5></div>
-          <p class="card-text text-body-secondary small">Cálculo de precio final.</p>
-          <span class="badge bg-outline">Acceso</span>
-        </div>
-      </a>
-    </div>
-
-    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
       <a class="card nt-card text-decoration-none h-100" href="catalogos.jsp">
         <div class="card-body">
           <div class="d-flex align-items-center mb-2"><i class="bi bi-collection fs-3 me-2"></i><h5 class="card-title mb-0 nt-title">Catálogos</h5></div>

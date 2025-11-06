@@ -1,9 +1,4 @@
-/* 
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/JavaScript.js to edit this template
- */
-
-
+/* Puestos */
 (function (global) {
   const { baseUrl, http, showToast, loadDashboardKPIs, loadDepartamentosCatalog, loadPuestosCatalog } = global.NT;
 
@@ -39,8 +34,7 @@
     if (!sel) return;
     const list = await loadDepartamentosCatalog();
     if (!keepFirst) sel.innerHTML = '';
-    if (keepFirst) /* mantiene la opción existente */ 0;
-    else {
+    if (!keepFirst) {
       const op0 = document.createElement('option');
       op0.value = ''; op0.textContent = 'Departamento';
       sel.appendChild(op0);
@@ -65,8 +59,12 @@
         <td>${p.departamentoNombre || ''}</td>
         <td><span class="badge ${p.activo ? 'bg-success' : 'bg-secondary'}">${p.activo ? 'Activo' : 'Inactivo'}</span></td>
         <td class="text-end">
-          <button class="btn btn-sm btn-light me-2" data-edit-puesto="${p.id}">Editar</button>
-          <button class="btn btn-sm btn-danger" data-del-puesto="${p.id}">Eliminar</button>
+          <button class="btn btn-sm btn-icon btn-icon-light me-2" title="Editar" data-edit-puesto="${p.id}">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <button class="btn btn-sm btn-icon btn-icon-danger" title="Eliminar" data-del-puesto="${p.id}">
+            <i class="bi bi-x-lg"></i>
+          </button>
         </td>`;
       tbody.appendChild(tr);
     });
@@ -77,14 +75,18 @@
   function bindTabla() {
     const tbody = document.getElementById('puestosTableBody');
     if (!tbody) return;
+
     tbody.addEventListener('click', async (ev) => {
-      const editId = ev.target.getAttribute('data-edit-puesto');
-      const delId = ev.target.getAttribute('data-del-puesto');
-      if (editId) {
+      const editBtn = ev.target.closest('[data-edit-puesto]');
+      const delBtn  = ev.target.closest('[data-del-puesto]');
+
+      if (editBtn) {
+        const editId = editBtn.getAttribute('data-edit-puesto');
         await fillDeptoCombo('puestoDepto');
         const list = await loadPuestosCatalog();
         const p = list.find(x => String(x.id) === String(editId));
         if (!p) return showToast('Puestos', 'No encontrado', 'error');
+
         document.getElementById('puestoId').value = p.id;
         document.getElementById('puestoNombre').value = p.nombre || '';
         document.getElementById('puestoDepto').value = p.departamentoId || '';
@@ -92,7 +94,11 @@
         document.getElementById('puestoActivo').value = String(!!p.activo);
         document.getElementById('modalPuestoTitle').innerText = 'Editar puesto';
         ensureModal().show();
-      } else if (delId) {
+        return;
+      }
+
+      if (delBtn) {
+        const delId = delBtn.getAttribute('data-del-puesto');
         if (!confirm('¿Eliminar puesto?')) return;
         await http(`${baseUrl}/api/rrhh/puestos/${delId}`, { method: 'DELETE' });
         showToast('Puestos', 'Puesto eliminado', 'success');

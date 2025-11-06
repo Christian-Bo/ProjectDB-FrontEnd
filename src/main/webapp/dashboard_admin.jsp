@@ -59,9 +59,6 @@
   <div class="mb-2 section-title">Inventario y Logística</div>
   <div class="row g-3 mb-4" id="sec-inventario"></div>
 
-  <div class="mb-2 section-title">Finanzas</div>
-  <div class="row g-3 mb-4" id="sec-finanzas"></div>
-
   <div class="mb-2 section-title">Catálogos de Productos</div>
   <div class="row g-3 mb-4" id="sec-catalogos"></div>
 
@@ -92,9 +89,6 @@
     inventario: [
       { name:'Inventario',        href:'inventario.jsp',         icon:'bi-archive',          desc:'Stock, kardex y alertas.' },
       { name:'Bodegas',           href:'bodegas.jsp',            icon:'bi-building',         desc:'Catálogo de bodegas.' }
-    ],
-    finanzas: [
-      { name:'Simulador de Precios', href:'simulador_de_precios.jsp', icon:'bi-cash-stack',  desc:'Cálculo de precio final.' }
     ],
     catalogos: [
       { name:'Categorías',        href:'categorias.jsp',         icon:'bi-diagram-3',        desc:'Clasificación de productos.' },
@@ -137,7 +131,6 @@
 
   renderSection('sec-operaciones', SECCIONES.operaciones);
   renderSection('sec-inventario', SECCIONES.inventario);
-  renderSection('sec-finanzas',   SECCIONES.finanzas);
   renderSection('sec-catalogos',  SECCIONES.catalogos);
   renderSection('sec-rrhh',       SECCIONES.rrhh);
   renderSection('sec-utilidades', SECCIONES.utilidades);

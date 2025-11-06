@@ -1,16 +1,10 @@
-/* 
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/JavaScript.js to edit this template
- */
-
-
-
+/* Empleados */
 (function (global) {
   const { baseUrl, http, showToast, loadDashboardKPIs, loadDepartamentosCatalog, loadPuestosCatalog, loadEmpleadosPageForJefes, renderPagination } = global.NT;
 
   let empPage = 0, empSize = 10, empSort = 'id,desc';
 
-  // ====== UI binds ======
+  /* ====== UI binds ====== */
   function bindToolbar() {
     const btnBuscar = document.getElementById('btnEmpBuscar');
     if (btnBuscar) btnBuscar.addEventListener('click', () => { empPage = 0; loadEmpleados(); });
@@ -26,7 +20,7 @@
     if (btnNuevo) btnNuevo.addEventListener('click', openModalNuevo);
   }
 
-  // ====== Catálogos a selects ======
+  /* ====== Catálogos a selects ====== */
   function renderDeptosOptions(select, list, keepFirst = false) {
     if (!select) return;
     const prev = keepFirst ? select.innerHTML : '';
@@ -52,7 +46,7 @@
     });
   }
 
-  // ====== Cargar filtros iniciales ======
+  /* ====== Cargar filtros iniciales ====== */
   async function loadFiltros() {
     const deptos = await loadDepartamentosCatalog();
     renderDeptosOptions(document.getElementById('empDepto'), deptos, true);
@@ -74,7 +68,7 @@
     }
   }
 
-  // ====== Listado + paginación ======
+  /* ====== Listado + paginación ====== */
   async function loadEmpleados() {
     const q = (document.getElementById('empSearch')?.value || '').trim();
     const estado = document.getElementById('empEstado')?.value || '';
@@ -106,8 +100,12 @@
         <td>${e.departamentoNombre || ''}</td>
         <td><span class="badge ${stateCls}">${e.estado || ''}</span></td>
         <td class="text-end">
-          <button class="btn btn-sm btn-light me-2" data-edit-emp="${e.id}">Editar</button>
-          <button class="btn btn-sm btn-danger" data-del-emp="${e.id}">Eliminar</button>
+          <button class="btn btn-sm btn-icon btn-icon-light me-2" title="Editar" data-edit-emp="${e.id}">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <button class="btn btn-sm btn-icon btn-icon-danger" title="Eliminar" data-del-emp="${e.id}">
+            <i class="bi bi-x-lg"></i>
+          </button>
         </td>`;
       tbody.appendChild(tr);
     });
@@ -118,16 +116,22 @@
     renderPagination(document.getElementById('empPagination'), page.number, page.totalPages, (p) => { empPage = p; loadEmpleados(); });
   }
 
-  // ====== Delegación de acciones tabla ======
+  /* ====== Delegación tabla ====== */
   function bindTabla() {
     const tbody = document.getElementById('empTableBody');
     if (!tbody) return;
+
     tbody.addEventListener('click', async (ev) => {
-      const editId = ev.target.getAttribute('data-edit-emp');
-      const delId = ev.target.getAttribute('data-del-emp');
-      if (editId) {
+      const editBtn = ev.target.closest('[data-edit-emp]');
+      const delBtn  = ev.target.closest('[data-del-emp]');
+
+      if (editBtn) {
+        const editId = editBtn.getAttribute('data-edit-emp');
         await openModalEditar(editId);
-      } else if (delId) {
+        return;
+      }
+      if (delBtn) {
+        const delId = delBtn.getAttribute('data-del-emp');
         if (!confirm('¿Eliminar empleado?')) return;
         await http(`${baseUrl}/api/rrhh/empleados/${delId}`, { method: 'DELETE' });
         showToast('Empleados', 'Empleado eliminado', 'success');
@@ -137,7 +141,7 @@
     });
   }
 
-  // ====== Modal crear/editar ======
+  /* ====== Modal crear/editar ====== */
   let modalEmpleado;
   function ensureModal() {
     if (!modalEmpleado) modalEmpleado = new bootstrap.Modal('#modalEmpleado');
@@ -214,7 +218,7 @@
     });
   }
 
-  // ====== Init módulo ======
+  /* ====== Init ====== */
   async function initEmpleados() {
     bindToolbar();
     bindTabla();

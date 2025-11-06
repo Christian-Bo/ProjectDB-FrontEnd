@@ -39,10 +39,9 @@
   }
 
   async function loadEmpleadosLite() {
-    // Nota: usamos RRHH empleados paginado grande solo para poblar el select (mejor luego un endpoint /empleados/lite)
     const url = new URL('/api/rrhh/empleados', API_BASE);
     url.searchParams.set('page', '0');
-    url.searchParams.set('size', '200'); // ajusta si tienes muchos
+    url.searchParams.set('size', '200');
     url.searchParams.set('sort', 'nombres,asc');
 
     const resp = await fetch(url, { headers: headers() });
@@ -66,7 +65,7 @@
       rolSelect.innerHTML = `<option value="">Error al cargar roles</option>`;
       return;
     }
-    rolesCache = await resp.json(); // se espera [{id, nombre, ...}]
+    rolesCache = await resp.json();
     rolSelect.innerHTML = `<option value="">Seleccione…</option>` +
       rolesCache.map(r => `<option value="${r.id}">${r.nombre}</option>`).join('');
   }
@@ -96,8 +95,12 @@
         <td>${u.rolNombre ?? (u.rolId ? ('#'+u.rolId) : '')}</td>
         <td>${u.ultimoAcceso ?? ''}</td>
         <td class="text-end">
-          <button class="btn btn-sm btn-light me-1" data-act="edit" data-id="${u.id}">Editar</button>
-          <button class="btn btn-sm btn-danger" data-act="del" data-id="${u.id}">Inactivar</button>
+          <button class="btn btn-sm btn-icon btn-icon-light me-1" title="Editar" data-act="edit" data-id="${u.id}">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <button class="btn btn-sm btn-icon btn-icon-warning" title="Inactivar" data-act="del" data-id="${u.id}">
+            <i class="bi bi-x-lg"></i>
+          </button>
         </td>
       </tr>
     `).join('');
@@ -125,7 +128,7 @@
     pager.innerHTML = html;
   }
 
-  // Paginación click
+  // Paginación
   pager?.addEventListener('click', (e) => {
     const a = e.target.closest('a[data-go]');
     if (!a) return;
@@ -154,7 +157,6 @@
     password.value = '';
     estado.value = 'A';
 
-    // refrescar selects
     await Promise.all([loadEmpleadosLite(), loadRoles()]);
     empleadoSelect.value = '';
     rolSelect.value = '';
@@ -162,7 +164,7 @@
     modal?.show();
   });
 
-  // Editar / Inactivar (delegado)
+  // Editar / Inactivar (delegado con closest)
   tbody?.addEventListener('click', async (e) => {
     const btn = e.target.closest('button[data-act]');
     if (!btn) return;
@@ -190,7 +192,6 @@
       modal?.show();
 
     } else if (act === 'del') {
-      // ELIMINADO LÓGICO: marcar estado=I
       if (!confirm(`¿Inactivar usuario #${id}?`)) return;
       const url = new URL(`/api/seg/usuarios/${id}/estado`, API_BASE);
       const resp = await fetch(url, {
@@ -203,7 +204,7 @@
     }
   });
 
-  // Guardar (crear/actualizar)
+  // Guardar
   btnSave?.addEventListener('click', async () => {
     const id = userId.value ? parseInt(userId.value, 10) : null;
     const body = {

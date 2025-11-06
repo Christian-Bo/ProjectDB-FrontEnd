@@ -1,9 +1,4 @@
-/* 
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/JavaScript.js to edit this template
- */
-
-
+/* Departamentos */
 (function (global) {
   const { baseUrl, http, showToast, loadDashboardKPIs, loadDepartamentosCatalog } = global.NT;
   let modalDepto;
@@ -28,20 +23,30 @@
   function bindTabla() {
     const tbody = document.getElementById('deptoTableBody');
     if (!tbody) return;
+
     tbody.addEventListener('click', async (ev) => {
-      const editId = ev.target.getAttribute('data-edit-depto');
-      const delId = ev.target.getAttribute('data-del-depto');
-      if (editId) {
+      const editBtn = ev.target.closest('[data-edit-depto]');
+      const delBtn  = ev.target.closest('[data-del-depto]');
+
+      if (editBtn) {
+        const editId = editBtn.getAttribute('data-edit-depto');
         const list = await loadDepartamentosCatalog();
         const d = list.find(x => String(x.id) === String(editId));
         if (!d) return showToast('Departamentos', 'No encontrado', 'error');
+
         document.getElementById('deptoId').value = d.id;
         document.getElementById('deptoNombre').value = d.nombre || '';
         document.getElementById('deptoDesc').value = d.descripcion || '';
         document.getElementById('deptoActivo').value = String(!!d.activo);
         document.getElementById('modalDeptoTitle').innerText = 'Editar departamento';
         ensureModal().show();
-      } else if (delId) {
+        return;
+      }
+
+      if (delBtn) {
+        // Tu confirm bonito del JSP intercepta este click antes (capture:true).
+        // Si por alguna razón no carga, usamos confirm nativo como fallback.
+        const delId = delBtn.getAttribute('data-del-depto');
         if (!confirm('¿Eliminar departamento?')) return;
         await http(`${baseUrl}/api/rrhh/departamentos/${delId}`, { method: 'DELETE' });
         showToast('Departamentos', 'Departamento eliminado', 'success');
@@ -88,8 +93,12 @@
         <td>${d.descripcion || ''}</td>
         <td><span class="badge ${d.activo ? 'bg-success' : 'bg-secondary'}">${d.activo ? 'Activo' : 'Inactivo'}</span></td>
         <td class="text-end">
-          <button class="btn btn-sm btn-light me-2" data-edit-depto="${d.id}">Editar</button>
-          <button class="btn btn-sm btn-danger" data-del-depto="${d.id}">Eliminar</button>
+          <button class="btn btn-sm btn-icon btn-icon-light me-2" title="Editar" data-edit-depto="${d.id}">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <button class="btn btn-sm btn-icon btn-icon-danger" title="Eliminar" data-del-depto="${d.id}">
+            <i class="bi bi-x-lg"></i>
+          </button>
         </td>`;
       tbody.appendChild(tr);
     });

@@ -18,6 +18,33 @@
   <link rel="stylesheet" href="assets/css/app.css?v=1">
 
   <style>
+      /* === Botones iconográficos para acciones === */
+    .btn-icon{
+      display:inline-flex; align-items:center; justify-content:center;
+      width:32px; height:32px; padding:0; border-radius:.5rem;
+    }
+    .btn-icon.btn-sm{ width:28px; height:28px; }
+
+    .btn-icon-light{
+      background: var(--nt-surface-2); border:1px solid var(--nt-border);
+      color: var(--nt-primary);
+    }
+    .btn-icon-light:hover{ background:#1f2434; color:#fff; }
+
+    .btn-icon-danger{
+      background: rgba(239,71,111,.12);
+      border:1px solid var(--nt-danger);
+      color: #ffdbe4;
+    }
+    .btn-icon-danger:hover{ background: rgba(239,71,111,.2); color:#fff; }
+
+    .btn-icon-warning{
+      background: rgba(247,184,1,.12);
+      border:1px solid var(--nt-warning);
+      color: #ffe9a8;
+    }
+    .btn-icon-warning:hover{ background: rgba(247,184,1,.2); color:#111; }
+
     /* Layout base */
     html, body { height: 100%; }
     body.nt-bg { min-height: 100vh; display: flex; flex-direction: column; }
@@ -413,10 +440,10 @@
   <!-- ===== /UI Bonita ===== -->
 
   <!-- Módulos (los tuyos) -->
-  <script src="assets/js/empleados.js"></script>
-  <script src="assets/js/puestos.js"></script>
-  <script src="assets/js/departamentos.js"></script>
-  <script src="assets/js/usuarios.js"></script>
+  <script src="assets/js/empleados.js?v=3"></script>
+  <script src="assets/js/puestos.js?v=3"></script>
+  <script src="assets/js/departamentos.js?v=3"></script>
+  <script src="assets/js/usuarios.js?v=3"></script>
 
   <!-- Arranque -->
   <script src="assets/js/init.js"></script>
