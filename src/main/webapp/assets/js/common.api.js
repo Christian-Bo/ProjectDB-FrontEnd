@@ -8,7 +8,9 @@
 
 const API = {
   // Si guardaste un api_base en localStorage, úsalo; si no, relativo al mismo host
-  baseUrl: (localStorage.getItem('api_base') || ''),
+    baseUrl: (localStorage.getItem('api_base') 
+    || (document.querySelector('meta[name="api-base"]')?.getAttribute('content')?.trim() || '')),
+
 
   // (Compat) Si algún SP aún lee esta cabecera:
   userId: 1,

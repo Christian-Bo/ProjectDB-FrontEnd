@@ -13,8 +13,7 @@
       const meta = document.querySelector('meta[name="api-base"]');
       const fromMeta = meta?.getAttribute('content')?.trim() || '';
       const fromLS   = localStorage.getItem('api_base') || '';
-      // Respeta global.BACKEND_BASE si lo definiste en otro lado
-      global.BACKEND_BASE = (global.BACKEND_BASE || fromMeta || fromLS || 'http://localhost:8080').replace(/\/$/, '');
+      global.BACKEND_BASE = (global.BACKEND_BASE || fromLS || fromMeta || 'http://localhost:8080').replace(/\/$/, '');
     } catch {
       global.BACKEND_BASE = 'http://localhost:8080';
     }

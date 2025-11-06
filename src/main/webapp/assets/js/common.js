@@ -9,9 +9,13 @@
   const meta = document.querySelector('meta[name="api-base"]');
   const fromMeta = meta?.getAttribute('content')?.trim() || '';
   const fromLS   = localStorage.getItem('api_base') || '';
-  window.API_BASE = fromMeta || fromLS || '';
+
+  // Prioriza localStorage; luego meta; si no, vacío
+  window.API_BASE = fromLS || fromMeta || '';
+
   console.log('[common] API_BASE =', window.API_BASE || '(relativo)');
 })();
+
 
 /* ============= NUEVO: helpers de contexto + fallbacks ============= */
 function __ctxPath(){
