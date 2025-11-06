@@ -1,0 +1,6 @@
+.git/
+.gitignore
+*.iml
+.idea/
+.DS_Store
+target/       # (con multietapa puedes ignorar target sin problema)
