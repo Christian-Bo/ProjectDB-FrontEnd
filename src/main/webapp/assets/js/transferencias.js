@@ -357,15 +357,26 @@
       return;
     }
 
-    const data = {
-      numeroTransferencia: document.getElementById('crear_numero').value.trim(),
-      fechaTransferencia:  document.getElementById('crear_fecha').value,
-      bodegaOrigenId:      parseInt(document.getElementById('crear_bodega_origen').value),
-      bodegaDestinoId:     parseInt(document.getElementById('crear_bodega_destino').value),
-      solicitadoPor:       parseInt(document.getElementById('crear_solicitado').value),
-      observaciones:       document.getElementById('crear_observaciones').value.trim() || null,
-      detalles: []
-    };
+    // Leer valores
+const solicitadoInput = document.getElementById('crear_solicitado');
+const solicitadoValue = solicitadoInput ? solicitadoInput.value : null;
+const solicitadoInt = parseInt(solicitadoValue);
+
+console.log('🔍 DEBUG solicitanteId:');
+console.log('   Input element:', solicitadoInput);
+console.log('   Value from input:', solicitadoValue);
+console.log('   ParseInt result:', solicitadoInt);
+console.log('   IsNaN:', isNaN(solicitadoInt));
+
+const data = {
+  numeroTransferencia: document.getElementById('crear_numero').value.trim(),
+  fechaTransferencia:  document.getElementById('crear_fecha').value,
+  bodegaOrigenId:      parseInt(document.getElementById('crear_bodega_origen').value),
+  bodegaDestinoId:     parseInt(document.getElementById('crear_bodega_destino').value),
+  solicitanteId:       isNaN(solicitadoInt) ? 1 : solicitadoInt,  // ← FIX: Si es NaN, usa 1
+  observaciones:       document.getElementById('crear_observaciones').value.trim() || null,
+  detalles: []
+};
 
     if (data.bodegaOrigenId === data.bodegaDestinoId) {
       showToast('La bodega origen y destino deben ser diferentes', 'warning');
@@ -388,12 +399,12 @@
       showToast('Debe agregar al menos un producto', 'warning');
       return;
     }
-
-    try {
+        try {
+      console.log('📤 Enviando al backend:', JSON.stringify(data, null, 2));
       const result = await httpSend('POST', API_URL, data);
       if (result && result.success === false) {
-        throw new Error(result.message || 'Error al crear la transferencia');
-      }
+  throw new Error(result.message || 'Error al crear la transferencia');
+}
       showToast(result?.message || 'Transferencia creada exitosamente', 'success');
       mdlCrear.hide();
       cargarTransferencias();

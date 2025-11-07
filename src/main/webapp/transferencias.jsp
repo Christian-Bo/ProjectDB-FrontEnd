@@ -318,6 +318,6 @@
   </script>
 
   <!-- Lógica de transferencias -->
-  <script src="assets/js/transferencias.js?v=18"></script>
+  <script src="assets/js/transferencias.js?v=99"></script>
 </body>
 </html>
