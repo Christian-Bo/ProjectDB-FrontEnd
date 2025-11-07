@@ -11,7 +11,7 @@
   <meta charset="UTF-8">
   <title>Facturas | NextTech</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="api-base" content="http://localhost:8080">
+  <meta name="api-base" content="https://nexttech-backend-jw9h.onrender.com">
 
   <!-- Bootstrap + Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
