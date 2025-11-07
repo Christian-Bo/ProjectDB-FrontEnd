@@ -70,6 +70,14 @@ class ModalManager{
 }
 const mm = new ModalManager();
 
+/* 🔒 Cierre forzado por si Bootstrap se queda con backdrops o instancias “huérfanas” */
+function closeAllModals(){
+  const opened = $$('.modal.show');
+  opened.forEach(el => bootstrap.Modal.getInstance(el)?.hide());
+  setTimeout(()=> { $$('.modal-backdrop').forEach(b=>b.remove()); }, 50);
+  mm.current = null;
+}
+
 /* ====================== estado ====================== */
 let compras=[], compraActual=null;
 let pendingChanges = false;
@@ -263,6 +271,17 @@ async function autofillProducto(tr, productoId, bodegaId){
   }
 }
 
+/* 🔁 Refresca las insignias de stock en las filas con producto (post-op) */
+async function refreshStockBadges(){
+  const bId = $('#cab_bodegaSel')?.value || null;
+  // detalle nuevo (crear)
+  await Promise.all($$('#tblDetalleNuevo tbody tr').map(async tr=>{
+    const pid = tr.querySelector('.inp-productoId')?.value || tr.querySelector('select.prod-select')?.value;
+    if (pid) await autofillProducto(tr, pid, bId);
+  }));
+  // detalle existente (vista maestro–detalle): no muestra meta-stock por defecto, se omite
+}
+
 /* ===== Compat: addLinea / recolectarDetalle ==== */
 function addLinea(tbodySel){
   const tplId = (tbodySel.includes('Agregar')) ? '#tplFilaDetalleAgregar' : '#tplFilaDetalleNuevo';
@@ -341,10 +360,12 @@ async function guardarCabecera(ev){
     if(creando){
       const id = await ntPost(API, { ...base, detalle });
       showToast(`Compra creada #${id}`, 'success', 'Éxito');
-      await mm.close();
+      // cierre y refrescos
+      closeAllModals();
       invalidateCompra(id);
       await buscar();
       await verCompra(id, true, true);
+      await refreshStockBadges();
     }else{
       const idNum = toInt(compraId);
       if (!compraActual || compraActual?.cabecera?.id !== idNum){
@@ -355,19 +376,20 @@ async function guardarCabecera(ev){
 
       const put = {
         ...base,
-        ...totals,          // subtotal, descuentoGeneral, iva, total — no usados por el DTO en backend, pero inofensivos
+        ...totals,          // info inofensiva para el backend
         compraId: idNum
       };
 
       await ntPut(`${API}/${idNum}/cabecera`, put);
       showToast('Cabecera actualizada', 'success', 'Éxito');
       pendingChanges = true;
-      await mm.close();
+      closeAllModals();
 
       // 🔥 refrescar datos: invalidar caché y traer del backend
       invalidateCompra(idNum);
       await verCompra(idNum, true, true);
       await buscar();
+      await refreshStockBadges();
     }
   }catch(e){
     showToast(e.message || 'Error al guardar cabecera', 'error', 'Error');
@@ -442,11 +464,12 @@ async function guardarLineas(ev){
     await ntPost(`${API}/${compraId}/detalles?usuarioId=${usuarioId}`, detalle);
     showToast('Líneas agregadas', 'success', 'Éxito');
     pendingChanges = true;
-    await mm.close();
+    closeAllModals();
 
     invalidateCompra(compraId);
     await verCompra(compraId, true, true);
     await buscar();
+    await refreshStockBadges();
   }catch(e){
     showToast(e.message || 'Error al agregar líneas', 'error', 'Error');
   }
@@ -484,11 +507,12 @@ async function guardarLinea(ev){
     await ntPut(`${API}/${compraId}/detalles/${detalleId}`, payload);
     showToast('Línea actualizada', 'success', 'Éxito');
     pendingChanges = true;
-    await mm.close();
+    closeAllModals();
 
     invalidateCompra(compraId);
     await verCompra(compraId, true, true);
     await buscar();
+    await refreshStockBadges();
   }catch(e){
     showToast(e.message || 'Error al editar línea', 'error', 'Error');
   }
@@ -508,6 +532,7 @@ async function eliminarLinea(detalleId){
     invalidateCompra(compraId);
     await verCompra(compraId, true, true);
     await buscar();
+    await refreshStockBadges();
   }catch(e){
     showToast(e.message || 'Error al eliminar línea', 'error', 'Error');
   }
@@ -531,11 +556,12 @@ async function anularCompra(ev){
     await ntPost(`${API}/${compraId}/anular`, { usuarioId, compraId, motivo });
     showToast('Compra anulada', 'success', 'Éxito');
     pendingChanges = true;
-    await mm.close();
+    closeAllModals();
 
     invalidateCompra(compraId);
     await verCompra(compraId, true, true);
     await buscar();
+    await refreshStockBadges();
   }catch(e){
     showToast(e.message || 'Error al anular', 'error', 'Error');
   }
@@ -588,7 +614,7 @@ async function guardarMaster(){
   if (pendingChanges){
     pendingChanges = false;
     await buscar();
-    await mm.close();
+    closeAllModals();
     showToast('Cambios guardados', 'success', 'Compras');
   }else{
     showToast('No hay cambios pendientes', 'info', 'Compras');
