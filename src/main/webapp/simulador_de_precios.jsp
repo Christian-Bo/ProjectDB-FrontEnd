@@ -7,7 +7,7 @@
   <title>NextTech • Simulador de Precios</title>
 
   <!-- Base del API -->
-  <meta name="api-base" content="http://localhost:8080" />
+  <meta name="api-base" content="https://nexttech-backend-jw9h.onrender.com">
 
   <!-- Bootstrap + Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">

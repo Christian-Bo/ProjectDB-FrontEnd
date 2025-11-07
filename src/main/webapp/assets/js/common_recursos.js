@@ -5,19 +5,26 @@
  */
 
 (function (global) {
-  /* =========================
-   *   BASE DEL BACKEND
-   * ========================= */
-  (function resolveBase() {
-    try {
-      const meta = document.querySelector('meta[name="api-base"]');
-      const fromMeta = meta?.getAttribute('content')?.trim() || '';
-      const fromLS   = localStorage.getItem('api_base') || '';
-      global.BACKEND_BASE = (global.BACKEND_BASE || fromLS || fromMeta || 'http://localhost:8080').replace(/\/$/, '');
-    } catch {
-      global.BACKEND_BASE = 'http://localhost:8080';
-    }
-  })();
+/* =========================
+ *   BASE DEL BACKEND
+ * ========================= */
+    (function resolveBase() {
+      try {
+        const meta = document.querySelector('meta[name="api-base"]');
+        const fromMeta = meta?.getAttribute('content')?.trim() || '';
+        const fromLS   = localStorage.getItem('api_base') || '';
+
+        // Prioriza META (deploy) y luego LS (dev). 
+        // Si estás en Koyeb, evita default localhost.
+        const isKoyeb = /\.koyeb\.app$/i.test(location.hostname);
+        const chosen = fromMeta || fromLS || (isKoyeb ? '' : 'http://localhost:8080');
+
+        window.BACKEND_BASE = String(chosen).replace(/\/$/, '');
+      } catch {
+        window.BACKEND_BASE = 'http://localhost:8080';
+      }
+    })();
+
 
   // Base local para exportar en NT
   const baseUrl = global.BACKEND_BASE;

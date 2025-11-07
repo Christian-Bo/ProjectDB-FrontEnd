@@ -7,21 +7,20 @@
  */
 
 const API = {
-  // Si guardaste un api_base en localStorage, úsalo; si no, relativo al mismo host
-    baseUrl: (localStorage.getItem('api_base') 
-    || (document.querySelector('meta[name="api-base"]')?.getAttribute('content')?.trim() || '')),
-
-
-  // (Compat) Si algún SP aún lee esta cabecera:
+  // Prioriza <meta api-base>, luego localStorage
+  baseUrl: (
+    document.querySelector('meta[name="api-base"]')?.getAttribute('content')?.trim()
+    || localStorage.getItem('api_base')
+    || ''
+  ),
   userId: 1,
-
-  // Atajos convenientes
   get: (path, params = {}) => apiGet(path, params),
   post: (path, body) => apiSend('POST', path, body),
   put: (path, body) => apiSend('PUT', path, body),
   patch: (path, body) => apiSend('PATCH', path, body),
   delete: (path) => apiDelete(path)
 };
+
 
 /* =========================
  *   Sesión / Headers

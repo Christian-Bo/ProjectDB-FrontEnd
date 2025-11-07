@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>NextTech • Inventario</title>
 
-  <meta name="api-base" content="http://localhost:8080" />
+  <meta name="api-base" content="https://nexttech-backend-jw9h.onrender.com">
 
   <!-- Bootstrap + Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -296,7 +296,7 @@
 
   <!-- JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="assets/js/common.js?v=11"></script>
+  <script src="assets/js/common.js?v=19"></script>
   <script src="assets/js/inventario.js?v=13"></script>
 </body>
 </html>

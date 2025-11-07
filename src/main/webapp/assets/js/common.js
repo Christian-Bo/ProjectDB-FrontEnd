@@ -5,16 +5,18 @@
  * ========================================================== */
 
 /* ---------------- API BASE ---------------- */
+/* ---------------- API BASE ---------------- */
 (function resolveApiBase(){
   const meta = document.querySelector('meta[name="api-base"]');
   const fromMeta = meta?.getAttribute('content')?.trim() || '';
   const fromLS   = localStorage.getItem('api_base') || '';
 
-  // Prioriza localStorage; luego meta; si no, vacío
-  window.API_BASE = fromLS || fromMeta || '';
+  // Prioriza META (más confiable en deploy), luego LS
+  window.API_BASE = fromMeta || fromLS || '';
 
   console.log('[common] API_BASE =', window.API_BASE || '(relativo)');
 })();
+
 
 
 /* ============= NUEVO: helpers de contexto + fallbacks ============= */

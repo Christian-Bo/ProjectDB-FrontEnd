@@ -13,7 +13,7 @@
   <title>Nextech — Pagos de Compras</title>
 
   <!-- Base del backend -->
-  <meta name="api-base" content="http://localhost:8080">
+  <meta name="api-base" content="https://nexttech-backend-jw9h.onrender.com">
 
   <!-- Bootstrap + Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -211,7 +211,7 @@
 
   <!-- JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="assets/js/common.js?v=13"></script>
+  <script src="assets/js/common.js?v=19"></script>
 
   <!-- Sincroniza API.baseUrl -->
   <script>

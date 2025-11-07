@@ -81,7 +81,7 @@
   <!-- Header -->
   <header class="navbar nt-navbar">
     <div class="container d-flex align-items-center justify-content-between">
-      <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="javascript:void(0)">
+      <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="#">
         <i class="bi bi-receipt"></i>NextTech — Facturas
       </a>
       <div class="d-flex align-items-center gap-2">

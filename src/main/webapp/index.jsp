@@ -240,7 +240,7 @@
 </main>
 
 <!-- Helpers -->
-<script src="assets/js/common.api.js"></script>
+<script src="assets/js/common.api.js?v=19"></script>
 <script src="assets/js/auth.guard.js"></script>
 
 <script>
@@ -254,7 +254,8 @@
 
   // Fijar base del API al backend en 8080 (override por localStorage.api_base si existe)
   (function configureApiBase(){
-    API.baseUrl = localStorage.getItem('api_base') || 'http://localhost:8080';
+    API.baseUrl = localStorage.getItem('api_base') || 'https://nexttech-backend-jw9h.onrender.com';
+
   })();
 
   // util toast local (alert dentro del formulario)
