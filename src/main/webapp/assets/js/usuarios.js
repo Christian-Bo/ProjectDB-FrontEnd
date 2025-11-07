@@ -1,5 +1,5 @@
 (() => {
-  const API_BASE = localStorage.getItem('api_base') || 'http://localhost:8080';
+  const API_BASE = localStorage.getItem('api_base') || 'https://nexttech-backend-jw9h.onrender.com';
   const AUTH_TOKEN = localStorage.getItem('auth_token') || '';
 
   // --- elementos
